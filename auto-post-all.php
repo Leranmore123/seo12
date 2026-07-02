@@ -69,10 +69,11 @@ foreach ($byPlatform as $platform => $platformAccounts) {
         foreach ($batch as $idx => $creds) {
             // Each account posts in its own PHP request to avoid state conflicts
             $url = SITE_URL . '/auto-poster.php?' . http_build_query([
-                'id'       => $projectId,
-                'platform' => $platform,
-                '_account' => $creds['id'], // pass specific account ID
-                'keyword'  => $_GET['keyword'] ?? '', // Forward custom keyword if selected
+                'id'          => $projectId,
+                'platform'    => $platform,
+                '_account'    => $creds['id'], // pass specific account ID
+                'keyword'     => $_GET['keyword'] ?? '', // Forward custom keyword if selected
+                'target_site' => $_GET['target_site'] ?? '', // Forward custom target site if selected
             ]);
 
             $ch = curl_init($url);

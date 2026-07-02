@@ -3425,7 +3425,7 @@ function postToPowerShow($username, $password, $keyword, $targetSite, $openaiKey
 // ============================================================
 function runPlatformAutoPost(string $platform, array $creds, array $project, int $projectId): array {
     $keyword   = !empty($_GET['keyword']) ? clean($_GET['keyword']) : $project['target_keyword'];
-    $site      = $project['target_site'] ?: $project['website_url'];
+    $site      = !empty($_GET['target_site']) ? clean($_GET['target_site']) : ($project['target_site'] ?: $project['website_url']);
     $apiKey    = $creds['api_key'] ?? '';
     $apiSecret = $creds['api_secret'] ?? '';
     $username  = $creds['username'] ?? '';

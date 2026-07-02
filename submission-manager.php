@@ -19,6 +19,20 @@ try {
     $db->exec("ALTER TABLE backlinks ADD COLUMN last_checked_at DATETIME DEFAULT NULL");
 } catch (PDOException $e) {}
 
+// Handle AJAX keyword / target site url updates
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_project_targets'])) {
+    header('Content-Type: application/json');
+    $pId = (int)($_POST['project_id'] ?? 0);
+    $targetKeywords = trim($_POST['target_keywords'] ?? '');
+    $targetSites = trim($_POST['target_sites'] ?? '');
+
+    $upd = $db->prepare("UPDATE projects SET target_keyword = ?, target_site = ? WHERE id = ? AND user_id = ?");
+    $upd->execute([$targetKeywords, $targetSites, $pId, $userId]);
+
+    echo json_encode(['success' => true]);
+    exit;
+}
+
 
 // ============================================================
 // WordPress.com OAuth2 Callback — auto-save token
@@ -529,19 +543,71 @@ $platforms = [
   if (empty($keywordsList)) {
       $keywordsList = ['SEO Services'];
   }
+  $targetSitesList = array_filter(array_map('trim', explode(',', $project['target_site'] ?: $project['website_url'])));
+  if (empty($targetSitesList)) {
+      $targetSitesList = [$project['website_url']];
+  }
+  $currentKeyword = $_GET['keyword'] ?? $keywordsList[0] ?? '';
+  $currentTargetSite = $_GET['target_site'] ?? $targetSitesList[0] ?? '';
   ?>
-  <!-- Keyword Selector for Auto-Post -->
+  <!-- Keyword & Target Page URL Selectors for Auto-Post -->
   <div class="card mb-3 border-info shadow-sm bg-light">
-    <div class="card-body py-2 px-3 d-flex align-items-center flex-wrap gap-2">
-      <strong class="small text-muted mb-0"><i class="fas fa-key me-1"></i> Select Keyword for Auto-Post:</strong>
-      <?php
-      $currentKeyword = $_GET['keyword'] ?? $keywordsList[0] ?? '';
-      ?>
-      <select id="backlinkKeywordSelect" class="form-select form-select-sm" style="width: auto; min-width: 250px;" onchange="location.href='submission-manager.php?project_id=<?= $selectedProjectId ?>&keyword='+encodeURIComponent(this.value)">
-        <?php foreach ($keywordsList as $kw): ?>
-          <option value="<?= htmlspecialchars($kw, ENT_QUOTES, 'UTF-8') ?>" <?= $currentKeyword === $kw ? 'selected' : '' ?>><?= htmlspecialchars($kw) ?></option>
-        <?php endforeach; ?>
-      </select>
+    <div class="card-body py-2 px-3 d-flex align-items-center flex-wrap gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <strong class="small text-muted mb-0"><i class="fas fa-key me-1"></i> Select Keyword for Auto-Post:</strong>
+        <select id="backlinkKeywordSelect" class="form-select form-select-sm" style="width: auto; min-width: 250px;" onchange="updateAutoPostSelection()">
+          <?php foreach ($keywordsList as $kw): ?>
+            <option value="<?= htmlspecialchars($kw, ENT_QUOTES, 'UTF-8') ?>" <?= $currentKeyword === $kw ? 'selected' : '' ?>><?= htmlspecialchars($kw) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <strong class="small text-muted mb-0"><i class="fas fa-link me-1"></i> Select Target Page URL:</strong>
+        <select id="backlinkUrlSelect" class="form-select form-select-sm" style="width: auto; min-width: 320px;" onchange="updateAutoPostSelection()">
+          <?php foreach ($targetSitesList as $url): ?>
+            <option value="<?= htmlspecialchars($url, ENT_QUOTES, 'UTF-8') ?>" <?= $currentTargetSite === $url ? 'selected' : '' ?>><?= htmlspecialchars($url) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <button class="btn btn-sm btn-outline-secondary ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#manageTargetsPanel">
+        <i class="fas fa-edit me-1"></i>Edit Lists
+      </button>
+    </div>
+  </div>
+
+  <!-- Manage Keywords & Target URLs Collapse Panel -->
+  <div class="collapse mb-4" id="manageTargetsPanel">
+    <div class="card border-info shadow-sm">
+      <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="fas fa-tasks me-2"></i>Manage Keywords & Target Page URLs</h6>
+        <small class="text-white-50">Changes are auto-saved to your project profile</small>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <!-- Keywords Column -->
+          <div class="col-md-6 border-end">
+            <h6 class="fw-bold text-secondary mb-2"><i class="fas fa-key me-1"></i> Keywords List</h6>
+            <div id="managerKeywordsContainer" class="d-flex flex-wrap gap-2 mb-3">
+              <!-- rendered via JS badge list -->
+            </div>
+            <div class="input-group input-group-sm">
+              <input type="text" id="managerKeywordInput" class="form-control" placeholder="Add new keyword">
+              <button class="btn btn-primary" type="button" onclick="managerAddKeyword()">Add</button>
+            </div>
+          </div>
+          <!-- Target Page URLs Column -->
+          <div class="col-md-6">
+            <h6 class="fw-bold text-secondary mb-2"><i class="fas fa-link me-1"></i> Target Page URLs</h6>
+            <div id="managerSitesContainer" class="d-flex flex-wrap gap-2 mb-3">
+              <!-- rendered via JS badge list -->
+            </div>
+            <div class="input-group input-group-sm">
+              <input type="url" id="managerSiteInput" class="form-control" placeholder="Add new URL (https://...)">
+              <button class="btn btn-info text-white" type="button" onclick="managerAddSite()">Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1215,6 +1281,12 @@ function showCredForm(platformId, platformName, projectId) {
   new bootstrap.Modal(document.getElementById('credModal')).show();
 }
 
+function updateAutoPostSelection() {
+  const kw = document.getElementById('backlinkKeywordSelect').value;
+  const site = document.getElementById('backlinkUrlSelect').value;
+  location.href = 'submission-manager.php?project_id=' + PROJECT_ID + '&keyword=' + encodeURIComponent(kw) + '&target_site=' + encodeURIComponent(site);
+}
+
 function autoPost(platformId, platformName, projectId) {
   autoPostAll(platformId, platformName, projectId);
 }
@@ -1227,7 +1299,9 @@ function autoPostAll(platformId, platformName, projectId) {
 
   const kwSelect = document.getElementById('backlinkKeywordSelect');
   const kw = kwSelect ? encodeURIComponent(kwSelect.value) : '';
-  fetch('auto-poster.php?id=' + projectId + '&platform=' + platformId + '&all_accounts=1&keyword=' + kw, {
+  const siteSelect = document.getElementById('backlinkUrlSelect');
+  const siteUrl = siteSelect ? encodeURIComponent(siteSelect.value) : '';
+  fetch('auto-poster.php?id=' + projectId + '&platform=' + platformId + '&all_accounts=1&keyword=' + kw + '&target_site=' + siteUrl, {
     signal: AbortSignal.timeout(300000),
     credentials: 'same-origin',
     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
@@ -1286,7 +1360,9 @@ function bulkBlueskyPost(projectId) {
 
   const kwSelect = document.getElementById('backlinkKeywordSelect');
   const kw = kwSelect ? encodeURIComponent(kwSelect.value) : '';
-  fetch('auto-post-all.php?id=' + projectId + '&platform=bluesky&keyword=' + kw, {
+  const siteSelect = document.getElementById('backlinkUrlSelect');
+  const siteUrl = siteSelect ? encodeURIComponent(siteSelect.value) : '';
+  fetch('auto-post-all.php?id=' + projectId + '&platform=bluesky&keyword=' + kw + '&target_site=' + siteUrl, {
     signal: AbortSignal.timeout(600000), // 10 minute timeout for 50 accounts
     credentials: 'same-origin',
     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
@@ -1519,6 +1595,131 @@ function verifySingleLink(blId, btn) {
       btn.innerHTML = originalHtml;
       alert('Network error verifying link: ' + err.message);
     });
+}
+
+// Manager Arrays
+let managerKeywords = <?= json_encode(array_filter(array_map('trim', explode(',', $project['target_keyword'])))) ?>;
+let managerSites = <?= json_encode(array_filter(array_map('trim', explode(',', $project['target_site'])))) ?>;
+
+document.addEventListener("DOMContentLoaded", () => {
+  renderManagerKeywords();
+  renderManagerSites();
+
+  // Bind Enter key inside target list manager inputs
+  document.getElementById('managerKeywordInput')?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      managerAddKeyword();
+    }
+  });
+  document.getElementById('managerSiteInput')?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      managerAddSite();
+    }
+  });
+});
+
+function renderManagerKeywords() {
+  const container = document.getElementById('managerKeywordsContainer');
+  if (!container) return;
+  container.innerHTML = '';
+  if (managerKeywords.length === 0) {
+    container.innerHTML = '<span class="text-muted small">No keywords added yet.</span>';
+  }
+  managerKeywords.forEach(kw => {
+    const badge = document.createElement('span');
+    badge.className = 'badge bg-primary text-white d-inline-flex align-items-center gap-2 py-2 px-3 rounded-pill';
+    badge.innerHTML = `<span>${escapeHTML(kw)}</span><button type="button" class="btn-close btn-close-white" style="font-size:0.65rem;" onclick="managerRemoveKeyword('${escapeHTML(kw)}')"></button>`;
+    container.appendChild(badge);
+  });
+}
+
+function renderManagerSites() {
+  const container = document.getElementById('managerSitesContainer');
+  if (!container) return;
+  container.innerHTML = '';
+  if (managerSites.length === 0) {
+    container.innerHTML = '<span class="text-muted small">No target URLs added yet.</span>';
+  }
+  managerSites.forEach(site => {
+    const badge = document.createElement('span');
+    badge.className = 'badge bg-info text-white d-inline-flex align-items-center gap-2 py-2 px-3 rounded-pill';
+    badge.innerHTML = `<span>${escapeHTML(site)}</span><button type="button" class="btn-close btn-close-white" style="font-size:0.65rem;" onclick="managerRemoveSite('${escapeHTML(site)}')"></button>`;
+    container.appendChild(badge);
+  });
+}
+
+function saveManagerChanges() {
+  const fd = new FormData();
+  fd.append('update_project_targets', '1');
+  fd.append('project_id', PROJECT_ID);
+  fd.append('target_keywords', managerKeywords.join(', '));
+  fd.append('target_sites', managerSites.join(', '));
+  fd.append('csrf_token', '<?= csrfToken() ?>');
+
+  fetch('submission-manager.php', {
+    method: 'POST',
+    credentials: 'same-origin',
+    body: fd
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      // Reload page with selected parameters preserved
+      const currentKeyword = document.getElementById('backlinkKeywordSelect').value;
+      const currentSite = document.getElementById('backlinkUrlSelect').value;
+      location.href = 'submission-manager.php?project_id=' + PROJECT_ID + '&keyword=' + encodeURIComponent(currentKeyword) + '&target_site=' + encodeURIComponent(currentSite);
+    } else {
+      alert('Error updating lists: ' + data.error);
+    }
+  });
+}
+
+function managerAddKeyword() {
+  const input = document.getElementById('managerKeywordInput');
+  if (!input) return;
+  const val = input.value.trim();
+  if (val && !managerKeywords.includes(val)) {
+    managerKeywords.push(val);
+    input.value = '';
+    renderManagerKeywords();
+    saveManagerChanges();
+  }
+}
+
+function managerRemoveKeyword(kw) {
+  managerKeywords = managerKeywords.filter(k => k !== kw);
+  renderManagerKeywords();
+  saveManagerChanges();
+}
+
+function managerAddSite() {
+  const input = document.getElementById('managerSiteInput');
+  if (!input) return;
+  const val = input.value.trim();
+  if (val) {
+    if (!val.startsWith('http://') && !val.startsWith('https://')) {
+      alert('Please enter a valid URL starting with http:// or https://');
+      return;
+    }
+    if (!managerSites.includes(val)) {
+      managerSites.push(val);
+      input.value = '';
+      renderManagerSites();
+      saveManagerChanges();
+    }
+  }
+}
+
+function managerRemoveSite(site) {
+  managerSites = managerSites.filter(s => s !== site);
+  renderManagerSites();
+  saveManagerChanges();
+}
+
+function escapeHTML(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 </script>
 </body>

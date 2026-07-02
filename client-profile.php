@@ -825,11 +825,21 @@ if (empty($brokenLinks)) {
         <div class="row g-2">
           <div class="col-md-6 mb-3">
             <label class="form-label fw-bold">Target Keyword <span class="text-danger">*</span></label>
-            <input type="text" name="target_keyword" class="form-control" value="<?= clean($project['target_keyword']) ?>" required>
+            <div class="input-group">
+              <input type="text" id="target_keyword_input" class="form-control" placeholder="Type keyword and click Add">
+              <button class="btn btn-outline-primary" type="button" onclick="addKeywordTag()">Add</button>
+            </div>
+            <input type="hidden" name="target_keyword" id="target_keyword_hidden" value="<?= clean($project['target_keyword']) ?>">
+            <div id="keywordTagsContainer" class="d-flex flex-wrap gap-2 mt-2"></div>
           </div>
           <div class="col-md-6 mb-3">
             <label class="form-label fw-bold">Target Page URL (for On-Page Audit)</label>
-            <input type="url" name="target_site" class="form-control" value="<?= clean($project['target_site']) ?>">
+            <div class="input-group">
+              <input type="url" id="target_site_input" class="form-control" placeholder="Type URL (http/https) and click Add">
+              <button class="btn btn-outline-primary" type="button" onclick="addSiteTag()">Add</button>
+            </div>
+            <input type="hidden" name="target_site" id="target_site_hidden" value="<?= clean($project['target_site']) ?>">
+            <div id="siteTagsContainer" class="d-flex flex-wrap gap-2 mt-2"></div>
           </div>
         </div>
         <div class="mb-0">
@@ -1345,6 +1355,118 @@ function runInternalCrawler() {
     btn.disabled = false;
     alert('An unexpected error occurred: ' + err);
   });
+}
+
+// Interactive Tag Builders for Keywords and URLs
+let keywords = [];
+let sites = [];
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Initial keywords
+    const initialKeywords = <?= json_encode(array_filter(array_map('trim', explode(',', $project['target_keyword'])))) ?>;
+    initialKeywords.forEach(kw => addKeywordBadge(kw));
+
+    // Initial sites/URLs
+    const initialSites = <?= json_encode(array_filter(array_map('trim', explode(',', $project['target_site'])))) ?>;
+    initialSites.forEach(site => addSiteBadge(site));
+    
+    // Bind enter key on input fields
+    document.getElementById('target_keyword_input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addKeywordTag();
+        }
+    });
+    document.getElementById('target_site_input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addSiteTag();
+        }
+    });
+});
+
+function addKeywordBadge(kw) {
+    kw = kw.trim();
+    if (!kw || keywords.includes(kw)) return;
+    keywords.push(kw);
+    updateKeywordHidden();
+    renderKeywordTags();
+}
+
+function removeKeywordBadge(kw) {
+    keywords = keywords.filter(k => k !== kw);
+    updateKeywordHidden();
+    renderKeywordTags();
+}
+
+function renderKeywordTags() {
+    const container = document.getElementById('keywordTagsContainer');
+    container.innerHTML = '';
+    keywords.forEach(kw => {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-primary text-white d-flex align-items-center gap-2 py-2 px-3 rounded-pill';
+        badge.innerHTML = `<span>${escapeHTML(kw)}</span><i class="fas fa-times-circle" style="cursor: pointer;" onclick="removeKeywordBadge('${escapeHTML(kw)}')"></i>`;
+        container.appendChild(badge);
+    });
+}
+
+function updateKeywordHidden() {
+    document.getElementById('target_keyword_hidden').value = keywords.join(', ');
+}
+
+function addKeywordTag() {
+    const input = document.getElementById('target_keyword_input');
+    const val = input.value.trim();
+    if (val) {
+        addKeywordBadge(val);
+        input.value = '';
+    }
+}
+
+function addSiteBadge(site) {
+    site = site.trim();
+    if (!site || sites.includes(site)) return;
+    sites.push(site);
+    updateSiteHidden();
+    renderSiteTags();
+}
+
+function removeSiteBadge(site) {
+    sites = sites.filter(s => s !== site);
+    updateSiteHidden();
+    renderSiteTags();
+}
+
+function renderSiteTags() {
+    const container = document.getElementById('siteTagsContainer');
+    container.innerHTML = '';
+    sites.forEach(site => {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-info text-white d-flex align-items-center gap-2 py-2 px-3 rounded-pill';
+        badge.innerHTML = `<span>${escapeHTML(site)}</span><i class="fas fa-times-circle" style="cursor: pointer;" onclick="removeSiteBadge('${escapeHTML(site)}')"></i>`;
+        container.appendChild(badge);
+    });
+}
+
+function updateSiteHidden() {
+    document.getElementById('target_site_hidden').value = sites.join(', ');
+}
+
+function addSiteTag() {
+    const input = document.getElementById('target_site_input');
+    const val = input.value.trim();
+    if (val) {
+        if (!val.startsWith('http://') && !val.startsWith('https://')) {
+            alert('Please enter a valid URL starting with http:// or https://');
+            return;
+        }
+        addSiteBadge(val);
+        input.value = '';
+    }
+}
+
+function escapeHTML(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 </script>
 </body>
