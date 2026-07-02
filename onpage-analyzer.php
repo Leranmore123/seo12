@@ -537,6 +537,7 @@ $severityColors = ['critical' => 'danger', 'high' => 'warning', 'medium' => 'inf
 <?php elseif (!isset($result['error'])): ?>
 <div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>No major issues found! SEO looks good.</div>
 <?php endif; ?>
+<?php endif; ?>
 
 </body>
 </html>

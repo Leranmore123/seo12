@@ -48,7 +48,7 @@ $gitLog = [];
 $scanResults = [];
 
 // Recursive Project Scanner
-function scanProjectFilesForSEO($dir, $savedMeta = null) {
+function scanProjectFilesForSEO($dir, $savedMeta = null, $projectUrl = 'https://learnmoretech.in/') {
     $results = [];
     if (!is_dir($dir)) return [];
     
@@ -82,12 +82,18 @@ function scanProjectFilesForSEO($dir, $savedMeta = null) {
                 foreach ($matches as $match) {
                     $imgTag = $match[0];
                     $tagName = $match[1];
+                    $imgSrc = $match[2];
                     if (stripos($imgTag, 'alt=') === false) {
+                        $filename = pathinfo($imgSrc, PATHINFO_FILENAME);
+                        $cleanAlt = ucwords(trim(str_replace(['-', '_'], ' ', $filename)));
+                        if (empty($cleanAlt)) {
+                            $cleanAlt = 'SEO Optimized Image';
+                        }
                         $issues[] = [
                             'type' => 'Missing Image ALT Attribute',
                             'detail' => 'Image missing alternative text: ' . htmlspecialchars($imgTag),
                             'original' => $imgTag,
-                            'fixed' => str_replace('<' . $tagName, '<' . $tagName . ' alt="SEO Optimized Image"', $imgTag)
+                            'fixed' => str_replace('<' . $tagName, '<' . $tagName . ' alt="' . htmlspecialchars($cleanAlt) . '"', $imgTag)
                         ];
                     }
                 }
@@ -117,11 +123,12 @@ function scanProjectFilesForSEO($dir, $savedMeta = null) {
 
             // Rule 4: Missing Canonical URL
             if (stripos($content, '<head>') !== false && stripos($content, 'rel="canonical"') === false) {
+                $cleanProjUrl = rtrim($projectUrl, '/') . '/';
                 $issues[] = [
                     'type' => 'Missing Canonical URL Link Tag',
                     'detail' => 'Missing canonical URL link tag inside <head> to prevent duplicate search results.',
                     'original' => '<head>',
-                    'fixed' => "<head>\n    <link rel=\"canonical\" href=\"https://learnmoretech.in/\">"
+                    'fixed' => "<head>\n    <link rel=\"canonical\" href=\"" . htmlspecialchars($cleanProjUrl) . "\">"
                 ];
             }
             
@@ -265,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clone_repo'])) {
 
 // Run scanner on the configured target project directory
 if ($project && !empty($project['local_code_path']) && is_dir($project['local_code_path'])) {
-    $scanResults = scanProjectFilesForSEO($project['local_code_path'], $savedMeta);
+    $scanResults = scanProjectFilesForSEO($project['local_code_path'], $savedMeta, $project['website_url'] ?? 'https://learnmoretech.in/');
 }
 
 // Handle apply changes and push execution
@@ -350,7 +357,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['execute_git_push'])) 
             if (stripos($pushOut, 'Everything up-to-date') !== false || stripos($pushOut, '->') !== false || stripos($pushOut, 'main') !== false || stripos($pushOut, 'master') !== false) {
                 $success = "કોડ ફેરફારો ગીટહબ પર સફળતાપૂર્વક ડિપ્લોય થઈ ગયા છે! 🎉";
                 // Rescan
-                $scanResults = scanProjectFilesForSEO($localPath, $savedMeta);
+                $scanResults = scanProjectFilesForSEO($localPath, $savedMeta, $project['website_url'] ?? 'https://learnmoretech.in/');
             } else {
                 $error = "ગીટહબ પર પુશ કરવામાં એરર આવી છે. ક્રેડેન્શિયલ્સ ચેક કરો.";
             }
