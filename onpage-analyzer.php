@@ -287,7 +287,8 @@ function analyzeWebsite($url, $keyword, $pagespeedScore = null) {
 
 // Handle run=1 (AJAX auto-run)
 if ($isRun) {
-    $url = $project['target_site'] ?: $project['website_url'];
+    $url = !empty($_GET['target_site']) ? clean($_GET['target_site']) : ($project['target_site'] ?: $project['website_url']);
+    $url = trim(explode(',', $url)[0]);
     
     // Fetch live PageSpeed score
     $pagespeedScore = getPageSpeedScoreLive($url);
@@ -297,7 +298,9 @@ if ($isRun) {
         $pagespeedScore = $project['pagespeed_score'] ?? null;
     }
 
-    $result = analyzeWebsite($url, $project['target_keyword'], $pagespeedScore);
+    $keyword = !empty($_GET['keyword']) ? clean($_GET['keyword']) : $project['target_keyword'];
+    $keyword = trim(explode(',', $keyword)[0]);
+    $result = analyzeWebsite($url, $keyword, $pagespeedScore);
 
     if (!isset($result['error'])) {
         // Use ChatGPT to generate better fix suggestions
@@ -390,9 +393,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_issue'])) {
 }
 
 // Load analysis for display (uses cached PageSpeed score to stay super fast)
-$url = $project['target_site'] ?: $project['website_url'];
+$keywordsList = array_filter(array_map('trim', explode(',', $project['target_keyword'])));
+if (empty($keywordsList)) {
+    $keywordsList = ['SEO Services'];
+}
+$targetSitesList = array_filter(array_map('trim', explode(',', $project['target_site'] ?: $project['website_url'])));
+if (empty($targetSitesList)) {
+    $targetSitesList = [$project['website_url']];
+}
+
+$currentKeyword = $_GET['keyword'] ?? $keywordsList[0] ?? '';
+$currentTargetSite = $_GET['target_site'] ?? $targetSitesList[0] ?? '';
+
+$url = trim(explode(',', $currentTargetSite)[0]);
+$keyword = trim(explode(',', $currentKeyword)[0]);
+
 $pagespeedScore = $project['pagespeed_score'] ?? null;
-$result = analyzeWebsite($url, $project['target_keyword'], $pagespeedScore);
+$result = analyzeWebsite($url, $keyword, $pagespeedScore);
 
 // Save to DB on page load too
 if (!isset($result['error'])) {
@@ -419,6 +436,31 @@ $severityColors = ['critical' => 'danger', 'high' => 'warning', 'medium' => 'inf
 
 <?php if ($isAjax): ?>
 <!-- AJAX content only -->
+  <!-- Keyword & Target Page URL Selectors for On-Page Audit -->
+  <div class="card mb-4 border-info shadow-sm bg-light">
+    <div class="card-body py-2 px-3 d-flex align-items-center flex-wrap gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <strong class="small text-muted mb-0"><i class="fas fa-key me-1"></i> Audit Keyword:</strong>
+        <select id="auditKeywordSelect" class="form-select form-select-sm" style="width: auto; min-width: 220px;" onchange="updateAuditSelection()">
+          <?php foreach ($keywordsList as $kw): ?>
+            <option value="<?= htmlspecialchars($kw, ENT_QUOTES, 'UTF-8') ?>" <?= $currentKeyword === $kw ? 'selected' : '' ?>><?= htmlspecialchars($kw) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <strong class="small text-muted mb-0"><i class="fas fa-link me-1"></i> Audit Target Page URL:</strong>
+        <select id="auditUrlSelect" class="form-select form-select-sm" style="width: auto; min-width: 320px;" onchange="updateAuditSelection()">
+          <?php foreach ($targetSitesList as $url): ?>
+            <option value="<?= htmlspecialchars($url, ENT_QUOTES, 'UTF-8') ?>" <?= $currentTargetSite === $url ? 'selected' : '' ?>><?= htmlspecialchars($url) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm ms-auto" onclick="runAuditNow(this)">
+        <i class="fas fa-sync-alt me-1"></i>Run Audit
+      </button>
+    </div>
+  </div>
+
 <div class="row mb-3">
   <div class="col-md-4">
     <div class="card text-center border-0 shadow-sm">
@@ -539,5 +581,38 @@ function approveFix(btn) {
     alert('An unexpected error occurred. Please apply the fix manually:\n\n' + fix);
   });
 }
+
+function updateAuditSelection() {
+  const kw = document.getElementById('auditKeywordSelect').value;
+  const site = document.getElementById('auditUrlSelect').value;
+  
+  const content = document.getElementById('tabContent');
+  content.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-3">Loading Audit...</p></div>';
+  
+  fetch('onpage-analyzer.php?id=' + PROJECT_ID + '&ajax=1&keyword=' + encodeURIComponent(kw) + '&target_site=' + encodeURIComponent(site), {credentials: 'same-origin'})
+    .then(r => r.text())
+    .then(html => { content.innerHTML = html; })
+    .catch(() => { content.innerHTML = '<div class="alert alert-danger">Failed to load audit.</div>'; });
+}
+
+function runAuditNow(btn) {
+  const kw = document.getElementById('auditKeywordSelect').value;
+  const site = document.getElementById('auditUrlSelect').value;
+  
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Auditing...';
+  
+  fetch('onpage-analyzer.php?id=' + PROJECT_ID + '&ajax=1&run=1&keyword=' + encodeURIComponent(kw) + '&target_site=' + encodeURIComponent(site), {credentials: 'same-origin'})
+    .then(r => r.json())
+    .then(data => {
+      updateAuditSelection();
+    })
+    .catch(() => {
+      alert('Error running audit.');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Run Audit';
+    });
+}
 </script>
-<?php endif; ?>
+</body>
+</html>
