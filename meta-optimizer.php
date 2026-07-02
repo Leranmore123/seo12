@@ -20,11 +20,24 @@ if (!$project) {
     exit;
 }
 
-$url = $project['target_site'] ?: $project['website_url'];
+$keywordsList = array_filter(array_map('trim', explode(',', $project['target_keyword'])));
+if (empty($keywordsList)) {
+    $keywordsList = ['SEO Services'];
+}
+$targetSitesList = array_filter(array_map('trim', explode(',', $project['target_site'] ?: $project['website_url'])));
+if (empty($targetSitesList)) {
+    $targetSitesList = [$project['website_url']];
+}
+
+$currentKeyword = $_GET['keyword'] ?? $keywordsList[0] ?? '';
+$currentTargetSite = $_GET['target_site'] ?? $targetSitesList[0] ?? '';
+
+$url = trim(explode(',', $currentTargetSite)[0]);
+$keyword = trim(explode(',', $currentKeyword)[0]);
 
 if ($isRun) {
     header('Content-Type: application/json');
-    $analysis = analyzeMetaTags($url, $project['target_keyword']);
+    $analysis = analyzeMetaTags($url, $keyword);
     $generated = generateMetaWithAI($project);
     if ($generated) {
         saveProjectMeta($db, $projectId, $generated);
@@ -40,7 +53,7 @@ if ($isRun) {
     exit;
 }
 
-$analysis  = analyzeMetaTags($url, $project['target_keyword']);
+$analysis  = analyzeMetaTags($url, $keyword);
 $savedMeta = loadProjectMeta($db, $projectId);
 
 if (!$savedMeta && empty($analysis['error']) && hasChatGPT()) {
@@ -55,6 +68,31 @@ $severityColors = ['critical' => 'danger', 'high' => 'warning', 'medium' => 'inf
 ?>
 
 <?php if ($isAjax): ?>
+  <!-- Keyword & Target Page URL Selectors for Meta Tags -->
+  <div class="card mb-3 border-info shadow-sm bg-light">
+    <div class="card-body py-2 px-3 d-flex align-items-center flex-wrap gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <strong class="small text-muted mb-0"><i class="fas fa-key me-1"></i> Audit Keyword:</strong>
+        <select id="metaKeywordSelect" class="form-select form-select-sm" style="width: auto; min-width: 220px;" onchange="updateMetaSelection()">
+          <?php foreach ($keywordsList as $kw): ?>
+            <option value="<?= htmlspecialchars($kw, ENT_QUOTES, 'UTF-8') ?>" <?= $currentKeyword === $kw ? 'selected' : '' ?>><?= htmlspecialchars($kw) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <strong class="small text-muted mb-0"><i class="fas fa-link me-1"></i> Audit Target Page URL:</strong>
+        <select id="metaUrlSelect" class="form-select form-select-sm" style="width: auto; min-width: 320px;" onchange="updateMetaSelection()">
+          <?php foreach ($targetSitesList as $url): ?>
+            <option value="<?= htmlspecialchars($url, ENT_QUOTES, 'UTF-8') ?>" <?= $currentTargetSite === $url ? 'selected' : '' ?>><?= htmlspecialchars($url) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm ms-auto" onclick="runMetaAuditNow(this)">
+        <i class="fas fa-sync-alt me-1"></i>Run Audit
+      </button>
+    </div>
+  </div>
+
 <div class="alert alert-info border-0 mb-3">
   <i class="fas fa-info-circle me-2"></i>
   <strong>મહત્વનું:</strong> આ સિસ્ટમ meta tags <strong>બનાવે છે</strong>. Google #1 માટે તમારી website ના <code>&lt;head&gt;</code> માં paste કરવું <strong>જરૂરી</strong> છે.
@@ -139,6 +177,38 @@ function regenerateMeta() {
     .then(r => r.json())
     .then(d => { alert(d.message || 'Done'); loadTab('meta'); })
     .catch(() => alert('Error — check ChatGPT API key in API Keys page.'));
+}
+
+function updateMetaSelection() {
+  const kw = document.getElementById('metaKeywordSelect').value;
+  const site = document.getElementById('metaUrlSelect').value;
+  
+  const content = document.getElementById('tabContent');
+  content.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-3">Loading Meta Tags...</p></div>';
+  
+  fetch('meta-optimizer.php?id=' + PROJECT_ID + '&ajax=1&keyword=' + encodeURIComponent(kw) + '&target_site=' + encodeURIComponent(site), {credentials: 'same-origin'})
+    .then(r => r.text())
+    .then(html => { content.innerHTML = html; })
+    .catch(() => { content.innerHTML = '<div class="alert alert-danger">Failed to load meta tags.</div>'; });
+}
+
+function runMetaAuditNow(btn) {
+  const kw = document.getElementById('metaKeywordSelect').value;
+  const site = document.getElementById('metaUrlSelect').value;
+  
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Auditing...';
+  
+  fetch('meta-optimizer.php?id=' + PROJECT_ID + '&ajax=1&run=1&keyword=' + encodeURIComponent(kw) + '&target_site=' + encodeURIComponent(site), {credentials: 'same-origin'})
+    .then(r => r.json())
+    .then(data => {
+      updateMetaSelection();
+    })
+    .catch(() => {
+      alert('Error running audit.');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Run Audit';
+    });
 }
 </script>
 <?php endif; ?>
