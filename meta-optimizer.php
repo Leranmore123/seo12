@@ -1,0 +1,144 @@
+<?php
+require_once 'config.php';
+require_once 'includes/meta-generator.php';
+requireLogin();
+$db = getDB();
+$projectId = (int) ($_GET['id'] ?? 0);
+$isAjax    = isset($_GET['ajax']);
+$isRun     = isset($_GET['run']);
+
+$stmt = $db->prepare('SELECT * FROM projects WHERE id=? AND user_id=?');
+$stmt->execute([$projectId, $_SESSION['user_id']]);
+$project = $stmt->fetch();
+if (!$project) {
+    if ($isRun) {
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Project not found']);
+        exit;
+    }
+    echo '<div class="alert alert-danger">Project not found.</div>';
+    exit;
+}
+
+$url = $project['target_site'] ?: $project['website_url'];
+
+if ($isRun) {
+    header('Content-Type: application/json');
+    $analysis = analyzeMetaTags($url, $project['target_keyword']);
+    $generated = generateMetaWithAI($project);
+    if ($generated) {
+        saveProjectMeta($db, $projectId, $generated);
+    }
+    $issueCount = count($analysis['issues'] ?? []);
+    echo json_encode([
+        'message' => $generated
+            ? "Meta tags generated with " . (hasChatGPT() ? 'ChatGPT' : 'template') . ". Found {$issueCount} issues on live site — copy HTML to your website <head>."
+            : 'Meta generation failed. Add ChatGPT API key.',
+        'issues'  => $issueCount,
+        'score'   => max(0, 100 - ($issueCount * 12)),
+    ]);
+    exit;
+}
+
+$analysis  = analyzeMetaTags($url, $project['target_keyword']);
+$savedMeta = loadProjectMeta($db, $projectId);
+
+if (!$savedMeta && empty($analysis['error']) && hasChatGPT()) {
+    $generated = generateMetaWithAI($project);
+    if ($generated) {
+        saveProjectMeta($db, $projectId, $generated);
+        $savedMeta = loadProjectMeta($db, $projectId);
+    }
+}
+
+$severityColors = ['critical' => 'danger', 'high' => 'warning', 'medium' => 'info', 'low' => 'secondary'];
+?>
+
+<?php if ($isAjax): ?>
+<div class="alert alert-info border-0 mb-3">
+  <i class="fas fa-info-circle me-2"></i>
+  <strong>મહત્વનું:</strong> આ સિસ્ટમ meta tags <strong>બનાવે છે</strong>. Google #1 માટે તમારી website ના <code>&lt;head&gt;</code> માં paste કરવું <strong>જરૂરી</strong> છે.
+  કોઈ tool 100% auto Google top નથી આપી શકતું — 2–8 અઠવાડિયા સમય લાગે છે.
+</div>
+
+<?php if (!empty($analysis['error'])): ?>
+<div class="alert alert-danger"><?= clean($analysis['error']) ?></div>
+<?php else: ?>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100 border-danger">
+      <div class="card-header bg-danger text-white"><h6 class="mb-0">🔴 હાલની website (Live)</h6></div>
+      <div class="card-body small">
+        <?php $c = $analysis['current']; ?>
+        <p><strong>Title:</strong><br><?= $c['title'] ? clean(mb_substr($c['title'], 0, 80)) : '<span class="text-danger">Missing</span>' ?></p>
+        <p><strong>Meta Description:</strong><br><?= $c['description'] ? clean(mb_substr($c['description'], 0, 120)) : '<span class="text-danger">Missing</span>' ?></p>
+        <p><strong>OG Title:</strong> <?= $c['og_title'] ? '✅' : '❌' ?> &nbsp;
+           <strong>OG Image:</strong> <?= $c['og_image'] ? '✅' : '❌' ?> &nbsp;
+           <strong>Canonical:</strong> <?= $c['canonical'] ? '✅' : '❌' ?></p>
+        <?php if (!empty($analysis['issues'])): ?>
+        <ul class="mb-0 ps-3">
+          <?php foreach ($analysis['issues'] as $iss): ?>
+          <li><span class="badge bg-<?= $severityColors[$iss['severity']] ?? 'secondary' ?>"><?= $iss['severity'] ?></span> <?= clean($iss['msg']) ?></li>
+          <?php endforeach; ?>
+        </ul>
+        <?php else: ?>
+        <p class="text-success mb-0">Live meta looks good!</p>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100 border-success">
+      <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">🟢 AI Optimized Meta (Copy to website)</h6>
+        <button type="button" class="btn btn-sm btn-light" onclick="regenerateMeta()">
+          <i class="fas fa-sync"></i> Regenerate
+        </button>
+      </div>
+      <div class="card-body small">
+        <?php if ($savedMeta): ?>
+        <p><strong>Title (<?= mb_strlen($savedMeta['meta_title']) ?> chars):</strong><br><?= clean($savedMeta['meta_title']) ?></p>
+        <p><strong>Description (<?= mb_strlen($savedMeta['meta_description']) ?> chars):</strong><br><?= clean($savedMeta['meta_description']) ?></p>
+        <p><strong>H1 suggestion:</strong> <code>&lt;h1&gt;<?= clean($savedMeta['h1_suggestion']) ?>&lt;/h1&gt;</code></p>
+        <?php else: ?>
+        <p class="text-warning">No meta saved yet. Click Regenerate or Run All SEO.</p>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+</div>
+
+<?php if ($savedMeta): ?>
+<div class="card border-primary shadow-sm mb-3">
+  <div class="card-header bg-primary text-white d-flex justify-content-between">
+    <span><i class="fas fa-code me-2"></i>Complete &lt;head&gt; HTML — Website માં paste કરો</span>
+    <button class="btn btn-sm btn-warning" onclick="copyMetaHtml()"><i class="fas fa-copy me-1"></i>Copy All</button>
+  </div>
+  <div class="card-body p-0">
+    <textarea id="metaHeadHtml" class="form-control font-monospace border-0" rows="18" readonly><?= htmlspecialchars($savedMeta['full_head_html']) ?></textarea>
+  </div>
+  <div class="card-footer small text-muted">
+    <strong>ક્યાં paste કરવું:</strong> WordPress → Theme / Yoast SEO → HTML તમારી site ના <code>header.php</code> અથવા page builder માં Custom HTML in &lt;head&gt;
+  </div>
+</div>
+<?php endif; ?>
+
+<?php endif; ?>
+
+<script>
+function copyMetaHtml() {
+  const el = document.getElementById('metaHeadHtml');
+  if (!el) return;
+  el.select();
+  navigator.clipboard.writeText(el.value).then(() => alert('Meta HTML copied! Paste in your website <head>.'));
+}
+function regenerateMeta() {
+  if (!confirm('Generate new meta tags with AI?')) return;
+  fetch('meta-optimizer.php?id=<?= $projectId ?>&run=1', { credentials: 'same-origin' })
+    .then(r => r.json())
+    .then(d => { alert(d.message || 'Done'); loadTab('meta'); })
+    .catch(() => alert('Error — check ChatGPT API key in API Keys page.'));
+}
+</script>
+<?php endif; ?>

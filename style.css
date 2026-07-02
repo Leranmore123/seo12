@@ -1,0 +1,286 @@
+/* ============================================================
+   SEO 80/20 System - Stylesheet
+   ============================================================ */
+
+:root {
+    --primary: #0d6efd;
+    --success: #198754;
+    --warning: #ffc107;
+    --danger: #dc3545;
+    --dark: #212529;
+    --sidebar-width: 240px;
+}
+
+body {
+    background: #f0f2f5;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* ============================================================
+   Auth Pages
+   ============================================================ */
+.auth-body {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-wrapper {
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+}
+
+.auth-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.auth-logo {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.auth-logo i {
+    font-size: 48px;
+    color: var(--primary);
+    margin-bottom: 10px;
+    display: block;
+}
+
+.auth-logo h2 {
+    font-weight: 700;
+    color: #212529;
+    margin-bottom: 4px;
+}
+
+.auth-logo p {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+/* ============================================================
+   Navbar
+   ============================================================ */
+.navbar {
+    background: #fff !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 12px 24px;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--primary) !important;
+}
+
+/* ============================================================
+   Stat Cards
+   ============================================================ */
+.stat-card {
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+    font-size: 32px;
+    opacity: 0.8;
+}
+
+.stat-info h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.stat-info p {
+    margin: 0;
+    opacity: 0.85;
+    font-size: 14px;
+}
+
+/* ============================================================
+   Mini Stats
+   ============================================================ */
+.mini-stat {
+    border-radius: 10px;
+    transition: transform 0.2s;
+}
+
+.mini-stat:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* ============================================================
+   SEO Score Circle
+   ============================================================ */
+.seo-score-circle {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 auto;
+}
+
+.seo-score-circle.good {
+    background: linear-gradient(135deg, #198754, #20c997);
+}
+
+.seo-score-circle.average {
+    background: linear-gradient(135deg, #ffc107, #fd7e14);
+}
+
+.seo-score-circle.poor {
+    background: linear-gradient(135deg, #dc3545, #e83e8c);
+}
+
+/* ============================================================
+   Cards
+   ============================================================ */
+.card {
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+    font-weight: 600;
+}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn-xs {
+    padding: 2px 8px;
+    font-size: 12px;
+    border-radius: 4px;
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+/* ============================================================
+   Tables
+   ============================================================ */
+.table th {
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table td {
+    vertical-align: middle;
+    font-size: 14px;
+}
+
+/* ============================================================
+   Progress Bars
+   ============================================================ */
+.progress {
+    border-radius: 10px;
+    background: #e9ecef;
+}
+
+.progress-bar {
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+/* ============================================================
+   Nav Tabs
+   ============================================================ */
+.nav-tabs .nav-link {
+    border-radius: 8px 8px 0 0;
+    font-weight: 500;
+    color: #6c757d;
+    padding: 10px 16px;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* ============================================================
+   Badges
+   ============================================================ */
+.badge {
+    font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 768px) {
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .auth-card {
+        padding: 24px;
+    }
+
+    .nav-tabs .nav-link {
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card,
+.stat-card {
+    animation: fadeIn 0.3s ease;
+}
+
+/* ============================================================
+   Code blocks
+   ============================================================ */
+code {
+    background: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #e83e8c;
+}
+
+pre {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 13px;
+}

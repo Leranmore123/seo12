@@ -1,0 +1,195 @@
+<?php
+require_once 'config.php';
+requireLogin();
+
+$saved = false;
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_keys'])) {
+    if (!verifyCsrf($_POST['csrf_token'] ?? '')) {
+        $error = 'Invalid request.';
+    } else {
+        $keys = [
+            'OPENAI_API_KEY'       => trim($_POST['openai'] ?? ''),
+            'DATAFORSEO_LOGIN'     => trim($_POST['dataforseo_login'] ?? ''),
+            'DATAFORSEO_PASSWORD'  => trim($_POST['dataforseo_password'] ?? ''),
+            'GOOGLE_API_KEY'       => trim($_POST['google'] ?? ''),
+            'STABILITY_API_KEY'    => trim($_POST['stability'] ?? ''),
+            'HUGGINGFACE_API_KEY'  => trim($_POST['huggingface'] ?? ''),
+            'SMTP_USER'            => trim($_POST['smtp_user'] ?? ''),
+            'SMTP_PASS'            => trim($_POST['smtp_pass'] ?? ''),
+        ];
+        $existing = is_readable(__DIR__ . '/config.local.php')
+            ? (array) include __DIR__ . '/config.local.php'
+            : [];
+        $merged = array_merge($existing, array_filter($keys, fn($v) => $v !== ''));
+
+        $export = "<?php\n// Auto-saved from API Setup — " . date('Y-m-d H:i') . "\nreturn " . var_export($merged, true) . ";\n";
+        if (file_put_contents(__DIR__ . '/config.local.php', $export) !== false) {
+            $saved = true;
+            setFlash('success', 'API keys saved to config.local.php. Refresh page to apply.');
+            header('Location: api-setup.php');
+            exit;
+        }
+        $error = 'Could not write config.local.php. Copy config.local.php.example manually and set permissions.';
+    }
+}
+
+$local = is_readable(__DIR__ . '/config.local.php') ? (array) include __DIR__ . '/config.local.php' : [];
+$flash = getFlash();
+
+function maskKey($v) {
+    if (!$v) return '';
+    $len = strlen($v);
+    if ($len <= 8) return str_repeat('*', $len);
+    return substr($v, 0, 4) . str_repeat('*', max(4, $len - 8)) . substr($v, -4);
+}
+?>
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Keys Setup - SEO 80/20</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="style.css" rel="stylesheet">
+</head>
+<body>
+<?php include 'includes/navbar.php'; ?>
+<div class="container py-4" style="max-width:900px;">
+
+  <h3><i class="fas fa-key me-2 text-primary"></i>API Keys Setup</h3>
+  <p class="text-muted">અહીં તમારી API keys સેવ કરો. સિસ્ટમ AI content, rank tracking અને images માટે તેનો ઉપયોગ કરશે.</p>
+
+  <?php if ($flash): ?>
+  <div class="alert alert-<?= $flash['type'] ?>"><?= $flash['msg'] ?></div>
+  <?php endif; ?>
+  <?php if ($error): ?>
+  <div class="alert alert-danger"><?= clean($error) ?></div>
+  <?php endif; ?>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card h-100 border-success">
+        <div class="card-body">
+          <h6 class="text-success">✅ જરૂરી</h6>
+          <p class="small mb-0"><strong>ChatGPT (OpenAI)</strong> — Content, articles, meta tags, social posts.</p>
+          <span class="badge <?= hasChatGPT() ? 'bg-success' : 'bg-danger' ?> mt-2">
+            <?= hasChatGPT() ? 'Configured' : 'Missing' ?>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100 border-primary">
+        <div class="card-body">
+          <h6 class="text-primary">📊 Rank Tracking</h6>
+          <p class="small mb-0"><strong>DataForSEO</strong> — Real Google rank (100 free/day).</p>
+          <span class="badge <?= hasApiKey('DATAFORSEO_LOGIN') ? 'bg-success' : 'bg-secondary' ?> mt-2">
+            <?= hasApiKey('DATAFORSEO_LOGIN') ? 'Configured' : 'Optional' ?>
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100 border-warning">
+        <div class="card-body">
+          <h6 class="text-warning">🔌 Social Auto-Post</h6>
+          <p class="small mb-0">WordPress, Blogger, Bluesky, Dev.to — keys <strong>Submissions</strong> page પર દર platform માટે.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <form method="POST" class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white"><h5 class="mb-0">Save API Keys</h5></div>
+    <div class="card-body">
+      <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+      <input type="hidden" name="save_keys" value="1">
+
+      <div class="mb-3">
+        <label class="form-label fw-bold">OpenAI / ChatGPT API Key <span class="text-danger">*</span></label>
+        <input type="text" name="openai" class="form-control" placeholder="sk-..."
+               value="<?= clean($local['OPENAI_API_KEY'] ?? OPENAI_API_KEY) ?>">
+        <div class="form-text">
+          <strong>કેવી રીતે મળશે:</strong> <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>
+          → Login → <strong>Create new secret key</strong> → copy <code>sk-...</code> → paste અહીં.
+          <br>Model: <code><?= clean(OPENAI_MODEL) ?></code> (બધી content generation માટે)
+        </div>
+      </div>
+
+      <hr>
+      <h6>DataForSEO — Real Google Rank</h6>
+      <div class="row g-2 mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Login (email)</label>
+          <input type="text" name="dataforseo_login" class="form-control"
+                 value="<?= clean($local['DATAFORSEO_LOGIN'] ?? DATAFORSEO_LOGIN) ?>">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">API Password</label>
+          <input type="text" name="dataforseo_password" class="form-control"
+                 value="<?= clean($local['DATAFORSEO_PASSWORD'] ?? DATAFORSEO_PASSWORD) ?>">
+        </div>
+      </div>
+      <p class="form-text">
+        <a href="https://app.dataforseo.com/register" target="_blank">app.dataforseo.com</a>
+        → Register (FREE $1 credit, ~100 rank checks/day) → API Access → copy Login + API Password.
+      </p>
+
+      <div class="mb-3">
+        <label class="form-label fw-bold">Google API Key (PageSpeed — optional)</label>
+        <input type="text" name="google" class="form-control"
+               value="<?= clean($local['GOOGLE_API_KEY'] ?? GOOGLE_API_KEY) ?>">
+        <div class="form-text">
+          <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a>
+          → Create project → APIs → PageSpeed Insights API → Credentials → API key.
+        </div>
+      </div>
+
+      <details class="mb-3">
+        <summary class="fw-bold">Image APIs (optional)</summary>
+        <div class="mt-2 mb-2">
+          <label class="form-label">Stability AI</label>
+          <input type="text" name="stability" class="form-control" value="<?= clean($local['STABILITY_API_KEY'] ?? '') ?>">
+          <small class="text-muted"><a href="https://platform.stability.ai/account/keys" target="_blank">platform.stability.ai</a> — 25 free images/day</small>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Hugging Face</label>
+          <input type="text" name="huggingface" class="form-control" value="<?= clean($local['HUGGINGFACE_API_KEY'] ?? '') ?>">
+          <small class="text-muted"><a href="https://huggingface.co/settings/tokens" target="_blank">huggingface.co</a> → New token (Read)</small>
+        </div>
+      </details>
+
+      <button type="submit" class="btn btn-primary btn-lg">
+        <i class="fas fa-save me-2"></i>Save All Keys
+      </button>
+    </div>
+  </form>
+
+  <div class="card mb-4">
+    <div class="card-header"><h5 class="mb-0">📱 Social Platforms — Submissions પર keys</h5></div>
+    <div class="card-body table-responsive">
+      <table class="table table-sm">
+        <thead><tr><th>Platform</th><th>શું જોઈએ</th><th>ક્યાંથી મળશે</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Bluesky</strong></td><td>Username + App Password</td><td>bsky.app → Settings → App Passwords</td></tr>
+          <tr><td><strong>Blogger</strong></td><td>OAuth Access Token + Blog ID</td><td><a href="https://developers.google.com/oauthplayground" target="_blank">OAuth Playground</a> → Blogger API v3</td></tr>
+          <tr><td><strong>WordPress.com</strong></td><td>Bearer token</td><td><a href="https://developer.wordpress.com/apps/" target="_blank">developer.wordpress.com/apps</a></td></tr>
+          <tr><td><strong>GitHub</strong></td><td>Personal Access Token</td><td>github.com → Settings → Developer settings → Tokens</td></tr>
+          <tr><td><strong>Dev.to</strong></td><td>API key</td><td>dev.to → Settings → Extensions</td></tr>
+          <tr><td><strong>Hashnode</strong></td><td>API key + Publication ID</td><td>hashnode.com → Settings → Developer</td></tr>
+          <tr><td><strong>Tumblr</strong></td><td>OAuth token + blog name</td><td>tumblr.com/oauth/apps</td></tr>
+          <tr><td><strong>Pinterest</strong></td><td>Access token (write)</td><td>developers.pinterest.com</td></tr>
+          <tr><td><strong>Minds / Medium</strong></td><td>❌ No API</td><td>ChatGPT content copy-paste manually</td></tr>
+        </tbody>
+      </table>
+      <a href="submission-manager.php" class="btn btn-outline-primary">Go to Submissions →</a>
+    </div>
+  </div>
+
+</div>
+<?php include 'includes/footer.php'; ?>
+</body>
+</html>

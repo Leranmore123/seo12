@@ -1,0 +1,613 @@
+<?php
+/**
+ * selenium-bridge.php
+ * PHP → Python Selenium bridge
+ * Called by auto-poster.php for platforms that need real browser automation
+ */
+
+define('PYTHON_EXE',   'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\python.exe');
+define('SELENIUM_DIR', __DIR__);
+
+/**
+ * Run a Selenium Python script and return parsed JSON result
+ */
+function runSeleniumScript(string $script, array $args, int $timeout = 120): array {
+    $scriptPath = SELENIUM_DIR . DIRECTORY_SEPARATOR . $script;
+    if (!file_exists($scriptPath)) {
+        return ['success' => false, 'error' => "Script not found: {$script}"];
+    }
+
+    // Build command — escape all args
+    $cmd = escapeshellarg(PYTHON_EXE) . ' ' . escapeshellarg($scriptPath);
+    foreach ($args as $arg) {
+        $cmd .= ' ' . escapeshellarg((string)$arg);
+    }
+
+    // Run with timeout
+    $descriptors = [
+        0 => ['pipe', 'r'],  // stdin
+        1 => ['pipe', 'w'],  // stdout
+        2 => ['pipe', 'w'],  // stderr
+    ];
+
+    $process = proc_open($cmd, $descriptors, $pipes);
+    if (!is_resource($process)) {
+        return ['success' => false, 'error' => 'Failed to start Python process'];
+    }
+
+    fclose($pipes[0]);
+
+    // Read output with timeout
+    $output = '';
+    $stderr = '';
+    $start  = time();
+
+    stream_set_blocking($pipes[1], false);
+    stream_set_blocking($pipes[2], false);
+
+    while (true) {
+        $chunk = fread($pipes[1], 4096);
+        $err   = fread($pipes[2], 4096);
+        if ($chunk) $output .= $chunk;
+        if ($err)   $stderr .= $err;
+
+        if (feof($pipes[1]) && feof($pipes[2])) break;
+        if ((time() - $start) > $timeout) {
+            proc_terminate($process);
+            return ['success' => false, 'error' => "Selenium timeout after {$timeout}s"];
+        }
+        usleep(100000); // 100ms
+    }
+
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    proc_close($process);
+
+    // Parse last JSON line from output (script prints JSON lines)
+    $lines = array_filter(explode("\n", trim($output)));
+    $lastResult = null;
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if (!$line) continue;
+        $decoded = json_decode($line, true);
+        if ($decoded !== null && isset($decoded['success'])) {
+            $lastResult = $decoded;
+        }
+    }
+
+    if ($lastResult !== null) {
+        return $lastResult;
+    }
+
+    // No valid result found
+    return [
+        'success' => false,
+        'error'   => 'No result from Selenium script. Stderr: ' . substr($stderr, 0, 500),
+        'raw'     => substr($output, 0, 500),
+    ];
+}
+
+/**
+ * Decode base64 password stored in DB
+ */
+function decodePass(string $encoded): string {
+    $decoded = base64_decode($encoded, true);
+    return ($decoded !== false && trim($decoded) !== '') ? trim($decoded) : trim($encoded);
+}
+
+// ============================================================
+// PINTEREST — Selenium auto-post
+// ============================================================
+function seleniumPinterest(array $creds, string $keyword, string $targetSite, int $projectId = 0): array {
+    $email    = $creds['username'] ?? '';
+    $password = decodePass($creds['password'] ?? '');
+
+    if (empty($email) || empty($password)) {
+        return ['error' => 'Pinterest: Add email + password in Social Accounts.'];
+    }
+
+    // Generate AI title + description
+    require_once dirname(__DIR__) . '/ai-content.php';
+    $postCount  = 1;
+    $usedTitles = [];
+    $businessName = '';
+    $businessDesc = '';
+    try {
+        $db = getDB();
+        $s  = $db->prepare("SELECT COUNT(*) FROM backlinks WHERE platform='pinterest' AND status='created'");
+        $s->execute();
+        $postCount = (int)$s->fetchColumn() + 1;
+        $s2 = $db->prepare("SELECT post_title FROM backlinks WHERE post_title IS NOT NULL ORDER BY created_at ASC LIMIT 50");
+        $s2->execute();
+        $usedTitles = $s2->fetchAll(PDO::FETCH_COLUMN);
+
+        if ($projectId > 0) {
+            $pStmt = $db->prepare("SELECT business_name, business_desc FROM projects WHERE id=?");
+            $pStmt->execute([$projectId]);
+            $proj = $pStmt->fetch(PDO::FETCH_ASSOC);
+            if ($proj) {
+                $businessName = $proj['business_name'] ?? '';
+                $businessDesc = $proj['business_desc'] ?? '';
+            }
+        }
+    } catch (Exception $e) {}
+
+    $ai      = generateAIContent($keyword, $targetSite, 'pinterest', 'image_caption', '', OPENAI_API_KEY, $postCount, $usedTitles, $businessName, $businessDesc);
+    $aiTitle = $ai['title'] ?? generateUniqueTitle($keyword, $postCount, $usedTitles, OPENAI_API_KEY);
+
+    // Pinterest description: keyword-rich, long, with URL — max 500 chars
+    $aiDesc = strip_tags($ai['content'] ?? '');
+    if (empty($aiDesc)) {
+        // Fallback: keyword-rich description
+        $kw = $keyword;
+        $aiDesc = "Looking for the best {$kw}? Learnmore Technologies offers expert-led {$kw} with hands-on live projects, industry-recognized certification, and 100% placement support. "
+                . "Our {$kw} covers all key concepts from beginner to advanced level. "
+                . "Join hundreds of successful students who built their careers with us. "
+                . "Flexible batch timings, experienced trainers, small batches for personal attention. "
+                . "Enroll now at {$targetSite} — Limited seats available!";
+    }
+    // Keep max 500 chars (Pinterest limit)
+    $aiDesc = mb_substr($aiDesc, 0, 500, 'UTF-8');
+
+    // Find latest project image
+    $imagePath = '';
+    $uploadDir = dirname(__DIR__) . '/uploads/';
+    $images    = glob($uploadDir . '*.{jpg,jpeg,png}', GLOB_BRACE);
+    if ($images) {
+        usort($images, fn($a, $b) => filemtime($b) - filemtime($a));
+        $imagePath = $images[0];
+    }
+
+    $args = [$email, $password, $keyword, $targetSite];
+    if ($imagePath) $args[] = $imagePath;
+    else             $args[] = '';          // placeholder so argv indices stay stable
+    $args[] = $aiTitle;
+    $args[] = $aiDesc;
+
+    $result = runSeleniumScript('pinterest_post.py', $args, 120);
+
+    if (!empty($result['success'])) {
+        return [
+            'success'    => true,
+            'url'        => $result['url'] ?: 'https://www.pinterest.com/me/',
+            'source'     => 'Selenium',
+            'post_title' => $aiTitle,
+        ];
+    }
+    return ['error' => 'Pinterest Selenium failed: ' . ($result['error'] ?? 'Unknown error')];
+}
+
+// ============================================================
+// MEDIUM — Selenium auto-post
+// ============================================================
+function seleniumMedium(array $creds, string $keyword, string $targetSite, string $content = '', int $projectId = 0): array {
+    $email    = $creds['username'] ?? '';
+    $password = decodePass($creds['password'] ?? '');
+
+    if (empty($email) || empty($password)) {
+        return ['error' => 'Medium: Add email + password in Social Accounts.'];
+    }
+
+    // Generate AI title + content
+    require_once dirname(__DIR__) . '/ai-content.php';
+    $postCount  = 1;
+    $usedTitles = [];
+    $businessName = '';
+    $businessDesc = '';
+    try {
+        $db    = getDB();
+        $stmt  = $db->prepare("SELECT COUNT(*) FROM backlinks WHERE platform='medium' AND status='created'");
+        $stmt->execute();
+        $postCount = (int)$stmt->fetchColumn() + 1;
+        $stmt2 = $db->prepare("SELECT post_title FROM backlinks WHERE post_title IS NOT NULL ORDER BY created_at ASC LIMIT 50");
+        $stmt2->execute();
+        $usedTitles = $stmt2->fetchAll(PDO::FETCH_COLUMN);
+
+        if ($projectId > 0) {
+            $pStmt = $db->prepare("SELECT business_name, business_desc FROM projects WHERE id=?");
+            $pStmt->execute([$projectId]);
+            $proj = $pStmt->fetch(PDO::FETCH_ASSOC);
+            if ($proj) {
+                $businessName = $proj['business_name'] ?? '';
+                $businessDesc = $proj['business_desc'] ?? '';
+            }
+        }
+    } catch (Exception $e) {}
+
+    $ai      = generateAIContent($keyword, $targetSite, 'medium', 'blog_post', '', OPENAI_API_KEY, $postCount, $usedTitles, $businessName, $businessDesc);
+    $aiTitle = $ai['title'] ?? generateUniqueTitle($keyword, $postCount, $usedTitles, OPENAI_API_KEY);
+    $aiBody  = !empty($content) ? $content : (strip_tags($ai['content'] ?? '') ?: "Best {$keyword}. Learn more: {$targetSite}");
+
+    // Get project image path
+    $imgPath = '';
+    $uploadDir = dirname(__DIR__) . '/uploads/';
+    try {
+        $db2 = getDB();
+        // Find project by keyword match (Medium doesn't have projectId passed here)
+        $imgFiles = glob($uploadDir . '*.{jpg,jpeg,png}', GLOB_BRACE);
+        if ($imgFiles) {
+            usort($imgFiles, fn($a, $b) => filemtime($b) - filemtime($a));
+            $imgPath = $imgFiles[0];
+        }
+    } catch (Exception $e) {}
+
+    // Write content to temp file — avoids Windows command line 8191 char limit
+    $tmpFile = sys_get_temp_dir() . '/medium_content_' . time() . '.txt';
+    file_put_contents($tmpFile, $aiBody);
+
+    $args   = [$email, $password, $keyword, $targetSite, $aiTitle, $imgPath, $tmpFile];
+    $result = runSeleniumScript('medium_post.py', $args, 120);
+
+    // Cleanup
+    @unlink($tmpFile);
+
+    if (!empty($result['success'])) {
+        return ['success' => true, 'url' => $result['url'] ?: 'https://medium.com/me/stories', 'source' => 'Selenium', 'post_title' => $aiTitle];
+    }
+    return [
+        'manual'     => true,
+        'message'    => 'Medium Selenium: ' . ($result['error'] ?? 'Failed') . ' — Article ready to copy.',
+        'url'        => 'https://medium.com/new-story',
+        'source'     => 'Selenium Fallback',
+        'post_title' => $aiTitle,
+    ];
+}
+
+// ============================================================
+// GENERIC — Selenium auto-post (substack, tumblr, scoopit, etc.)
+// ============================================================
+function seleniumGeneric(string $platform, array $creds, string $keyword, string $targetSite, string $content = ''): array {
+    $email    = $creds['username'] ?? '';
+    $password = decodePass($creds['password'] ?? '');
+
+    if (empty($email) || empty($password)) {
+        return ['error' => ucfirst($platform) . ': Add email + password in Social Accounts.'];
+    }
+
+    $args   = [$platform, $email, $password, $keyword, $targetSite, $content];
+    $result = runSeleniumScript('generic_post.py', $args, 120);
+
+    if (!empty($result['success'])) {
+        return ['success' => true, 'url' => $result['url'] ?: "https://www.{$platform}.com", 'source' => 'Selenium'];
+    }
+
+    $errorMsg = $result['error'] ?? 'Unknown error';
+    return [
+        'manual'  => true,
+        'message' => ucfirst($platform) . ' Selenium failed: ' . $errorMsg . ' — Content ready to copy.',
+        'url'     => "https://www.{$platform}.com",
+        'source'  => 'Selenium Fallback',
+    ];
+}
+
+// ============================================================
+// MICRO BLOG PLATFORMS — Selenium via micro_blog_post.py
+// Handles: scoopit, wakelet, padlet, pearltrees, mewe, instapaper, vivauae
+// ============================================================
+function seleniumMicroBlog(string $platform, array $creds, string $keyword, string $targetSite, string $aiTitle = '', string $aiContent = '', int $projectId = 0): array {
+    $email    = $creds['username'] ?? '';
+    $password = decodePass($creds['password'] ?? '');
+
+    if (empty($email) || empty($password)) {
+        return ['error' => ucfirst($platform) . ': Add email + password in Social Accounts.'];
+    }
+
+    // Generate AI title + content if not provided
+    if (empty($aiTitle) || empty($aiContent)) {
+        require_once dirname(__DIR__) . '/ai-content.php';
+        $db = getDB();
+        $postCount = 1;
+        $usedTitles = [];
+        $businessName = '';
+        $businessDesc = '';
+        try {
+            // Try to get post count + used titles from DB
+            $stmt = $db->prepare("SELECT COUNT(*) FROM backlinks WHERE platform=? AND status='created'");
+            $stmt->execute([$platform]);
+            $postCount = (int)$stmt->fetchColumn() + 1;
+
+            $stmt2 = $db->prepare("SELECT post_title FROM backlinks WHERE post_title IS NOT NULL ORDER BY created_at ASC LIMIT 50");
+            $stmt2->execute();
+            $usedTitles = $stmt2->fetchAll(PDO::FETCH_COLUMN);
+
+            if ($projectId > 0) {
+                $pStmt = $db->prepare("SELECT business_name, business_desc FROM projects WHERE id=?");
+                $pStmt->execute([$projectId]);
+                $proj = $pStmt->fetch(PDO::FETCH_ASSOC);
+                if ($proj) {
+                    $businessName = $proj['business_name'] ?? '';
+                    $businessDesc = $proj['business_desc'] ?? '';
+                }
+            }
+        } catch (Exception $e) { /* ignore */ }
+
+        $ai = generateAIContent($keyword, $targetSite, $platform, 'micro_blog', '', OPENAI_API_KEY, $postCount, $usedTitles, $businessName, $businessDesc);
+        $aiTitle   = $ai['title']   ?? generateUniqueTitle($keyword, $postCount, $usedTitles, OPENAI_API_KEY);
+        $aiContent = strip_tags($ai['content'] ?? '') ?: "Best {$keyword}. Learn more: {$targetSite}";
+    }
+
+    // Write content to temp file — avoids Windows CLI 8191 char limit
+    $tmpFile = sys_get_temp_dir() . '/' . $platform . '_content_' . time() . '.txt';
+    file_put_contents($tmpFile, $aiContent);
+
+    $args   = [$platform, $email, $password, $keyword, $targetSite, $aiTitle, $tmpFile];
+    $result = runSeleniumScript('micro_blog_post.py', $args, 120);
+
+    @unlink($tmpFile);
+
+    if (!empty($result['success'])) {
+        return [
+            'success'    => true,
+            'url'        => $result['url'] ?: "https://www.{$platform}.com",
+            'source'     => 'Selenium',
+            'post_title' => $aiTitle,
+        ];
+    }
+
+    $errorMsg = $result['error'] ?? 'Unknown error';
+    return [
+        'manual'     => true,
+        'message'    => ucfirst($platform) . ': ' . $errorMsg,
+        'url'        => "https://www.{$platform}.com",
+        'source'     => 'Selenium Fallback',
+        'post_title' => $aiTitle,
+    ];
+}
+
+// ============================================================
+// GHOST.IO — Selenium auto-post
+// ============================================================
+function seleniumGhost(array $creds, string $keyword, string $targetSite): array {
+    $email    = $creds['username'] ?? '';
+    $password = decodePass($creds['password'] ?? '');
+    if (empty($email) || empty($password)) {
+        return ['error' => 'Ghost: Add email + password in credentials.'];
+    }
+    $args   = [$email, $password, $keyword, $targetSite];
+    $result = runSeleniumScript('ghost_post.py', $args, 180);
+    if (!empty($result['success'])) {
+        return ['success' => true, 'url' => $result['url'] ?: 'https://ghost.io', 'source' => 'Selenium'];
+    }
+    return ['error' => 'Ghost Selenium failed: ' . ($result['error'] ?? 'Unknown')];
+}
+
+// ============================================================
+// SITE123 — Selenium auto blog post via site123_add_post.py
+// ============================================================
+function seleniumSite123(array $creds, string $keyword, string $targetSite, int $projectId = 0): array {
+    $email    = $creds['username'] ?? '';
+    $password = decodePass($creds['password'] ?? '');
+
+    if (empty($email) || empty($password)) {
+        return ['error' => 'Site123: Add email + password in credentials.'];
+    }
+
+    require_once dirname(__DIR__) . '/ai-content.php';
+    $postCount  = 1; $usedTitles = [];
+    $businessName = '';
+    $businessDesc = '';
+    try {
+        $db = getDB();
+        $s  = $db->prepare("SELECT COUNT(*) FROM backlinks WHERE platform='site123' AND status='created'"); $s->execute();
+        $postCount = (int)$s->fetchColumn() + 1;
+        $s2 = $db->prepare("SELECT post_title FROM backlinks WHERE post_title IS NOT NULL ORDER BY created_at ASC LIMIT 50"); $s2->execute();
+        $usedTitles = $s2->fetchAll(PDO::FETCH_COLUMN);
+
+        if ($projectId > 0) {
+            $pStmt = $db->prepare("SELECT business_name, business_desc FROM projects WHERE id=?");
+            $pStmt->execute([$projectId]);
+            $proj = $pStmt->fetch(PDO::FETCH_ASSOC);
+            if ($proj) {
+                $businessName = $proj['business_name'] ?? '';
+                $businessDesc = $proj['business_desc'] ?? '';
+            }
+        }
+    } catch (Exception $e) {}
+    $ai      = generateAIContent($keyword, $targetSite, 'site123', 'blog_post', '', OPENAI_API_KEY, $postCount, $usedTitles, $businessName, $businessDesc);
+    if (empty($ai['content'])) {
+        return ['error' => $ai['error'] ?? 'AI content generation failed. Check OpenAI/Gemini API keys.'];
+    }
+    $aiTitle = $ai['title'] ?? generateUniqueTitle($keyword, $postCount, $usedTitles, OPENAI_API_KEY);
+    $aiBody  = strip_tags($ai['content']);
+
+    // Get project image path
+    $imgPath = '';
+    $imgFiles = glob(dirname(__DIR__) . '/uploads/*.{jpg,jpeg,png}', GLOB_BRACE);
+    if ($imgFiles) {
+        usort($imgFiles, fn($a, $b) => filemtime($b) - filemtime($a));
+        $imgPath = $imgFiles[0];
+    }
+
+    // Write content to temp file — avoids Windows CLI limit
+    $tmpFile = sys_get_temp_dir() . '/site123_content_' . time() . '.txt';
+    file_put_contents($tmpFile, $aiBody);
+
+    $args   = [$email, $password, $keyword, $targetSite, $aiTitle, $imgPath, $tmpFile];
+    $result = runSeleniumScript('site123_add_post.py', $args, 150);
+
+    @unlink($tmpFile);
+
+    if (!empty($result['success'])) {
+        return ['success' => true, 'url' => $result['url'] ?: 'https://app.site123.com/blog?w=12200919', 'source' => 'Selenium', 'post_title' => $aiTitle];
+    }
+    return ['manual' => true, 'message' => 'Site123: ' . ($result['error'] ?? 'Unknown error'), 'url' => 'https://www.site123.com/my-websites', 'source' => 'Selenium Fallback', 'post_title' => $aiTitle];
+}
+
+// ============================================================
+// PADLET — Selenium auto-post via padlet_post.py
+// Uses system Chrome profile (browser must have Padlet logged in)
+// Board: https://padlet.com/kanzariyapratik124/lmt-wb7faycbn66hp2z5
+// ============================================================
+function seleniumPadlet(array $creds, string $keyword, string $targetSite): array {
+    $email    = $creds['username'] ?? '';
+    $password = decodePass($creds['password'] ?? '');
+
+    if (empty($email)) {
+        return ['error' => 'Padlet: Add email credentials.'];
+    }
+
+    $args   = [$email, $password, $keyword, $targetSite];
+    $result = runSeleniumScript('padlet_post.py', $args, 150);
+
+    if (!empty($result['success'])) {
+        return [
+            'success' => true,
+            'url'     => $result['url'] ?: 'https://padlet.com/kanzariyapratik124/lmt-wb7faycbn66hp2z5',
+            'source'  => 'Selenium',
+        ];
+    }
+
+    $errorMsg = $result['error'] ?? 'Unknown error';
+    return [
+        'manual'  => true,
+        'message' => 'Padlet: ' . $errorMsg . ' — Make sure Chrome browser is closed before running Auto Post.',
+        'url'     => 'https://padlet.com/kanzariyapratik124/lmt-wb7faycbn66hp2z5',
+        'source'  => 'Selenium Fallback',
+    ];
+}
+
+// ============================================================
+// LIVEJOURNAL — Selenium auto-post via livejournal_post.py
+// ============================================================
+function seleniumLiveJournal(array $creds, string $keyword, string $targetSite, int $projectId = 0): array {
+    $username = $creds['username'] ?? '';
+    $password = decodePass($creds['password'] ?? '');
+
+    if (empty($username)) {
+        return ['error' => 'LiveJournal: Add username credentials.'];
+    }
+
+    require_once dirname(__DIR__) . '/ai-content.php';
+    $postCount  = 1; $usedTitles = [];
+    $businessName = '';
+    $businessDesc = '';
+    try {
+        $db = getDB();
+        $s  = $db->prepare("SELECT COUNT(*) FROM backlinks WHERE platform='livejournal' AND status='created'"); $s->execute();
+        $postCount = (int)$s->fetchColumn() + 1;
+        $s2 = $db->prepare("SELECT post_title FROM backlinks WHERE post_title IS NOT NULL ORDER BY created_at ASC LIMIT 50"); $s2->execute();
+        $usedTitles = $s2->fetchAll(PDO::FETCH_COLUMN);
+
+        if ($projectId > 0) {
+            $pStmt = $db->prepare("SELECT business_name, business_desc FROM projects WHERE id=?");
+            $pStmt->execute([$projectId]);
+            $proj = $pStmt->fetch(PDO::FETCH_ASSOC);
+            if ($proj) {
+                $businessName = $proj['business_name'] ?? '';
+                $businessDesc = $proj['business_desc'] ?? '';
+            }
+        }
+    } catch (Exception $e) {}
+    $ai      = generateAIContent($keyword, $targetSite, 'livejournal', 'blog_post', '', OPENAI_API_KEY, $postCount, $usedTitles, $businessName, $businessDesc);
+    if (empty($ai['content'])) {
+        return ['error' => $ai['error'] ?? 'AI content generation failed. Check OpenAI/Gemini API keys.'];
+    }
+    $aiTitle = $ai['title'] ?? generateUniqueTitle($keyword, $postCount, $usedTitles, OPENAI_API_KEY);
+    // Keep HTML for LiveJournal — supports rich text with clickable links
+    $aiBody  = $ai['content'];
+    // Strip only dangerous tags, keep <a>, <h2>, <p>, <ul>, <li>, <strong>
+    $aiBody = strip_tags($aiBody, '<a><h1><h2><h3><p><ul><ol><li><strong><em><br>');
+
+    // Get project image path
+    $imgPath = '';
+    $imgFiles = glob(dirname(__DIR__) . '/uploads/*.{jpg,jpeg,png}', GLOB_BRACE);
+    if ($imgFiles) {
+        usort($imgFiles, fn($a, $b) => filemtime($b) - filemtime($a));
+        $imgPath = $imgFiles[0];
+    }
+
+    $args   = [$username, $password, $keyword, $targetSite, $aiTitle, $imgPath];
+
+    // Write content to temp file — avoids Windows command line 8191 char limit
+    $tmpFile = sys_get_temp_dir() . '/lj_content_' . time() . '.txt';
+    file_put_contents($tmpFile, $aiBody);
+    $args[] = $tmpFile;
+
+    $result = runSeleniumScript('livejournal_post.py', $args, 150);
+
+    // Cleanup temp file
+    @unlink($tmpFile);
+
+    if (!empty($result['success'])) {
+        return ['success' => true, 'url' => $result['url'] ?: 'https://lmt-12.livejournal.com/', 'source' => 'Selenium', 'post_title' => $aiTitle];
+    }
+    return ['manual' => true, 'message' => 'LiveJournal: ' . ($result['error'] ?? 'Failed'), 'url' => 'https://www.livejournal.com/post/', 'source' => 'Selenium Fallback', 'post_title' => $aiTitle];
+}
+
+// ============================================================
+// WORDPRESS — Selenium auto-fix
+// ============================================================
+function seleniumWpAutoFix(int $projectId, string $wpUrl, string $wpUser, string $wpPassBase64, string $fixType, string $fixValue): array {
+    $args = [
+        $projectId,
+        $wpUrl,
+        $wpUser,
+        $wpPassBase64,
+        $fixType,
+        $fixValue
+    ];
+    $result = runSeleniumScript('wp_autofix.py', $args, 120);
+    if ($result['success'] ?? false) {
+        return ['success' => true, 'url' => $result['url'] ?: $wpUrl, 'source' => 'Selenium'];
+    }
+    return ['success' => false, 'error' => $result['error'] ?? 'Unknown error'];
+}
+
+// ============================================================
+// GOOGLE SEARCH CONSOLE — Selenium verification
+// ============================================================
+function seleniumGscVerify(int $projectId, string $clientSite, string $wpUrl, string $wpUser, string $wpPassBase64): array {
+    $args = [
+        $projectId,
+        $clientSite,
+        $wpUrl,
+        $wpUser,
+        $wpPassBase64
+    ];
+    $result = runSeleniumScript('gsc_verify.py', $args, 180);
+    if ($result['success'] ?? false) {
+        return ['success' => true, 'url' => $result['url'] ?: 'https://search.google.com/search-console', 'source' => 'Selenium'];
+    }
+    return ['success' => false, 'error' => $result['error'] ?? 'Unknown error'];
+}
+
+// ============================================================
+// WORDPRESS HEADER CODE INJECTOR — Selenium
+// ============================================================
+function seleniumWpInsertHeaderCode(int $projectId, string $wpUrl, string $wpUser, string $wpPassBase64, string $blockType, string $codeToInsert): array {
+    $codeBase64 = base64_encode($codeToInsert);
+    $args = [
+        $projectId,
+        $wpUrl,
+        $wpUser,
+        $wpPassBase64,
+        $blockType,
+        $codeBase64
+    ];
+    $result = runSeleniumScript('wp_insert_header_code.py', $args, 120);
+    if ($result['success'] ?? false) {
+        return ['success' => true, 'url' => $result['url'] ?: $wpUrl, 'source' => 'Selenium'];
+    }
+    return ['success' => false, 'error' => $result['error'] ?? 'Unknown error'];
+}
+
+// ============================================================
+// GOOGLE BUSINESS PROFILE — Selenium auto-post
+// ============================================================
+function seleniumGbpPost(int $projectId, string $businessName, string $postText, ?string $imagePath): array {
+    $nameBase64 = base64_encode($businessName);
+    $textBase64 = base64_encode($postText);
+    $imgPath    = $imagePath ?: 'none';
+    
+    $args = [
+        $nameBase64,
+        $textBase64,
+        $imgPath
+    ];
+    
+    $result = runSeleniumScript('gbp_poster.py', $args, 180);
+    if ($result['success'] ?? false) {
+        return ['success' => true, 'url' => $result['url'] ?: 'https://business.google.com', 'source' => 'Selenium'];
+    }
+    return ['success' => false, 'error' => $result['error'] ?? 'Unknown error'];
+}
