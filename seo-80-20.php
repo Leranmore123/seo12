@@ -29,6 +29,18 @@ $keywordsCount = $keywordsCount->fetchColumn();
 $contentCount = $db->prepare("SELECT COUNT(*) FROM content_queue WHERE project_id=?");
 $contentCount->execute([$projectId]);
 $contentCount = $contentCount->fetchColumn();
+
+$keywordsList = array_filter(array_map('trim', explode(',', $project['target_keyword'])));
+if (empty($keywordsList)) {
+    $keywordsList = ['SEO Services'];
+}
+$targetSitesList = array_filter(array_map('trim', explode(',', $project['target_site'] ?: $project['website_url'])));
+if (empty($targetSitesList)) {
+    $targetSitesList = [$project['website_url']];
+}
+
+$currentKeyword = $_GET['keyword'] ?? $keywordsList[0] ?? '';
+$currentTargetSite = $_GET['target_site'] ?? $targetSitesList[0] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -48,10 +60,24 @@ $contentCount = $contentCount->fetchColumn();
   <div class="row mb-4">
     <div class="col">
       <h3><i class="fas fa-rocket me-2 text-primary"></i>SEO 80/20 System</h3>
-      <p class="text-muted">
-        <strong>Keyword:</strong> <?= clean($project['target_keyword']) ?> &nbsp;|&nbsp;
-        <strong>Site:</strong> <?= clean($project['target_site'] ?? $project['website_url']) ?>
-      </p>
+      <div class="d-flex align-items-center gap-3 mt-2 flex-wrap text-muted small">
+        <div class="d-flex align-items-center gap-2">
+          <strong>Keyword:</strong>
+          <select id="headerKeywordSelect" class="form-select form-select-sm" style="width: auto; min-width: 220px;" onchange="updateHeaderSelection()">
+            <?php foreach ($keywordsList as $kw): ?>
+              <option value="<?= htmlspecialchars($kw, ENT_QUOTES, 'UTF-8') ?>" <?= $currentKeyword === $kw ? 'selected' : '' ?>><?= htmlspecialchars($kw) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <strong>Site:</strong>
+          <select id="headerUrlSelect" class="form-select form-select-sm" style="width: auto; min-width: 320px;" onchange="updateHeaderSelection()">
+            <?php foreach ($targetSitesList as $url): ?>
+              <option value="<?= htmlspecialchars($url, ENT_QUOTES, 'UTF-8') ?>" <?= $currentTargetSite === $url ? 'selected' : '' ?>><?= htmlspecialchars($url) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+      </div>
     </div>
     <div class="col-auto">
       <a href="export-excel.php?id=<?= $projectId ?>" class="btn btn-success">
@@ -194,14 +220,19 @@ function loadTab(tab, ev) {
   const content = document.getElementById('tabContent');
   content.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-3">Loading...</p></div>';
 
+  const kwSelect = document.getElementById('headerKeywordSelect');
+  const siteSelect = document.getElementById('headerUrlSelect');
+  const kw = kwSelect ? encodeURIComponent(kwSelect.value) : '';
+  const siteUrl = siteSelect ? encodeURIComponent(siteSelect.value) : '';
+
   const urls = {
-    backlinks:  'backlink-system.php?id=' + PROJECT_ID + '&ajax=1',
-    meta:       'meta-optimizer.php?id=' + PROJECT_ID + '&ajax=1',
-    onpage:     'onpage-analyzer.php?id=' + PROJECT_ID + '&ajax=1',
-    rank:       'rank-tracker.php?id=' + PROJECT_ID + '&ajax=1',
-    keywords:   'keyword-research.php?id=' + PROJECT_ID + '&ajax=1',
-    competitor: 'competitor-analysis.php?id=' + PROJECT_ID + '&ajax=1',
-    content:    'content-generator.php?id=' + PROJECT_ID + '&ajax=1',
+    backlinks:  'backlink-system.php?id=' + PROJECT_ID + '&ajax=1&keyword=' + kw + '&target_site=' + siteUrl,
+    meta:       'meta-optimizer.php?id=' + PROJECT_ID + '&ajax=1&keyword=' + kw + '&target_site=' + siteUrl,
+    onpage:     'onpage-analyzer.php?id=' + PROJECT_ID + '&ajax=1&keyword=' + kw + '&target_site=' + siteUrl,
+    rank:       'rank-tracker.php?id=' + PROJECT_ID + '&ajax=1&keyword=' + kw + '&target_site=' + siteUrl,
+    keywords:   'keyword-research.php?id=' + PROJECT_ID + '&ajax=1&keyword=' + kw + '&target_site=' + siteUrl,
+    competitor: 'competitor-analysis.php?id=' + PROJECT_ID + '&ajax=1&keyword=' + kw + '&target_site=' + siteUrl,
+    content:    'content-generator.php?id=' + PROJECT_ID + '&ajax=1&keyword=' + kw + '&target_site=' + siteUrl,
   };
 
   fetch(urls[tab])
@@ -312,7 +343,16 @@ function updateProgress() {
   document.getElementById('manualProgress').textContent = '20%';
 }
 
+function updateHeaderSelection() {
+  const kw = document.getElementById('headerKeywordSelect').value;
+  const site = document.getElementById('headerUrlSelect').value;
+  location.href = 'seo-80-20.php?id=' + PROJECT_ID + '&keyword=' + encodeURIComponent(kw) + '&target_site=' + encodeURIComponent(site);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+  // Read active query parameters or default to selected options
+  const kw = document.getElementById('headerKeywordSelect').value;
+  const site = document.getElementById('headerUrlSelect').value;
   loadTab('meta');
 });
 </script>
