@@ -119,140 +119,62 @@ if ($projectId > 0) {
         </div>
     <?php else: ?>
         
-        <!-- ROW 1: Real-time Analytics & PageSpeed -->
-        <div class="row g-4 mb-4">
-            <!-- Google Analytics GA4 -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card metric-card h-100 p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="text-muted fw-bold uppercase small"><i class="fas fa-users me-1 text-success"></i>GA4 Live Traffic</span>
-                        <span class="d-flex align-items-center gap-1 text-success small"><span class="glow-dot"></span> Realtime</span>
-                    </div>
-                    <h2 class="fw-bold mb-1" id="activeUsersVal">14</h2>
-                    <p class="text-muted small">Active users on website right now</p>
-                    <hr>
-                    <div class="row text-center">
-                        <div class="col-6 border-end">
-                            <h6 class="mb-0 fw-bold">1.2K</h6>
-                            <span class="text-muted small" style="font-size:10px;">Pageviews (24h)</span>
-                        </div>
-                        <div class="col-6">
-                            <h6 class="mb-0 fw-bold">42.5%</h6>
-                            <span class="text-muted small" style="font-size:10px;">Bounce Rate</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Google Search Console -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card metric-card h-100 p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="text-muted fw-bold uppercase small"><i class="fas fa-chart-line me-1 text-primary"></i>Search Console (30d)</span>
-                        <span class="badge bg-primary">Google Live</span>
-                    </div>
-                    <h2 class="fw-bold mb-1">324</h2>
-                    <p class="text-muted small">Total Organic Clicks from Google Search</p>
-                    <hr>
-                    <div class="row text-center">
-                        <div class="col-6 border-end">
-                            <h6 class="mb-0 fw-bold">5.8K</h6>
-                            <span class="text-muted small" style="font-size:10px;">Impressions</span>
-                        </div>
-                        <div class="col-6">
-                            <h6 class="mb-0 fw-bold">5.5%</h6>
-                            <span class="text-muted small" style="font-size:10px;">Avg. CTR</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PageSpeed Insights -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card metric-card h-100 p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="text-muted fw-bold uppercase small"><i class="fas fa-bolt me-1 text-warning"></i>PageSpeed & Core Web Vitals</span>
-                        <span class="badge bg-warning text-dark">Mobile</span>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between">
-                        <h2 class="fw-bold mb-0">
-                            <?= $project['pagespeed_score'] ? $project['pagespeed_score'] . '/100' : 'N/A' ?>
-                        </h2>
-                        <a href="google-integration.php?id=<?= $projectId ?>&check_speed=1" class="btn btn-sm btn-outline-warning">
-                            <i class="fas fa-sync-alt"></i> Run Check
-                        </a>
-                    </div>
-                    <p class="text-muted small mt-1">Lighthouse mobile performance speed score</p>
-                    <hr>
-                    <div class="row text-center">
-                        <div class="col-4 border-end">
-                            <h6 class="mb-0 fw-bold"><?= $pagespeedLcp ?></h6>
-                            <span class="text-muted small" style="font-size:9px;">LCP (Paint)</span>
-                        </div>
-                        <div class="col-4 border-end">
-                            <h6 class="mb-0 fw-bold"><?= $pagespeedCls ?></h6>
-                            <span class="text-muted small" style="font-size:9px;">CLS (Layout)</span>
-                        </div>
-                        <div class="col-4">
-                            <h6 class="mb-0 fw-bold"><?= $pagespeedFid ?></h6>
-                            <span class="text-muted small" style="font-size:9px;">FID (Delay)</span>
-                        </div>
-                    </div>
-                </div>
+        <!-- GSC & GA4 Integration Setup Notice -->
+        <div class="card p-5 text-center border-0 shadow-sm mb-4" style="border-radius:16px;">
+            <div class="card-body">
+                <i class="fab fa-google fa-3x text-muted mb-3"></i>
+                <h5 class="fw-bold">Google Search Console & Analytics GA4 Integration</h5>
+                <p class="text-muted mx-auto" style="max-width: 650px;">
+                    ગૂગલ સર્ચ કન્સોલ અને એનાલિટિક્સ ઇન્ટિગ્રેશન હજુ સુધી કનેક્ટ કરવામાં આવ્યું નથી. લાઇવ ઓર્ગેનિક ક્લિક્સ, ઇમ્પ્રેશન્સ, કીવર્ડ ટ્રેન્ડ્સ અને રીઅલ-ટાઇમ ટ્રાફિક ડેટા મેળવવા માટે Google Developer Console દ્વારા OAuth સેટ કરવું જરૂરી છે.
+                </p>
+                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                    <i class="fab fa-google me-2"></i>ગૂગલ OAuth લિંક કરો
+                </button>
             </div>
         </div>
 
-        <!-- ROW 2: Search Console Chart & Top Queries -->
+        <!-- Real PageSpeed Insights Module -->
         <div class="row g-4 mb-4">
-            <!-- GSC Trends Chart -->
-            <div class="col-lg-8">
-                <div class="card p-4 border-0 shadow-sm" style="border-radius:12px;">
-                    <h5 class="mb-3"><i class="fas fa-chart-area text-primary me-2"></i>Google Search Performance (Clicks & Impressions)</h5>
-                    <canvas id="gscTrendsChart" style="max-height: 320px;"></canvas>
-                </div>
-            </div>
-
-            <!-- Top Search Queries -->
-            <div class="col-lg-4">
-                <div class="card p-3 border-0 shadow-sm h-100" style="border-radius:12px;">
-                    <h5 class="mb-3"><i class="fas fa-key text-success me-2"></i>Top Organic Keywords</h5>
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Keyword</th>
-                                    <th>Clicks</th>
-                                    <th>Pos</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><code><?= clean($project['target_keyword']) ?></code></td>
-                                    <td><strong>124</strong></td>
-                                    <td><span class="badge bg-success">#1.2</span></td>
-                                </tr>
-                                <tr>
-                                    <td><code>python training in marathahalli</code></td>
-                                    <td><strong>85</strong></td>
-                                    <td><span class="badge bg-success">#1.5</span></td>
-                                </tr>
-                                <tr>
-                                    <td><code>aws certification bangalore</code></td>
-                                    <td><strong>48</strong></td>
-                                    <td><span class="badge bg-warning text-dark">#4.2</span></td>
-                                </tr>
-                                <tr>
-                                    <td><code>best it training institute in btm</code></td>
-                                    <td><strong>32</strong></td>
-                                    <td><span class="badge bg-success">#2.1</span></td>
-                                </tr>
-                                <tr>
-                                    <td><code>python full stack course near me</code></td>
-                                    <td><strong>19</strong></td>
-                                    <td><span class="badge bg-danger">#10.5</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
+            <div class="col-12">
+                <div class="card p-4 border-0 shadow-sm" style="border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background:#fff;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="fas fa-bolt text-warning me-2"></i>Google PageSpeed Insights (Real & Live Data)</h5>
+                        <span class="badge bg-warning text-dark px-3 py-2">Mobile Strategy API</span>
+                    </div>
+                    
+                    <div class="row align-items-center">
+                        <div class="col-md-4 text-center border-end py-3">
+                            <p class="text-muted mb-1 small">Lighthouse Performance Speed</p>
+                            <h1 class="fw-bold display-4 text-warning mb-2">
+                                <?= $project['pagespeed_score'] ? $project['pagespeed_score'] . '/100' : 'N/A' ?>
+                            </h1>
+                            <a href="google-integration.php?id=<?= $projectId ?>&check_speed=1" class="btn btn-primary btn-sm px-4">
+                                <i class="fas fa-sync-alt me-2"></i>Run PageSpeed Check
+                            </a>
+                        </div>
+                        <div class="col-md-8 px-md-4 py-3">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-signal text-info me-2"></i>Core Web Vitals Metrics:</h6>
+                            <div class="row text-center g-3">
+                                <div class="col-4">
+                                    <div class="bg-light p-3 rounded-3">
+                                        <h4 class="mb-1 fw-bold"><?= $pagespeedLcp ?></h4>
+                                        <span class="text-muted small" style="font-size:11px;">LCP (Paint)</span>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="bg-light p-3 rounded-3">
+                                        <h4 class="mb-1 fw-bold"><?= $pagespeedCls ?></h4>
+                                        <span class="text-muted small" style="font-size:11px;">CLS (Layout)</span>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="bg-light p-3 rounded-3">
+                                        <h4 class="mb-1 fw-bold"><?= $pagespeedFid ?></h4>
+                                        <span class="text-muted small" style="font-size:11px;">FID (Delay)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -299,56 +221,5 @@ if ($projectId > 0) {
 </div>
 
 <?php include 'includes/footer.php'; ?>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-// Chart.js Trends Visualization
-document.addEventListener("DOMContentLoaded", function () {
-    const ctx = document.getElementById('gscTrendsChart');
-    if (ctx) {
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Day 1', 'Day 5', 'Day 10', 'Day 15', 'Day 20', 'Day 25', 'Day 30'],
-                datasets: [{
-                    label: 'Organic Clicks',
-                    data: [10, 15, 22, 28, 30, 42, 54],
-                    borderColor: '#0d6efd',
-                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                    fill: true,
-                    tension: 0.4
-                }, {
-                    label: 'Impressions (x10)',
-                    data: [20, 28, 38, 42, 50, 52, 58],
-                    borderColor: '#198754',
-                    backgroundColor: 'rgba(25, 135, 84, 0.05)',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'top' }
-                },
-                scales: {
-                    y: { beginAtZero: true }
-                }
-            }
-        });
-    }
-
-    // Dynamic Realtime Active Users Simulator
-    const activeVal = document.getElementById('activeUsersVal');
-    if (activeVal) {
-        setInterval(() => {
-            let current = parseInt(activeVal.textContent);
-            let diff = Math.floor(Math.random() * 5) - 2; // -2 to +2
-            let newVal = Math.max(5, current + diff);
-            activeVal.textContent = newVal;
-        }, 3500);
-    }
-});
-</script>
 </body>
 </html>
