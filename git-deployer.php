@@ -149,6 +149,51 @@ function scanProjectFilesForSEO($dir, $savedMeta = null) {
                 }
             }
 
+            // Rule 6: HTML/PHP Header Meta Tag Optimization
+            if ($savedMeta && (strpos($filePath, '.html') !== false || strpos($filePath, '.php') !== false)) {
+                // Check <title>
+                if (preg_match('/<title>(.*?)<\/title>/is', $content, $titleMatches)) {
+                    $currTitle = trim($titleMatches[1]);
+                    if ($currTitle !== trim($savedMeta['meta_title'])) {
+                        $issues[] = [
+                            'type' => 'AI Title Tag Optimization',
+                            'detail' => 'Title tag in code does not match the AI optimized title in the database.',
+                            'original' => $titleMatches[0],
+                            'fixed' => '<title>' . htmlspecialchars($savedMeta['meta_title']) . '</title>'
+                        ];
+                    }
+                } elseif (stripos($content, '<head>') !== false) {
+                    // Title tag missing from <head>
+                    $issues[] = [
+                        'type' => 'Missing Title Tag',
+                        'detail' => 'Title tag is missing in the <head> container.',
+                        'original' => '<head>',
+                        'fixed' => "<head>\n    <title>" . htmlspecialchars($savedMeta['meta_title']) . "</title>"
+                    ];
+                }
+
+                // Check Meta Description
+                if (preg_match('/<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']/is', $content, $descMatches)) {
+                    $currDesc = trim($descMatches[1]);
+                    if ($currDesc !== trim($savedMeta['meta_description'])) {
+                        $issues[] = [
+                            'type' => 'AI Meta Description Optimization',
+                            'detail' => 'Meta description content does not match the AI optimized description in the database.',
+                            'original' => $descMatches[0],
+                            'fixed' => '<meta name="description" content="' . htmlspecialchars($savedMeta['meta_description']) . '">'
+                        ];
+                    }
+                } elseif (stripos($content, '<head>') !== false) {
+                    // Description tag missing from <head>
+                    $issues[] = [
+                        'type' => 'Missing Meta Description',
+                        'detail' => 'Meta description tag is missing in the <head> container.',
+                        'original' => '<head>',
+                        'fixed' => "<head>\n    <meta name=\"description\" content=\"" . htmlspecialchars($savedMeta['meta_description']) . "\">"
+                    ];
+                }
+            }
+
             if (!empty($issues)) {
                 $results[] = [
                     'file' => str_replace($dir . DIRECTORY_SEPARATOR, '', $filePath),
