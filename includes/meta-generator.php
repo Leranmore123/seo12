@@ -93,9 +93,11 @@ function analyzeMetaTags(string $url, string $keyword): array {
     return ['current' => $current, 'issues' => $issues, 'error' => null];
 }
 
-function generateMetaWithAI(array $project): ?array {
-    $keyword = $project['target_keyword'];
-    $site    = $project['target_site'] ?: $project['website_url'];
+function generateMetaWithAI(array $project, ?string $customKeyword = null, ?string $customSite = null): ?array {
+    $keyword = !empty($customKeyword) ? $customKeyword : $project['target_keyword'];
+    $site    = !empty($customSite) ? $customSite : ($project['target_site'] ?: $project['website_url']);
+    $keyword = trim(explode(',', $keyword)[0]);
+    $site    = trim(explode(',', $site)[0]);
     $brand   = parse_url($site, PHP_URL_HOST) ?: 'Your Brand';
 
     $prompt = <<<PROMPT
@@ -121,13 +123,13 @@ PROMPT;
     $ai  = generateWithAI($prompt);
     $raw = $ai['text'];
     if (!$raw) {
-        return generateMetaFallback($project);
+        return generateMetaFallback($project, $keyword, $site);
     }
 
     $raw = preg_replace('/^```json\s*|\s*```$/m', '', trim($raw));
     $data = json_decode($raw, true);
     if (!is_array($data) || empty($data['meta_title'])) {
-        return generateMetaFallback($project);
+        return generateMetaFallback($project, $keyword, $site);
     }
 
     $data['meta_title']       = mb_substr(trim($data['meta_title']), 0, 70);
@@ -154,9 +156,11 @@ PROMPT;
     return $data;
 }
 
-function generateMetaFallback(array $project): array {
-    $kw   = $project['target_keyword'];
-    $site = $project['target_site'] ?: $project['website_url'];
+function generateMetaFallback(array $project, ?string $customKeyword = null, ?string $customSite = null): array {
+    $kw   = !empty($customKeyword) ? $customKeyword : $project['target_keyword'];
+    $site = !empty($customSite) ? $customSite : ($project['target_site'] ?: $project['website_url']);
+    $kw   = trim(explode(',', $kw)[0]);
+    $site = trim(explode(',', $site)[0]);
     $businessName = trim($project['business_name'] ?? '');
     $businessDesc = trim($project['business_desc'] ?? '');
 

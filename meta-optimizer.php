@@ -38,7 +38,7 @@ $keyword = trim(explode(',', $currentKeyword)[0]);
 if ($isRun) {
     header('Content-Type: application/json');
     $analysis = analyzeMetaTags($url, $keyword);
-    $generated = generateMetaWithAI($project);
+    $generated = generateMetaWithAI($project, $keyword, $url);
     if ($generated) {
         saveProjectMeta($db, $projectId, $generated);
     }
@@ -57,7 +57,7 @@ $analysis  = analyzeMetaTags($url, $keyword);
 $savedMeta = loadProjectMeta($db, $projectId);
 
 if (!$savedMeta && empty($analysis['error']) && hasChatGPT()) {
-    $generated = generateMetaWithAI($project);
+    $generated = generateMetaWithAI($project, $keyword, $url);
     if ($generated) {
         saveProjectMeta($db, $projectId, $generated);
         $savedMeta = loadProjectMeta($db, $projectId);

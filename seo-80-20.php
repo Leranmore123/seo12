@@ -435,7 +435,12 @@ function copyMetaHtml() {
 
 function regenerateMeta() {
   if (!confirm('Generate new meta tags with AI?')) return;
-  fetch('meta-optimizer.php?id=' + PROJECT_ID + '&run=1', { credentials: 'same-origin' })
+  const kwSelect = document.getElementById('metaKeywordSelect');
+  const siteSelect = document.getElementById('metaUrlSelect');
+  const kw = kwSelect ? encodeURIComponent(kwSelect.value) : '';
+  const siteUrl = siteSelect ? encodeURIComponent(siteSelect.value) : '';
+  
+  fetch('meta-optimizer.php?id=' + PROJECT_ID + '&run=1&keyword=' + kw + '&target_site=' + siteUrl, { credentials: 'same-origin' })
     .then(r => r.json())
     .then(d => { alert(d.message || 'Done'); loadTab('meta'); })
     .catch(() => alert('Error — check ChatGPT API key in API Keys page.'));
