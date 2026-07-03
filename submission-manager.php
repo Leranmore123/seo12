@@ -431,11 +431,11 @@ $platforms = [
             ['id' => 'mastodon',     'name' => 'Mastodon',       'url' => 'https://mastodon.social',     'what_system_does' => '🤖 Browser Automation — Email + Password save karo. System auto-login kare, app create kare, token generate kare + post kare automatically!'],
             ['id' => 'minds',        'name' => 'Minds.com',      'url' => 'https://www.minds.com',       'what_system_does' => '✅ 100% Auto — REST API. Get token: minds.com → Settings → Security → API Token'],
             ['id' => 'dribbble',     'name' => 'Dribbble',       'url' => 'https://dribbble.com',        'what_system_does' => '✅ 100% Auto — Upload shot with keyword + backlink. Get token: dribbble.com/account/applications'],
-            ['id' => 'symbaloo',     'name' => 'Symbaloo',       'url' => 'https://www.symbaloo.com',    'what_system_does' => 'ChatGPT content → Copy & paste manually'],
-            ['id' => 'penzu',        'name' => 'Penzu',          'url' => 'https://penzu.com',           'what_system_does' => 'ChatGPT content → Copy & paste manually'],
+            ['id' => 'symbaloo',     'name' => 'Symbaloo',       'url' => 'https://www.symbaloo.com',    'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System auto-login thaine webmix tile publish kare with keyword + backlink'],
+            ['id' => 'penzu',        'name' => 'Penzu',          'url' => 'https://penzu.com',           'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System journal entries list ma post add kare automatically!'],
             ['id' => 'plurk',        'name' => 'Plurk',          'url' => 'https://www.plurk.com',       'what_system_does' => '✅ 100% Auto — REST API. Get key: plurk.com/API/Apps'],
             ['id' => 'devto',        'name' => 'Dev.to',         'url' => 'https://dev.to',              'what_system_does' => '✅ 100% Auto — API post. Get key: dev.to/settings/extensions'],
-            ['id' => 'linktree',     'name' => 'Linktree',       'url' => 'https://linktr.ee',           'what_system_does' => 'ChatGPT content → Copy & paste manually (no public API)'],
+            ['id' => 'linktree',     'name' => 'Linktree',       'url' => 'https://linktr.ee',           'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System profile links ma new link add kare with title + backlink'],
         ]
     ],
     'micro_blogging' => [
