@@ -268,13 +268,12 @@ function fetchGoogleSuggest($keyword) {
     return array_unique($keywords);
 }
 
-// Handle run=1
-if ($isRun) {
-    // Fetch from Google Suggest
-    $keywords = fetchGoogleSuggest($project['target_keyword']);
-
-    // Also get AI-suggested keywords from ChatGPT
-    $aiPrompt = "Generate 30 long-tail keyword variations for '{$project['target_keyword']}' that people search on Google.
+function autoPopulateKeywordsFromApis($projectId, $targetKeyword, $db) {
+    // 1. Fetch from Google Suggest
+    $keywords = fetchGoogleSuggest($targetKeyword);
+    
+    // 2. Fetch from ChatGPT
+    $aiPrompt = "Generate 30 long-tail keyword variations for '{$targetKeyword}' that people search on Google.
 Include:
 - Question keywords (how, what, why, where)
 - Location-based keywords
@@ -291,17 +290,32 @@ Return ONLY a plain list, one keyword per line, no numbering, no bullets.";
             }
         }
     }
-
+    
+    // Save to database
     $db->prepare("DELETE FROM keywords WHERE project_id=?")->execute([$projectId]);
     foreach ($keywords as $kw) {
         $volume = rand(100, 5000);
-        $cpc = rand(5, 120) / 10; // Between $0.50 and $12.00
-        $sd = rand(15, 75); // Between 15 and 75
-        $db->prepare("INSERT INTO keywords (project_id, keyword, search_volume, cpc, seo_difficulty) VALUES (?,?,?,?,?)")
-           ->execute([$projectId, $kw, $volume, $cpc, $sd]);
+        $cpc = rand(5, 120) / 10;
+        $comp = rand(5, 95) / 100;
+        $sd = rand(15, 75);
+        $score = calculateKeywordScore($volume, $cpc, $comp, $sd);
+        
+        $status = 'Pending';
+        if ($score >= 70) $status = 'Target';
+        elseif ($score < 40) $status = 'Ignore';
+        
+        $db->prepare("INSERT INTO keywords (project_id, keyword, search_volume, cpc, competition, seo_difficulty, score, status) VALUES (?,?,?,?,?,?,?,?)")
+           ->execute([$projectId, $kw, $volume, $cpc, $comp, $sd, $score, $status]);
     }
+    
+    return count($keywords);
+}
+
+// Handle run=1
+if ($isRun) {
+    $count = autoPopulateKeywordsFromApis($projectId, $project['target_keyword'], $db);
     header('Content-Type: application/json');
-    echo json_encode(['message' => 'Found ' . count($keywords) . ' keywords (Google Suggest + ChatGPT) ✨']);
+    echo json_encode(['message' => 'Found ' . $count . ' keywords (Google Suggest + ChatGPT) ✨']);
     exit;
 }
 
@@ -318,14 +332,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['select_keyword'])) {
 $kwCount = $db->prepare("SELECT COUNT(*) FROM keywords WHERE project_id=?");
 $kwCount->execute([$projectId]);
 if ($kwCount->fetchColumn() == 0) {
-    $keywords = fetchGoogleSuggest($project['target_keyword']);
-    foreach ($keywords as $kw) {
-        $volume = rand(100, 5000);
-        $cpc = rand(5, 120) / 10;
-        $sd = rand(15, 75);
-        $db->prepare("INSERT INTO keywords (project_id, keyword, search_volume, cpc, seo_difficulty) VALUES (?,?,?,?,?)")
-           ->execute([$projectId, $kw, $volume, $cpc, $sd]);
-    }
+    autoPopulateKeywordsFromApis($projectId, $project['target_keyword'], $db);
 }
 
 $keywords = $db->prepare("SELECT * FROM keywords WHERE project_id=? ORDER BY search_volume DESC");
