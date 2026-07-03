@@ -269,30 +269,48 @@ function fetchGoogleSuggest($keyword) {
 }
 
 function autoPopulateKeywordsFromApis($projectId, $targetKeyword, $db) {
-    // 1. Fetch from Google Suggest
-    $keywords = fetchGoogleSuggest($targetKeyword);
+    // Split target keyword by commas in case the project lists multiple target keywords
+    $targetKeywordsList = array_filter(array_map('trim', explode(',', $targetKeyword)));
+    if (empty($targetKeywordsList)) {
+        $targetKeywordsList = [$targetKeyword];
+    }
     
-    // 2. Fetch from ChatGPT
-    $aiPrompt = "Generate 30 long-tail keyword variations for '{$targetKeyword}' that people search on Google.
+    $keywords = [];
+    foreach ($targetKeywordsList as $tkw) {
+        if (empty($tkw)) continue;
+        
+        // 1. Fetch from Google Suggest for this sub-keyword
+        $subSuggestions = fetchGoogleSuggest($tkw);
+        foreach ($subSuggestions as $s) {
+            if (!in_array($s, $keywords)) $keywords[] = $s;
+        }
+        
+        // 2. Fetch from ChatGPT for this sub-keyword
+        $aiPrompt = "Generate 10 long-tail keyword variations for '{$tkw}' that people search on Google.
 Include:
 - Question keywords (how, what, why, where)
 - Location-based keywords
 - Comparison keywords
-- Beginner keywords
-- Career/job keywords
 Return ONLY a plain list, one keyword per line, no numbering, no bullets.";
-    $aiKw = generateWithAI($aiPrompt);
-    if ($aiKw['text']) {
-        $lines = array_filter(array_map('trim', explode("\n", $aiKw['text'])));
-        foreach ($lines as $kw) {
-            if (!empty($kw) && !in_array($kw, $keywords)) {
-                $keywords[] = $kw;
+        $aiKw = generateWithAI($aiPrompt);
+        if ($aiKw['text']) {
+            $lines = array_filter(array_map('trim', explode("\n", $aiKw['text'])));
+            foreach ($lines as $kw) {
+                // Clean formatting or list prefixes
+                $kw = trim($kw, " \t\n\r\0\x0B\"'*-•");
+                if (!empty($kw) && !in_array($kw, $keywords)) {
+                    $keywords[] = $kw;
+                }
             }
         }
     }
     
     // Save to database
     $db->prepare("DELETE FROM keywords WHERE project_id=?")->execute([$projectId]);
+    
+    // Slice keywords list to maximum 100 items to keep UI responsive
+    $keywords = array_slice($keywords, 0, 100);
+    
     foreach ($keywords as $kw) {
         $volume = rand(100, 5000);
         $cpc = rand(5, 120) / 10;
