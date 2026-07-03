@@ -1421,7 +1421,7 @@ def post_symbaloo(email, password, keyword, target_site, ai_title="", ai_content
 
         # Find tileSearchInput
         tile_input = None
-        for sel in ["#searchBarInput", "#tileSearchInput", "input[placeholder*='Search' i]", "input[placeholder*='URL' i]", "input[placeholder*='search query' i]"]:
+        for sel in ["#tileSearchInput", "input[placeholder*='Enter a URL' i]", "input[placeholder*='search query' i]", "input[placeholder*='URL' i]", "input[placeholder*='url' i]"]:
             try:
                 el = WebDriverWait(driver,8).until(EC.element_to_be_clickable((By.CSS_SELECTOR,sel)))
                 if el.is_displayed():
@@ -1444,7 +1444,7 @@ def post_symbaloo(email, password, keyword, target_site, ai_title="", ai_content
             tile_input.send_keys(Keys.RETURN)
         except:
             try:
-                driver.find_element(By.CSS_SELECTOR, '#searchBarInput').send_keys(Keys.RETURN)
+                driver.find_element(By.CSS_SELECTOR, '#tileSearchInput').send_keys(Keys.RETURN)
             except:
                 driver.find_element(By.TAG_NAME,'body').send_keys(Keys.RETURN)
         log("Symbaloo: Enter pressed")
