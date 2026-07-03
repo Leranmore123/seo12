@@ -346,10 +346,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['select_keyword'])) {
     exit;
 }
 
-// Auto-fetch if no keywords yet
-$kwCount = $db->prepare("SELECT COUNT(*) FROM keywords WHERE project_id=?");
-$kwCount->execute([$projectId]);
-if ($kwCount->fetchColumn() == 0) {
+// Auto-fetch if no keywords yet or if keywords are older than 24 hours
+$kwCheck = $db->prepare("SELECT COUNT(*), MAX(created_at) FROM keywords WHERE project_id=?");
+$kwCheck->execute([$projectId]);
+$kwRow = $kwCheck->fetch();
+$kwCount = (int)($kwRow['COUNT(*)'] ?? 0);
+$lastKwCreated = $kwRow['MAX(created_at)'] ?? null;
+
+if ($kwCount == 0 || !$lastKwCreated || (time() - strtotime($lastKwCreated)) > 86400) {
     autoPopulateKeywordsFromApis($projectId, $project['target_keyword'], $db);
 }
 

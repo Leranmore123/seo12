@@ -137,14 +137,32 @@ Make it 100% different from any previous article.";
     exit;
 }
 
-// Auto-generate if none
-$count = $db->prepare("SELECT COUNT(*) FROM content_queue WHERE project_id=?");
-$count->execute([$projectId]);
-if ($count->fetchColumn() == 0) {
-    $articles = generateAllArticles($keyword, $site);
-    foreach ($articles as $art) {
-        $db->prepare("INSERT INTO content_queue (project_id, title, article, status) VALUES (?,?,?,'draft')")
-           ->execute([$projectId, $art['title'], $art['content']]);
+// Auto-generate or auto-refresh drafts if older than 24 hours
+$artCheck = $db->prepare("SELECT COUNT(*), MAX(created_at) FROM content_queue WHERE project_id=? AND status='draft'");
+$artCheck->execute([$projectId]);
+$artRow = $artCheck->fetch();
+$artCount = (int)($artRow['COUNT(*)'] ?? 0);
+$lastArtCreated = $artRow['MAX(created_at)'] ?? null;
+
+if ($artCount == 0 || !$lastArtCreated || (time() - strtotime($lastArtCreated)) > 86400) {
+    // Delete old drafts
+    $db->prepare("DELETE FROM content_queue WHERE project_id=? AND status='draft'")->execute([$projectId]);
+    
+    // Target keywords fallback logic
+    $keywordsList = [$keyword];
+    $stmtKw = $db->prepare("SELECT keyword FROM keywords WHERE project_id=? AND status='Target' LIMIT 3");
+    $stmtKw->execute([$projectId]);
+    $kwRows = $stmtKw->fetchAll();
+    if (!empty($kwRows)) {
+        $keywordsList = array_column($kwRows, 'keyword');
+    }
+    
+    foreach ($keywordsList as $kwItem) {
+        $articles = generateAllArticles($kwItem, $site);
+        foreach ($articles as $art) {
+            $db->prepare("INSERT INTO content_queue (project_id, title, article, status) VALUES (?,?,?,'draft')")
+               ->execute([$projectId, $art['title'], $art['content']]);
+        }
     }
 }
 
