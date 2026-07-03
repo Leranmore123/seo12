@@ -1485,7 +1485,37 @@ def post_symbaloo(email, password, keyword, target_site, ai_title="", ai_content
                 if btn.text.strip() == 'Edit Tile' and btn.is_displayed():
                     driver.execute_script("arguments[0].click();",btn)
                     log("Symbaloo: Edit Tile clicked")
-                    time.sleep(4); break
+                    time.sleep(4)
+                    
+                    # Fill Tile URL (name='url')
+                    for inp in driver.find_elements(By.CSS_SELECTOR, "input[name='url']"):
+                        try:
+                            if inp.is_displayed():
+                                inp.click(); inp.clear(); time.sleep(0.2)
+                                inp.send_keys(target_site)
+                                log("Symbaloo: URL = " + target_site); break
+                        except: continue
+
+                    # Fill Tile name/title (name='name') using ChatGPT title
+                    tile_title = ai_title if ai_title else f"Best {keyword.title()} Training"
+                    for inp in driver.find_elements(By.CSS_SELECTOR, "input[name='name']"):
+                        try:
+                            if inp.is_displayed():
+                                inp.click(); inp.clear(); time.sleep(0.2)
+                                inp.send_keys(tile_title)
+                                log("Symbaloo: Name = " + tile_title); break
+                        except: continue
+
+                    # Fill Tile description (textarea) using ChatGPT description
+                    tile_desc = ai_content if ai_content else f"Best {keyword} training. Expert trainers, placement support: {target_site}"
+                    for ta in driver.find_elements(By.TAG_NAME, 'textarea'):
+                        try:
+                            if ta.is_displayed():
+                                ta.click(); ta.clear(); time.sleep(0.2)
+                                ta.send_keys(tile_desc[:300]) # Symbaloo limits description length
+                                log("Symbaloo: Description filled"); break
+                        except: continue
+                    break
             except: continue
 
         # Click Finish editing Webmix
