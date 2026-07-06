@@ -24,11 +24,11 @@ foreach ($projects as $project) {
     $weekAgo = date('Y-m-d', strtotime('-7 days'));
     $today   = date('Y-m-d');
 
-    $rankNow  = $db->prepare("SELECT rank FROM seo_reports WHERE project_id=? AND rank > 0 ORDER BY report_date DESC LIMIT 1");
+    $rankNow  = $db->prepare("SELECT `rank` FROM seo_reports WHERE project_id=? AND `rank` > 0 ORDER BY report_date DESC LIMIT 1");
     $rankNow->execute([$project['id']]);
     $rankNow = $rankNow->fetchColumn() ?: 0;
 
-    $rankWeekAgo = $db->prepare("SELECT rank FROM seo_reports WHERE project_id=? AND rank > 0 AND report_date <= ? ORDER BY report_date DESC LIMIT 1");
+    $rankWeekAgo = $db->prepare("SELECT `rank` FROM seo_reports WHERE project_id=? AND `rank` > 0 AND report_date <= ? ORDER BY report_date DESC LIMIT 1");
     $rankWeekAgo->execute([$project['id'], $weekAgo]);
     $rankWeekAgo = $rankWeekAgo->fetchColumn() ?: 0;
 

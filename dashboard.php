@@ -15,7 +15,7 @@ try {
 $projects = $db->prepare("
     SELECT p.*,
         (SELECT COUNT(*) FROM backlinks b WHERE b.project_id = p.id AND b.status='created') AS backlinks_count,
-        (SELECT rank FROM seo_reports WHERE project_id = p.id ORDER BY report_date DESC LIMIT 1) AS current_rank,
+        (SELECT `rank` FROM seo_reports WHERE project_id = p.id ORDER BY report_date DESC LIMIT 1) AS current_rank,
         (SELECT seo_score FROM seo_reports WHERE project_id = p.id ORDER BY report_date DESC LIMIT 1) AS latest_score
     FROM projects p WHERE p.user_id = ?
     ORDER BY p.created_at DESC

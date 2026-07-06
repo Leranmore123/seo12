@@ -153,10 +153,10 @@ if ($isRun || $isAjax) {
     $existing = $db->prepare("SELECT id FROM seo_reports WHERE project_id=? AND report_date=?");
     $existing->execute([$projectId, $today]);
     if ($existing->fetch()) {
-        $db->prepare("UPDATE seo_reports SET rank=? WHERE project_id=? AND report_date=?")
+        $db->prepare("UPDATE seo_reports SET `rank`=? WHERE project_id=? AND report_date=?")
            ->execute([$rank, $projectId, $today]);
     } else {
-        $db->prepare("INSERT INTO seo_reports (project_id, rank, report_date) VALUES (?,?,?)")
+        $db->prepare("INSERT INTO seo_reports (project_id, `rank`, report_date) VALUES (?,?,?)")
            ->execute([$projectId, $rank, $today]);
     }
     $db->prepare("INSERT INTO rank_history (project_id, keyword, rank_position) VALUES (?,?,?)")
@@ -174,7 +174,7 @@ $history = $db->prepare("SELECT DATE(checked_at) as date, MIN(rank_position) as 
 $history->execute([$projectId]);
 $history = array_reverse($history->fetchAll());
 
-$latestRank = $db->prepare("SELECT rank FROM seo_reports WHERE project_id=? AND rank > 0 ORDER BY report_date DESC LIMIT 1");
+$latestRank = $db->prepare("SELECT `rank` FROM seo_reports WHERE project_id=? AND `rank` > 0 ORDER BY report_date DESC LIMIT 1");
 $latestRank->execute([$projectId]);
 $latestRank = $latestRank->fetchColumn() ?: 0;
 ?>

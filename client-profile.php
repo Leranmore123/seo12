@@ -108,11 +108,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_report_ajax'])) 
     $weekAgo = date('Y-m-d', strtotime('-7 days'));
     $today   = date('Y-m-d');
 
-    $rankNow  = $db->prepare("SELECT rank FROM seo_reports WHERE project_id=? AND rank > 0 ORDER BY report_date DESC LIMIT 1");
+    $rankNow  = $db->prepare("SELECT `rank` FROM seo_reports WHERE project_id=? AND `rank` > 0 ORDER BY report_date DESC LIMIT 1");
     $rankNow->execute([$projectId]);
     $rankNow = $rankNow->fetchColumn() ?: 0;
 
-    $rankWeekAgo = $db->prepare("SELECT rank FROM seo_reports WHERE project_id=? AND rank > 0 AND report_date <= ? ORDER BY report_date DESC LIMIT 1");
+    $rankWeekAgo = $db->prepare("SELECT `rank` FROM seo_reports WHERE project_id=? AND `rank` > 0 AND report_date <= ? ORDER BY report_date DESC LIMIT 1");
     $rankWeekAgo->execute([$projectId, $weekAgo]);
     $rankWeekAgo = $rankWeekAgo->fetchColumn() ?: 0;
 
@@ -778,14 +778,14 @@ if (empty($brokenLinks)) {
     </div>
     <div class="card-body p-0">
       <div class="p-3 bg-light text-muted small border-bottom">
-        Scans internal pages linking from the homepage and reports broken links. / વેબસાઇટની આંતરિક તૂટેલી લિંક્સ સ્કેન કરો.
+        Scans internal pages linking from the homepage and reports broken links.
       </div>
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0" id="broken-links-table">
           <thead class="table-light">
             <tr>
-              <th>Source Page (જ્યાં લિંક છે)</th>
-              <th>Broken Link (તૂટેલી લિંક)</th>
+              <th>Source Page</th>
+              <th>Broken Link</th>
               <th class="text-center">Status</th>
             </tr>
           </thead>
