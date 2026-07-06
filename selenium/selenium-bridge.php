@@ -22,11 +22,7 @@ function runSeleniumScript(string $script, array $args, int $timeout = 120): arr
     }
 
     // Build command — escape all args
-    if (DIRECTORY_SEPARATOR === '/') {
-        $cmd = 'sudo -u ubuntu ' . PYTHON_EXE . ' ' . escapeshellarg($scriptPath);
-    } else {
-        $cmd = escapeshellarg(PYTHON_EXE) . ' ' . escapeshellarg($scriptPath);
-    }
+    $cmd = escapeshellarg(PYTHON_EXE) . ' ' . escapeshellarg($scriptPath);
     foreach ($args as $arg) {
         $cmd .= ' ' . escapeshellarg((string)$arg);
     }
