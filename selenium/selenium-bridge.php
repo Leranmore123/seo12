@@ -34,7 +34,16 @@ function runSeleniumScript(string $script, array $args, int $timeout = 120): arr
         2 => ['pipe', 'w'],  // stderr
     ];
 
-    $process = proc_open($cmd, $descriptors, $pipes);
+    $env = getenv();
+    if (!is_array($env)) {
+        $env = [];
+    }
+    $env['WDM_DIR'] = '/tmp/.wdm';
+    $env['HOME'] = '/tmp';
+    $env['XDG_CONFIG_HOME'] = '/tmp';
+    $env['XDG_CACHE_HOME'] = '/tmp';
+
+    $process = proc_open($cmd, $descriptors, $pipes, null, $env);
     if (!is_resource($process)) {
         return ['success' => false, 'error' => 'Failed to start Python process'];
     }
