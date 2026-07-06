@@ -32,7 +32,10 @@ def get_driver(profile_name, headless=False):
     opts.add_argument('--window-size=1400,900')
     opts.add_argument('--start-maximized')
     
-    profile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), profile_name)
+    if sys.platform != "win32":
+        profile_dir = os.path.join('/tmp', profile_name)
+    else:
+        profile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), profile_name)
     opts.add_argument(f'--user-data-dir={profile_dir}')
     
     service = Service(ChromeDriverManager().install())

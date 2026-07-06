@@ -26,7 +26,10 @@ import hashlib
 email_hash = hashlib.md5(username.lower().encode('utf-8')).hexdigest() if username else "default"
 
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
-PROFILE_DIR = os.path.join(SCRIPT_DIR, f'chrome_profile_livejournal_{email_hash}')
+if sys.platform != "win32":
+    PROFILE_DIR = os.path.join('/tmp', f'chrome_profile_livejournal_{email_hash}')
+else:
+    PROFILE_DIR = os.path.join(SCRIPT_DIR, f'chrome_profile_livejournal_{email_hash}')
 
 # Clean lock files (Pinterest-style)
 for lf in [os.path.join(PROFILE_DIR,'Default','LOCK'),

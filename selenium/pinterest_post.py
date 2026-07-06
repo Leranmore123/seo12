@@ -35,7 +35,10 @@ def get_driver(email="default"):
     # Persistent profile per email account — prevents cross-posting session hijack
     import hashlib
     email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
-    profile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'chrome_profile_pinterest_{email_hash}')
+    if sys.platform != "win32":
+        profile_dir = os.path.join('/tmp', f'chrome_profile_pinterest_{email_hash}')
+    else:
+        profile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'chrome_profile_pinterest_{email_hash}')
     opts.add_argument(f'--user-data-dir={profile_dir}')
     service = Service(ChromeDriverManager().install())
     driver  = webdriver.Chrome(service=service, options=opts)
