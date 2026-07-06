@@ -171,11 +171,10 @@ try:
     for sel in ["textarea[placeholder='Title']","textarea[name='subject']",
                 "input[id='subject']","input[name='subject']","#subject"]:
         try:
-            el = WebDriverWait(driver,8).until(EC.element_to_be_clickable((By.CSS_SELECTOR,sel)))
+            el = WebDriverWait(driver,8).until(EC.presence_of_element_located((By.CSS_SELECTOR,sel)))
             if el.is_displayed():
-                el.click(); el.clear(); time.sleep(0.3)
-                el.send_keys(title_text)
-                log(f"LiveJournal: Title typed [{sel}]"); break
+                driver.execute_script("arguments[0].click(); arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", el, title_text)
+                log(f"LiveJournal: Title typed via JS [{sel}]"); break
         except: continue
 
     # ── Step 4: Fill Post Content ─────────────────────────────
@@ -218,38 +217,37 @@ try:
                 "[contenteditable='true']",
                 "textarea[id='entry']","textarea[name='event']","#entry"]:
         try:
-            el = WebDriverWait(driver,8).until(EC.element_to_be_clickable((By.CSS_SELECTOR,sel)))
+            el = WebDriverWait(driver,8).until(EC.presence_of_element_located((By.CSS_SELECTOR,sel)))
             if el.is_displayed():
-                el.click(); time.sleep(0.5)
+                driver.execute_script("arguments[0].click();", el)
+                time.sleep(0.5)
                 tag = el.tag_name.lower()
-
-                # Strip HTML tags for plain text typing (Draft.js doesn't accept insertHTML well)
-                import re as _re
-                plain_text = _re.sub(r'<br\s*/?>', '\n', content_text)
-                plain_text = _re.sub(r'</?(h[1-6]|p|li|ul|ol)[^>]*>', '\n', plain_text)
-                plain_text = _re.sub(r'<[^>]+>', '', plain_text)
-                plain_text = _re.sub(r'\n{3,}', '\n\n', plain_text).strip()
 
                 if tag == 'textarea':
                     el.clear()
-                    el.send_keys(plain_text)
-                    log(f"LiveJournal: Full content typed in textarea ({len(plain_text)} chars)")
+                    el.send_keys(content_text)
+                    log(f"LiveJournal: Full content written to textarea ({len(content_text)} chars)")
                 else:
-                    # Draft.js — type line by line to avoid truncation
-                    el.click(); time.sleep(0.3)
-                    # Select all and delete first
+                    time.sleep(0.3)
                     from selenium.webdriver.common.keys import Keys as _Keys
                     el.send_keys(_Keys.CONTROL + 'a')
                     time.sleep(0.2)
                     el.send_keys(_Keys.DELETE)
-                    time.sleep(0.3)
-                    # Type in chunks to avoid memory issues
-                    chunk_size = 500
-                    for i in range(0, len(plain_text), chunk_size):
-                        chunk = plain_text[i:i+chunk_size]
-                        el.send_keys(chunk)
-                        time.sleep(0.1)
-                    log(f"LiveJournal: Full content typed in Draft.js ({len(plain_text)} chars)")
+                    time.sleep(0.5)
+                    driver.execute_script("""
+                        var el = arguments[0];
+                        var html = arguments[1];
+                        var dt = new DataTransfer();
+                        dt.setData('text/html', html);
+                        dt.setData('text/plain', el.innerText);
+                        var event = new ClipboardEvent('paste', {
+                            clipboardData: dt,
+                            bubbles: true,
+                            cancelable: true
+                        });
+                        el.dispatchEvent(event);
+                    """, el, content_text)
+                    log(f"LiveJournal: Rich HTML pasted via ClipboardEvent ({len(content_text)} chars)")
                 break
         except Exception as e:
             log(f"LiveJournal: content type error [{sel}]: {e}")
@@ -343,34 +341,44 @@ try:
     final = driver.current_url
     log(f"LiveJournal: Final URL = {final}")
 
-    # If still on /post/ page, check for success or get profile URL
-    if "/post/" in final or "draft" in final:
-        # Try getting published post URL from page
+    subdomain = username.lower().replace("_", "-")
+    profile_url = f"https://{subdomain}.livejournal.com/"
+
+    import re
+    post_pattern = re.escape(subdomain) + r'\.livejournal\.com/[0-9]+\.html'
+
+    def find_post_link(driver, pattern):
         try:
-            links = driver.find_elements(By.CSS_SELECTOR, "a[href*='lmt-12.livejournal.com']")
+            links = driver.find_elements(By.TAG_NAME, "a")
             for l in links:
-                href = l.get_attribute('href') or ''
-                if 'lmt-12.livejournal.com' in href and '/d' not in href:
-                    final = href
-                    log(f"LiveJournal: Found post URL = {final}")
-                    break
-        except: pass
+                href = l.get_attribute("href") or ""
+                if re.search(pattern, href, re.IGNORECASE):
+                    return href
+        except:
+            pass
+        return None
 
-        if "draft" in final or "/post/" in final:
-            # Navigate to profile to get latest post
-            driver.get("https://lmt-12.livejournal.com/")
-            time.sleep(4)
-            try:
-                post_links = driver.find_elements(By.CSS_SELECTOR, "a[href*='lmt-12.livejournal.com'][href*='.html']")
-                if post_links:
-                    final = post_links[0].get_attribute('href')
-                    log(f"LiveJournal: Profile latest post = {final}")
-            except: pass
+    # Check if current page has a valid post link
+    valid_link = find_post_link(driver, post_pattern)
+    if valid_link:
+        final = valid_link
+        log(f"LiveJournal: Found post URL on current page = {final}")
+    else:
+        log(f"LiveJournal: Navigating to profile to find latest post: {profile_url}")
+        driver.get(profile_url)
+        time.sleep(5)
+        valid_link = find_post_link(driver, post_pattern)
+        if valid_link:
+            final = valid_link
+            log(f"LiveJournal: Found latest post URL on profile page = {final}")
+        else:
+            final = profile_url
+            log(f"LiveJournal: Fallback to profile URL = {final}")
 
-    if "livejournal.com" in final and "/post/" not in final and "login" not in final:
+    if "livejournal.com" in final and "/post/" not in final and "login" not in final and "/photo" not in final:
         result(True, url=final)
     else:
-        result(True, url="https://lmt-12.livejournal.com/")
+        result(True, url=profile_url)
 
 except Exception as e:
     log(f"LiveJournal: Error = {e}")

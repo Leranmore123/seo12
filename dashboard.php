@@ -1,6 +1,6 @@
 <?php
 require_once 'config.php';
-requireLogin();
+requireMenuPermission('dashboard');
 $db = getDB();
 $userId = $_SESSION['user_id'];
 

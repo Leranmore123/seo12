@@ -299,6 +299,22 @@ function generateAIContent($keyword, $targetSite, $platform, $contentType, $gemi
     // ── Generate a UNIQUE title via ChatGPT (unlimited, never repeats) ──────────
     $generatedTitle = generateUniqueTitle($keyword, $postCount, $usedTitles, $openaiKey);
 
+    if ($platform === 'pinterest') {
+        $titlePrompt = "Generate ONE unique, compelling, SEO-optimized Pinterest Pin Title for the keyword: \"{$keyword}\".\nRules:\n- Must contain the keyword \"{$keyword}\"\n- Length must be strictly between 40 and 60 characters\n- Return ONLY the title, no quotes, nothing else.";
+        $pinterestTitle = null;
+        if (!empty($openaiKey) && strpos($openaiKey, 'sk-') === 0) {
+            $pinterestTitle = generateWithOpenAI($titlePrompt, $openaiKey);
+        }
+        if (!$pinterestTitle && !empty($geminiKey)) {
+            $pinterestTitle = generateWithGemini($titlePrompt, $geminiKey);
+        }
+        if ($pinterestTitle) {
+            $generatedTitle = trim(trim($pinterestTitle), '"\'');
+        } else {
+            $generatedTitle = substr($generatedTitle, 0, 55);
+        }
+    }
+
     // Platform-specific context to ensure unique content per platform
     $platformContexts = [
         'wordpress'  => "This is for a WordPress.com blog post. Write in a detailed, long-form blog style with proper HTML structure. Audience: blog readers searching Google.",
@@ -361,19 +377,26 @@ Platform: {$platform}. Post variation #{$postCount}. Random seed: {$randomSeed}.
 - End with: 'Visit {$targetSite} to learn more'
 Platform: {$platform}. Post variation #{$postCount}. Random seed: {$randomSeed}. Timestamp: {$timestamp}. UNIQUE content only.",
 
-        'image_caption' => "Write a single long, keyword-rich Pinterest pin description about '{$keyword}'.
+        'image_caption' => "Write a professional, SEO-rich description for a Pinterest Pin about '{$keyword}'.
 {$platformCtx}
 {$angleHint}{$businessCtx}
-REQUIREMENTS:
-- Start with keyword '{$keyword}' in the first sentence
-- Use keyword '{$keyword}' at least 4 times naturally throughout
-- Include URL {$targetSite} twice — once mid-description, once at end
-- 400-500 characters total (Pinterest allows 500 max)
-- Mention key benefits: expert trainers, live projects, placement support, certification
-- End with strong CTA: 'Enroll now at {$targetSite}'
-- Include 5-8 relevant hashtags at the very end
-- NO numbering, NO bullet points — single flowing paragraph + hashtags
-Platform: {$platform}. Post variation #{$postCount}. Random seed: {$randomSeed}. Timestamp: {$timestamp}. UNIQUE content only.",
+STRICT REQUIREMENTS:
+- Length: strictly between 150 and 300 characters total (Pinterest allows 500 max, but target 150-300).
+- Start with or naturally include the main keyword '{$keyword}'.
+- Include website link {$targetSite} naturally.
+- Add between 3 and 8 relevant hashtags at the end (e.g. #{$keyword} #LearnAWS).
+- Do not repeat previous posts.
+Platform: {$platform}. Post variation #{$postCount}. Random seed: {$randomSeed}. Timestamp: {$timestamp}.",
+
+        'bluesky_post' => "Write a unique, engaging social media post for Bluesky about '{$keyword}'.
+{$platformCtx}
+{$angleHint}{$businessCtx}
+STRICT REQUIREMENTS:
+- Length: strictly under 280 characters total.
+- Keep the writing tone completely natural, informative, and engaging.
+- Naturally include the main keyword '{$keyword}' and target link: {$targetSite}
+- Add between 3 and 5 relevant hashtags at the end.
+- Every post must be completely different and fresh.",
 
         'pdf_description' => "Write a detailed document/PDF description (300-400 words) about '{$keyword}'.
 {$platformCtx}
@@ -429,8 +452,13 @@ Platform: {$platform}. Post variation #{$postCount}. Random seed: {$randomSeed}.
     }
 
     if (!$content) {
-        // Fallback templates based on contentType
-        $source = 'Template';
+        return [
+            'content' => '',
+            'source'  => '',
+            'title'   => $generatedTitle,
+            'error'   => 'AI Generation Failed: Both OpenAI and Gemini API keys are exhausted, invalid, or returned an error. Posting stopped.'
+        ];
+    }
         $title = $generatedTitle;
         $kw = ucwords($keyword);
         $yr = date('Y');
@@ -439,57 +467,66 @@ Platform: {$platform}. Post variation #{$postCount}. Random seed: {$randomSeed}.
             case 'blog_post':
             case 'article':
                 $content = "<h1>{$title}</h1>\n"
-                    . "<p>Are you looking to accelerate your career and master the skills required for modern industry demands? Obtaining a professional training in <strong>{$kw}</strong> is one of the most effective ways to stand out in today's competitive job market. In this comprehensive guide, we will explore everything you need to know about {$kw} and how you can get started today.</p>\n"
-                    . "<h2>What is {$kw} and Why is it Important?</h2>\n"
-                    . "<p>{$kw} has emerged as a critical driver of innovation, efficiency, and scale. Businesses across the globe are actively seeking certified professionals who can design, build, and optimize solutions using these concepts. By investing in quality training at <a href='{$targetSite}'>{$targetSite}</a>, you gain access to structured learning paths, real-world case studies, and hands-on laboratory exercises designed to simulate real industry challenges.</p>\n"
-                    . "<h2>Key Benefits of Mastering {$kw}</h2>\n"
+                    . "<p>{Are you looking to accelerate your career|Want to upgrade your skills|Looking to build a professional path} and master the skills required for modern industry demands? Obtaining a professional training in <strong>{$kw}</strong> is {one of the most effective ways|a proven strategy|a great step} to stand out in today's competitive job market. In this comprehensive guide, we will explore {everything you need to know|key details|essential tips} about {$kw} and how you can get started today.</p>\n"
+                    . "<h2>{What is|Understanding} {$kw} and Why is it Important?</h2>\n"
+                    . "<p>{$kw} has emerged as a critical driver of {innovation, efficiency, and scale|modern technology|business success}. Businesses across the globe are {actively seeking|on the lookout for|hiring} certified professionals who can design, build, and optimize solutions using these concepts. By investing in quality training at <a href='{$targetSite}'>{$targetSite}</a>, you gain access to {structured learning paths|expert-led sessions|comprehensive modules}, real-world case studies, and hands-on laboratory exercises designed to simulate real industry challenges.</p>\n"
+                    . "<h2>Key Benefits of {Mastering|Learning} {$kw}</h2>\n"
                     . "<ul>\n"
-                    . "  <li><strong>High Industry Demand:</strong> Companies are facing a shortage of skilled experts in {$kw}, leading to excellent career opportunities.</li>\n"
-                    . "  <li><strong>Increased Earning Potential:</strong> Certified practitioners command premium salaries globally.</li>\n"
-                    . "  <li><strong>Practical Project Experience:</strong> Work on live projects to build a robust portfolio.</li>\n"
-                    . "  <li><strong>Flexible Career Paths:</strong> Applicable across multiple sectors including cloud computing, software engineering, and data science.</li>\n"
-                    . "  <li><strong>Comprehensive Placement Assistance:</strong> Guided mentorship to prepare for job interviews.</li>\n"
+                    . "  <li><strong>{High Industry Demand|Booming Career Options}:</strong> Companies are facing a shortage of skilled experts in {$kw}, leading to excellent career opportunities.</li>\n"
+                    . "  <li><strong>{Increased Earning Potential|Top-tier Salaries}:</strong> Certified practitioners command premium salaries globally.</li>\n"
+                    . "  <li><strong>{Practical Project Experience|Hands-on Labs}:</strong> Work on live projects to build a robust portfolio.</li>\n"
+                    . "  <li><strong>{Flexible Career Paths|Versatile Skills}:</strong> Applicable across multiple sectors including cloud computing, software engineering, and data science.</li>\n"
+                    . "  <li><strong>{Comprehensive Placement Assistance|Job Assistance}:</strong> Guided mentorship to prepare for job interviews.</li>\n"
                     . "</ul>\n"
                     . "<h2>How to Choose the Right Training Institute</h2>\n"
-                    . "<p>When selecting a course, look for institutes that offer industry-accredited certifications, interactive training modules, and expert mentors with real-world experience. Elevate your skills and learn more by visiting <a href='{$targetSite}'>{$targetSite}</a> to explore our customized modules tailored for freshers and working professionals alike.</p>\n"
+                    . "<p>When selecting a course, look for institutes that offer industry-accredited certifications, interactive training modules, and expert mentors with real-world experience. Elevate your skills and learn more by visiting <a href='{$targetSite}'>{$targetSite}</a> to explore our customized modules tailored for {freshers and working professionals|students and experts} alike.</p>\n"
                     . "<h2>Frequently Asked Questions</h2>\n"
                     . "<p><strong>Q: Who is this course for?</strong><br>A: Anyone interested in building a technical career, including graduates, software developers, and IT professionals.</p>\n"
                     . "<p><strong>Q: Does this include real project training?</strong><br>A: Yes, the curriculum emphasizes hands-on projects to ensure you are job-ready.</p>\n"
                     . "<h2>Conclusion</h2>\n"
-                    . "<p>Don't wait to upgrade your career. Take the first step towards a successful future today. Enroll now at <a href='{$targetSite}'>{$targetSite}</a>.</p>";
+                    . "<p>{Don't wait to upgrade your career|Take action today}. Take the first step towards a successful future today. Enroll now at <a href='{$targetSite}'>{$targetSite}</a>.</p>";
                 break;
                 
             case 'micro_blog':
                 $content = "<p><strong>{$title}</strong></p>\n"
-                    . "<p>Ready to upgrade your skillset? Discover the power of <strong>{$kw}</strong> and how it can help you land your dream job in {$yr}. Mastering {$kw} opens doors to top-tier technical roles with high earning potential.</p>\n"
+                    . "<p>{Ready to upgrade your skillset|Looking to advance your IT career}? Discover the power of <strong>{$kw}</strong> and how it can help you land your dream job in {$yr}. Mastering {$kw} opens doors to top-tier technical roles with {high earning potential|excellent salaries}.</p>\n"
                     . "<p>Key features of our training module at <a href='{$targetSite}'>{$targetSite}</a>:</p>\n"
                     . "<ul>\n"
-                    . "  <li>Hands-on labs and live project experience</li>\n"
-                    . "  <li>Expert industry mentors</li>\n"
-                    . "  <li>100% placement support</li>\n"
-                    . "  <li>Accredited certification preparation</li>\n"
+                    . "  <li>{Hands-on labs and live project experience|Practical exercises with real-world scenarios}</li>\n"
+                    . "  <li>{Expert industry mentors|Mentorship by industry professionals}</li>\n"
+                    . "  <li>{100% placement support|Career assistance and mock interviews}</li>\n"
+                    . "  <li>{Accredited certification preparation|Prep for globally recognized certificates}</li>\n"
                     . "</ul>\n"
-                    . "<p>Start learning today and build a bright career. Enroll now at <a href='{$targetSite}'>{$targetSite}</a>!</p>";
+                    . "<p>{Start learning today and build a bright career|Unlock your potential today}. Enroll now at <a href='{$targetSite}'>{$targetSite}</a>!</p>";
+                break;
+
+            case 'bluesky_post':
+                $content = "{Ready to master|Want to learn} {$kw} in {$yr}? Enrol in our {industry-recommended|expert-led} course at {$targetSite} today and {land your dream role|boost your tech career}! #{$keyword} {#CloudComputing|#TechCareers|#LearnAWS|#ITTraining}";
                 break;
                 
             case 'profile_bio':
-                $content = "Dedicated professional and technical expert specializing in {$kw}. Focused on delivering high-quality training and practical solutions. Visit <a href='{$targetSite}'>{$targetSite}</a> to learn more.";
+                $content = "{Dedicated professional|Experienced specialist} and technical expert specializing in {$kw}. Focused on delivering {high-quality training|industry-standard workshops} and practical solutions. Visit <a href='{$targetSite}'>{$targetSite}</a> to learn more.";
                 break;
                 
             case 'image_caption':
             case 'pdf_description':
-                $content = "Boost your career with our professional {$kw} training program. Get hands-on lab experience, real-world case studies, and placement assistance. Enroll now at {$targetSite} #{$platform} #{$keyword}";
+                $content = "{Boost your career|Elevate your skills} with our professional {$kw} training program. Get {hands-on lab experience|practical exposure}, real-world case studies, and placement assistance. Enroll now at {$targetSite} #{$platform} #{$keyword}";
                 break;
                 
             default:
                 $content = "<h1>{$title}</h1>\n"
-                    . "<p>Learn and master <strong>{$kw}</strong> with our comprehensive training program. Visit <a href='{$targetSite}'>{$targetSite}</a> for more information and to enroll today.</p>";
+                    . "<p>{Learn and master|Gain deep expertise in} <strong>{$kw}</strong> with our comprehensive training program. Visit <a href='{$targetSite}'>{$targetSite}</a> for more information and to enroll today.</p>";
                 break;
         }
-    }
-
     $content = injectKeywordLinks($content, $keyword, $targetSite);
     return ['content' => $content, 'source' => $source, 'title' => $generatedTitle];
+}
+
+function spinText(string $text): string {
+    return preg_replace_callback('/\{([^{}]+)\}/', function($matches) {
+        $opts = explode('|', $matches[1]);
+        return $opts[array_rand($opts)];
+    }, $text);
 }
 
 /**

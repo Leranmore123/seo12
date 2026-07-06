@@ -1,6 +1,6 @@
 <?php
 require_once 'config.php';
-requireLogin();
+requireMenuPermission('auto-schedule');
 
 $db = getDB();
 

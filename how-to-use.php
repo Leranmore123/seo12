@@ -1,6 +1,6 @@
 <?php
 require_once 'config.php';
-requireLogin();
+requireMenuPermission('how-to-use');
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -113,6 +113,29 @@ function requireLogin() {
     }
 }
 
+function requireMenuPermission($menuCode) {
+    requireLogin();
+    // Admin role gets absolute access to all pages
+    if (($_SESSION['role'] ?? 'client') === 'admin') {
+        return;
+    }
+    $userId = $_SESSION['user_id'] ?? 0;
+    if ($userId > 0) {
+        $db = getDB();
+        $stmt = $db->prepare("SELECT allowed_menus FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $val = $stmt->fetchColumn();
+        if ($val !== null && $val !== '') {
+            $allowed = array_map('trim', explode(',', strtolower($val)));
+            if (!in_array(strtolower($menuCode), $allowed)) {
+                setFlash('danger', 'Access denied. You do not have permission to access that page.');
+                header('Location: ' . SITE_URL . '/dashboard.php');
+                exit;
+            }
+        }
+    }
+}
+
 function clean($input) {
     return htmlspecialchars(strip_tags(trim((string) $input)), ENT_QUOTES, 'UTF-8');
 }

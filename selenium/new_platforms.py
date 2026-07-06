@@ -523,18 +523,93 @@ def post_linktree(email, password, keyword, target_site):
         driver.get("https://linktr.ee/admin")
         time.sleep(6)
         src = driver.page_source.lower()
-        logged = ("logout" in src or "log out" in src or "add link" in src or
-                  "admin" in driver.current_url or "dashboard" in driver.current_url)
+        logged = (("logout" in src or "log out" in src or "add link" in src or "add new link" in src or "linkeditor_single_add_link_button" in src) and
+                  "login" not in driver.current_url and "universal-login" not in driver.current_url)
 
         if not logged:
             log("Linktree: Logging in...")
-            url_after = _do_login(driver, "https://linktr.ee/login", email, password, 8)
-            log("Linktree: Post-login URL = " + url_after)
+            driver.get("https://linktr.ee/login")
+            time.sleep(8)
+            
+            # Find and fill email
+            email_el = None
+            for sel in ["input[placeholder*='Email or username' i]", "input[placeholder*='username' i]", "input[type='text']"]:
+                try:
+                    el = WebDriverWait(driver, 6).until(EC.element_to_be_clickable((By.CSS_SELECTOR, sel)))
+                    if el.is_displayed():
+                        email_el = el
+                        break
+                except: pass
+            
+            if not email_el:
+                result(False, error="Linktree: Email input field not found.")
+                return
+                
+            email_el.click()
+            email_el.clear()
+            time.sleep(0.5)
+            email_el.send_keys(email)
+            time.sleep(1)
+            
+            # Click Continue
+            continue_btn = None
+            btns = driver.find_elements(By.TAG_NAME, "button")
+            for b in btns:
+                if "continue" in b.text.lower():
+                    continue_btn = b
+                    break
+            
+            if not continue_btn:
+                result(False, error="Linktree: Continue button not found.")
+                return
+                
+            driver.execute_script("arguments[0].click();", continue_btn)
+            time.sleep(5)
+            
+            # Find and fill password
+            pass_el = None
+            for sel in ["input[type='password']", "input[placeholder*='password' i]", "input[name='password']"]:
+                try:
+                    el = WebDriverWait(driver, 6).until(EC.element_to_be_clickable((By.CSS_SELECTOR, sel)))
+                    if el.is_displayed():
+                        pass_el = el
+                        break
+                except: pass
+                
+            if not pass_el:
+                result(False, error="Linktree: Password input field not found.")
+                return
+                
+            pass_el.click()
+            pass_el.clear()
+            time.sleep(0.5)
+            pass_el.send_keys(password)
+            time.sleep(1)
+            
+            # Click Log In / Submit
+            login_btn = None
+            btns = driver.find_elements(By.TAG_NAME, "button")
+            for b in btns:
+                txt = b.text.lower()
+                if "login" in txt or "log in" in txt:
+                    login_btn = b
+                    break
+                    
+            if not login_btn:
+                result(False, error="Linktree: Login submit button not found.")
+                return
+                
+            driver.execute_script("arguments[0].click();", login_btn)
+            time.sleep(10)
+            
+            driver.get("https://linktr.ee/admin")
+            time.sleep(6)
+            
             src2 = driver.page_source.lower()
-            if "login" in url_after and "admin" not in url_after and "logout" not in src2:
+            if "login" in driver.current_url or "universal-login" in driver.current_url:
                 result(False, error="Linktree: Login failed. Check credentials.")
                 return
-            log("Linktree: Logged in!")
+            log("Linktree: Logged in successfully!")
         else:
             log("Linktree: Already logged in!")
 
@@ -604,7 +679,17 @@ def post_linktree(email, password, keyword, target_site):
                     final = href
                     break
             else:
-                final = "https://linktr.ee/"
+                # Fallback to find any elements containing the text linktr.ee/
+                all_els = driver.find_elements(By.XPATH, "//*[contains(text(), 'linktr.ee/')]")
+                for el in all_els:
+                    txt = el.text.strip()
+                    if 'linktr.ee/' in txt and 'admin' not in txt.lower() and 'login' not in txt.lower():
+                        match = re.search(r'(linktr\.ee/[a-zA-Z0-9_\-\.]+)', txt)
+                        if match:
+                            final = "https://" + match.group(1)
+                            break
+                else:
+                    final = "https://linktr.ee/"
         except:
             final = "https://linktr.ee/"
 

@@ -3466,7 +3466,7 @@ function runPlatformAutoPost(string $platform, array $creds, array $project, int
             } elseif (!$isPassAppPass && !empty($apiKey)) {
                 $password = $apiKey;
             }
-            return postToBluesky($username, trim($password), $keyword, $site, OPENAI_API_KEY, $projectId, $project['business_name'] ?? '', $project['business_desc'] ?? '');
+            return postToBluesky($username, trim($password), $keyword, $site, OPENAI_API_KEY, $projectId, $project['business_name'] ?? '', $project['business_desc'] ?? '', $postCount, $usedTitles);
         case 'minds':
             // Try API token first; fallback → Selenium with saved profile
             if (!empty($apiKey)) {
@@ -3485,7 +3485,10 @@ function runPlatformAutoPost(string $platform, array $creds, array $project, int
         case 'google_business':
             $businessName = $project['business_name'] ?: $project['target_keyword'];
             $ai = generateAIContent($keyword, $site, 'google_business', 'micro_blog', '', OPENAI_API_KEY, $postCount, $usedTitles, $project['business_name'] ?? '', $project['business_desc'] ?? '');
-            $aiText = strip_tags($ai['content'] ?? '') ?: "Check out our services for {$keyword} at {$site}!";
+            if (empty($ai['content'])) {
+                return ['error' => $ai['error'] ?? 'AI content generation failed for Google Business Profile. Check API keys.'];
+            }
+            $aiText = strip_tags($ai['content']);
             
             $imgPath = null;
             $imgFiles = glob(dirname(__DIR__) . '/uploads/*.{jpg,jpeg,png,webp}', GLOB_BRACE);
@@ -3516,11 +3519,12 @@ function runPlatformAutoPost(string $platform, array $creds, array $project, int
         case 'tumblr':
             // Try OAuth API first; fallback → Selenium
             if (!empty($apiKey)) {
-                $r = postToTumblr($apiKey, $username, $keyword, $site, GEMINI_API_KEY, OPENAI_API_KEY, $postCount, $usedTitles, $projectId, $project['business_name'] ?? '', $project['business_desc'] ?? '');
+                $blogName = !empty($apiSecret) ? $apiSecret : $username;
+                $r = postToTumblr($apiKey, $blogName, $keyword, $site, GEMINI_API_KEY, OPENAI_API_KEY, $postCount, $usedTitles, $projectId, $project['business_name'] ?? '', $project['business_desc'] ?? '');
                 if (!empty($r['success'])) return $r;
             }
-            return seleniumGeneric('tumblr', $creds, $keyword, $site,
-                strip_tags((generateAIContent($keyword, $site, 'tumblr', 'micro_blog', '', OPENAI_API_KEY, $postCount, $usedTitles, $project['business_name'] ?? '', $project['business_desc'] ?? ''))['content'] ?? ''));
+            $tumblrContent = (generateAIContent($keyword, $site, 'tumblr', 'micro_blog', '', OPENAI_API_KEY, $postCount, $usedTitles, $project['business_name'] ?? '', $project['business_desc'] ?? ''))['content'] ?? '';
+            return seleniumGeneric('tumblr', $creds, $keyword, $site, $tumblrContent);
         case 'github':
             return postToGitHub($apiKey, $username, $keyword, $site, GEMINI_API_KEY, OPENAI_API_KEY, $postCount, $usedTitles, $project['business_name'] ?? '', $project['business_desc'] ?? '');
         case 'devto':
@@ -3675,15 +3679,26 @@ function savePostedBacklink(PDO $db, int $projectId, string $platform, array $re
     $url   = $result['url'];
     $title = $result['post_title'] ?? null;
     $keyword = !empty($_GET['keyword']) ? clean($_GET['keyword']) : null;
+    $targetUrl = !empty($_GET['target_site']) ? clean($_GET['target_site']) : null;
     
     // Always INSERT a new row — allows multiple posts per platform with unique content
     try {
-        $db->prepare("INSERT INTO backlinks (project_id, backlink_url, platform, da_score, status, post_title, keyword) VALUES (?,?,?,?,'created',?,?)")
-           ->execute([$projectId, $url, $platform, 70, $title, $keyword]);
+        // Safe migration check
+        try {
+            $db->exec("ALTER TABLE backlinks ADD COLUMN target_url VARCHAR(1000) DEFAULT NULL");
+        } catch (PDOException $e) {}
+
+        $db->prepare("INSERT INTO backlinks (project_id, backlink_url, platform, da_score, status, post_title, keyword, target_url) VALUES (?,?,?,?,'created',?,?,?)")
+           ->execute([$projectId, $url, $platform, 70, $title, $keyword, $targetUrl]);
     } catch (PDOException $e) {
-        // Fallback without post_title/keyword if columns are somehow missing
-        $db->prepare("INSERT INTO backlinks (project_id, backlink_url, platform, da_score, status) VALUES (?,?,?,?,'created')")
-           ->execute([$projectId, $url, $platform, 70]);
+        try {
+            $db->prepare("INSERT INTO backlinks (project_id, backlink_url, platform, da_score, status, post_title, keyword) VALUES (?,?,?,?,'created',?,?)")
+               ->execute([$projectId, $url, $platform, 70, $title, $keyword]);
+        } catch (PDOException $ex) {
+            // Fallback without post_title/keyword if columns are somehow missing
+            $db->prepare("INSERT INTO backlinks (project_id, backlink_url, platform, da_score, status) VALUES (?,?,?,?,'created')")
+               ->execute([$projectId, $url, $platform, 70]);
+        }
     }
 
     // XML-RPC Search Engine Index Pinger (Google, Bing, Ping-O-Matic)

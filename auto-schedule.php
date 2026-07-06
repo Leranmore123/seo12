@@ -114,6 +114,10 @@ foreach ($projects as $project) {
             $log[] = "  Posting to {$platform} ({$creds['username']})...";
 
             try {
+                // Populate GET parameters so that runPlatformAutoPost and savePostedBacklink use rotated credentials
+                $_GET['keyword'] = $keyword;
+                $_GET['target_site'] = $site;
+
                 $result = runPlatformAutoPost($platform, $creds, $project, $projectId);
 
                 if (!empty($result['success'])) {

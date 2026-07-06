@@ -80,7 +80,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
       </button>
     </form>
     <div class="text-center mt-3">
-      <a href="register.php" class="text-decoration-none">Don't have an account? <strong>Register</strong></a>
     </div>
     <div class="text-center mt-2">
       <a href="setup.php" class="text-muted small">System setup check</a>

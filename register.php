@@ -1,7 +1,9 @@
 <?php
 require_once 'config.php';
-if (isset($_SESSION['user_id'])) { header('Location: dashboard.php'); exit; }
-$flash = getFlash();
+// Public registration is disabled. Only Admin can create accounts.
+setFlash('danger', 'Public registration is disabled. Please contact the administrator to get login credentials.');
+header('Location: index.php');
+exit;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrf($_POST['csrf_token'] ?? '')) {

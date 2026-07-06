@@ -42,3 +42,7 @@ CREATE TABLE IF NOT EXISTS social_accounts (
     UNIQUE KEY user_platform (user_id, platform),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Store the target page URL used for each backlink (for filtering)
+-- (If error "Duplicate column", already exists — skip this line)
+ALTER TABLE backlinks ADD COLUMN target_url VARCHAR(1000) DEFAULT NULL;

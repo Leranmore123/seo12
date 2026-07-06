@@ -6,9 +6,107 @@
 // ============================================================
 
 require_once 'config.php';
-requireLogin();
+requireMenuPermission('admin-panel');
+
+// Restrict to Admin role
+if (($_SESSION['role'] ?? 'client') !== 'admin') {
+    setFlash('danger', 'Access denied. Admin permissions required.');
+    header('Location: dashboard.php');
+    exit;
+}
 
 $db = getDB();
+
+// User Management Actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
+    if (!verifyCsrf($_POST['csrf_token'] ?? '')) {
+        setFlash('danger', 'Invalid request.');
+        header('Location: admin-dashboard.php');
+        exit;
+    }
+    $username = clean($_POST['username'] ?? '');
+    $email = filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL);
+    $password = $_POST['password'] ?? '';
+    $role = clean($_POST['role'] ?? 'client');
+
+    if (empty($username) || empty($email) || empty($password)) {
+        setFlash('danger', 'All fields are required.');
+    } elseif (strlen($password) < 6) {
+        setFlash('danger', 'Password must be at least 6 characters.');
+    } else {
+        $chk = $db->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
+        $chk->execute([$username, $email]);
+        if ($chk->fetch()) {
+            setFlash('danger', 'Username or Email already exists.');
+        } else {
+            $hash = password_hash($password, PASSWORD_BCRYPT);
+            $stmt = $db->prepare("INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$username, $hash, $email, $role]);
+            setFlash('success', 'User ' . htmlspecialchars($username) . ' created successfully!');
+        }
+    }
+    header('Location: admin-dashboard.php');
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_user'])) {
+    if (!verifyCsrf($_POST['csrf_token'] ?? '')) {
+        setFlash('danger', 'Invalid request.');
+        header('Location: admin-dashboard.php');
+        exit;
+    }
+    $delId = (int)($_POST['user_id'] ?? 0);
+    if ($delId === (int)$_SESSION['user_id']) {
+        setFlash('danger', 'You cannot delete your own admin account!');
+    } else {
+        $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
+        $stmt->execute([$delId]);
+        setFlash('success', 'User account deleted.');
+    }
+    header('Location: admin-dashboard.php');
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
+    if (!verifyCsrf($_POST['csrf_token'] ?? '')) {
+        setFlash('danger', 'Invalid request.');
+        header('Location: admin-dashboard.php');
+        exit;
+    }
+    $targetUserId = (int)($_POST['user_id'] ?? 0);
+    $newPassword = $_POST['new_password'] ?? '';
+
+    if (strlen($newPassword) < 6) {
+        setFlash('danger', 'Password must be at least 6 characters.');
+    } else {
+        $hash = password_hash($newPassword, PASSWORD_BCRYPT);
+        $stmt = $db->prepare("UPDATE users SET password = ? WHERE id = ?");
+        $stmt->execute([$hash, $targetUserId]);
+        setFlash('success', 'Password changed successfully!');
+    }
+    header('Location: admin-dashboard.php');
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permissions'])) {
+    if (!verifyCsrf($_POST['csrf_token'] ?? '')) {
+        setFlash('danger', 'Invalid request.');
+        header('Location: admin-dashboard.php');
+        exit;
+    }
+    $targetUserId = (int)($_POST['user_id'] ?? 0);
+    $selectedMenus = $_POST['allowed_menus'] ?? [];
+    
+    // Clean and validate menus
+    $cleanedMenus = array_map('clean', $selectedMenus);
+    $menuStr = implode(',', $cleanedMenus);
+    
+    $stmt = $db->prepare("UPDATE users SET allowed_menus = ? WHERE id = ?");
+    $stmt->execute([$menuStr, $targetUserId]);
+    setFlash('success', 'User permissions updated successfully!');
+    header('Location: admin-dashboard.php');
+    exit;
+}
 $userId = $_SESSION['user_id'] ?? 0;
 
 // Dynamic database schema updates for Backlink Verifier & Onboarding Status
@@ -409,6 +507,22 @@ $brokenLinks   = (int)$db->query("SELECT COUNT(*) FROM backlinks WHERE verified_
 // Fetch all projects/clients
 $projects = $db->query("SELECT * FROM projects ORDER BY id DESC")->fetchAll();
 
+// Fetch all registered users
+$allUsers = $db->query("
+    SELECT 
+        u.id, 
+        u.username, 
+        u.email, 
+        u.role, 
+        u.created_at,
+        u.allowed_menus,
+        (SELECT COUNT(*) FROM projects p WHERE p.user_id = u.id) AS total_projects,
+        (SELECT COUNT(b.id) FROM backlinks b JOIN projects p ON b.project_id = p.id WHERE p.user_id = u.id AND b.status = 'created') AS total_backlinks,
+        (SELECT CONCAT(b.platform, '::', b.created_at) FROM backlinks b JOIN projects p ON b.project_id = p.id WHERE p.user_id = u.id AND b.status = 'created' ORDER BY b.created_at DESC LIMIT 1) AS latest_activity
+    FROM users u
+    ORDER BY u.id DESC
+")->fetchAll();
+
 $flash = getFlash();
 ?>
 <!DOCTYPE html>
@@ -643,6 +757,233 @@ $flash = getFlash();
     </div>
   </div>
 
+  <!-- User Access Management Section -->
+  <div class="row g-4 mt-2">
+    <div class="col-12">
+      <div class="card border-0 bg-light shadow-sm">
+        <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+          <span><i class="fas fa-users-cog me-2"></i>User Access & Client Accounts Management</span>
+          <span class="badge bg-light text-primary fw-bold"><?= count($allUsers) ?> Accounts</span>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <!-- Left Side: Create New Account Form -->
+            <div class="col-md-4 border-end">
+              <h5 class="fw-bold mb-3 text-secondary"><i class="fas fa-user-plus me-2"></i>Create Login Account</h5>
+              <form method="POST" action="admin-dashboard.php">
+                <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+                <input type="hidden" name="create_user" value="1">
+                
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Username <span class="text-danger">*</span></label>
+                  <input type="text" name="username" class="form-control" placeholder="e.g. client_pratik" required>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Email Address <span class="text-danger">*</span></label>
+                  <input type="email" name="email" class="form-control" placeholder="e.g. pratik@example.com" required>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Password <span class="text-danger">*</span></label>
+                  <input type="password" name="password" class="form-control" placeholder="Min 6 characters" required minlength="6">
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label fw-bold">Role <span class="text-danger">*</span></label>
+                  <select name="role" class="form-select" required>
+                    <option value="client" selected>Client / Client Profile Access</option>
+                    <option value="admin">Admin / System Manager Access</option>
+                  </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-100 fw-bold">
+                  <i class="fas fa-plus me-1"></i>Create Account
+                </button>
+              </form>
+            </div>
+            
+            <!-- Right Side: User Accounts List -->
+            <div class="col-md-8">
+              <h5 class="fw-bold mb-3 text-secondary"><i class="fas fa-list me-2"></i>Registered Accounts</h5>
+              <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                  <thead>
+                    <tr>
+                      <th>Username</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Projects</th>
+                      <th>Backlinks</th>
+                      <th>Latest Activity</th>
+                      <th class="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php foreach ($allUsers as $usr): ?>
+                      <?php 
+                      $actStr = $usr['latest_activity'] ?? '';
+                      $actPlatform = '';
+                      $actTime = '';
+                      if (!empty($actStr)) {
+                          $actParts = explode('::', $actStr);
+                          $actPlatform = $actParts[0] ?? '';
+                          $actTime = isset($actParts[1]) ? date('d M H:i', strtotime($actParts[1])) : '';
+                      }
+                      ?>
+                      <tr>
+                        <td>
+                          <strong><?= htmlspecialchars($usr['username']) ?></strong>
+                          <?php if ($usr['id'] === (int)$_SESSION['user_id']): ?>
+                            <span class="badge bg-success ms-1">You</span>
+                          <?php endif; ?>
+                        </td>
+                        <td><small><?= htmlspecialchars($usr['email']) ?></small></td>
+                        <td>
+                          <span class="badge bg-<?= $usr['role'] === 'admin' ? 'danger' : 'info' ?>">
+                            <?= ucfirst($usr['role']) ?>
+                          </span>
+                        </td>
+                        <td>
+                          <span class="badge bg-light text-dark border"><?= $usr['total_projects'] ?></span>
+                        </td>
+                        <td>
+                          <span class="badge bg-success"><?= $usr['total_backlinks'] ?></span>
+                        </td>
+                        <td>
+                          <?php if (!empty($actPlatform)): ?>
+                            <span class="badge bg-secondary"><?= htmlspecialchars(ucfirst($actPlatform)) ?></span>
+                            <br><small class="text-muted" style="font-size:10px;"><?= $actTime ?></small>
+                          <?php else: ?>
+                            <em class="text-muted small">No activity yet</em>
+                          <?php endif; ?>
+                        </td>
+                        <td class="text-end">
+                          <div class="d-inline-flex gap-1">
+                            <!-- Edit Permissions Action -->
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="showPermissionsModal(<?= $usr['id'] ?>, '<?= htmlspecialchars(addslashes($usr['username'])) ?>', '<?= htmlspecialchars(addslashes($usr['allowed_menus'] ?? '')) ?>')"
+                                    title="Edit Menu Permissions">
+                              <i class="fas fa-tasks"></i>
+                            </button>
+
+                            <!-- Change Password Action -->
+                            <button class="btn btn-sm btn-outline-warning" 
+                                    onclick="showChangePasswordModal(<?= $usr['id'] ?>, '<?= htmlspecialchars(addslashes($usr['username'])) ?>')"
+                                    title="Change Password">
+                              <i class="fas fa-key"></i>
+                            </button>
+                            
+                            <!-- Delete User Action -->
+                            <?php if ($usr['id'] !== (int)$_SESSION['user_id']): ?>
+                              <form method="POST" action="admin-dashboard.php" onsubmit="return confirm('Are you sure you want to delete user <?= htmlspecialchars($usr['username']) ?>?');" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+                                <input type="hidden" name="delete_user" value="1">
+                                <input type="hidden" name="user_id" value="<?= $usr['id'] ?>">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete User">
+                                  <i class="fas fa-trash"></i>
+                                </button>
+                              </form>
+                            <?php endif; ?>
+                          </div>
+                        </td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="passChangeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title fw-bold"><i class="fas fa-key me-2"></i>Change Password for <span id="passModalUsername"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="admin-dashboard.php">
+        <div class="modal-body">
+          <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+          <input type="hidden" name="change_password" value="1">
+          <input type="hidden" name="user_id" id="passModalUserId">
+          
+          <div class="mb-3">
+            <label class="form-label fw-bold">New Password</label>
+            <input type="password" name="new_password" class="form-control" placeholder="Min 6 characters" required minlength="6">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning fw-bold">Update Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Permissions Modal -->
+<div class="modal fade" id="permissionsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold"><i class="fas fa-tasks me-2"></i>Configure Allowed Menus for <span id="permModalUsername"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="admin-dashboard.php">
+        <div class="modal-body">
+          <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+          <input type="hidden" name="update_permissions" value="1">
+          <input type="hidden" name="user_id" id="permModalUserId">
+          
+          <p class="small text-muted mb-3">
+            અહીંથી નક્કી કરો કે આ યુઝરને કયા કયા મેનુ/ટેબ્સ દેખાડવા છે:
+          </p>
+          
+          <div class="row g-3">
+            <?php
+            $menuOptions = [
+                'dashboard' => 'Dashboard',
+                'add-project' => 'Add Project',
+                'submissions' => 'Submissions',
+                'api-keys' => 'API Keys',
+                'admin-panel' => 'Admin Panel',
+                'cost-ranking' => 'Cost & Ranking',
+                'auto-schedule' => 'Auto-Schedule',
+                'ai-workflow' => 'AI Workflow',
+                'google-console' => 'Google Console',
+                'git-push-agent' => 'Git Push Agent',
+                'how-to-use' => 'How to Use'
+            ];
+            foreach ($menuOptions as $mCode => $mLabel):
+            ?>
+              <div class="col-md-6 col-lg-4">
+                <div class="form-check card p-2 bg-light border-0">
+                  <div class="d-flex align-items-center">
+                    <input class="form-check-input ms-0 me-2 perm-checkbox" type="checkbox" name="allowed_menus[]" value="<?= $mCode ?>" id="chk_<?= $mCode ?>">
+                    <label class="form-check-label fw-bold text-dark mb-0" for="chk_<?= $mCode ?>">
+                      <?= $mLabel ?>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary fw-bold">Save Permissions</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -731,6 +1072,40 @@ function sendQuickOnboardingMail(btn) {
     alert('Unexpected connection error: ' + err);
   });
 }
+
+function showChangePasswordModal(userId, username) {
+  document.getElementById('passModalUserId').value = userId;
+  document.getElementById('passModalUsername').innerText = username;
+  const myModal = new bootstrap.Modal(document.getElementById('passChangeModal'));
+  myModal.show();
+}
+
+function showPermissionsModal(userId, username, allowedMenusStr) {
+  document.getElementById('permModalUserId').value = userId;
+  document.getElementById('permModalUsername').innerText = username;
+  
+  // Uncheck all checkboxes first
+  document.querySelectorAll('.perm-checkbox').forEach(cb => {
+    cb.checked = false;
+  });
+  
+  if (allowedMenusStr) {
+    const allowed = allowedMenusStr.split(',').map(s => s.trim().toLowerCase());
+    allowed.forEach(mCode => {
+      const el = document.getElementById('chk_' + mCode);
+      if (el) el.checked = true;
+    });
+  } else {
+    // If empty/null, check all by default (which represents full access)
+    document.querySelectorAll('.perm-checkbox').forEach(cb => {
+      cb.checked = true;
+    });
+  }
+  
+  const myModal = new bootstrap.Modal(document.getElementById('permissionsModal'));
+  myModal.show();
+}
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

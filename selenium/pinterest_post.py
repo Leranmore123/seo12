@@ -151,22 +151,21 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
         log(f"Description length: {len(desc)} chars")
         log("Filling description...")
         try:
+            desc_selectors = [
+                "[contenteditable='true']",
+                ".public-DraftEditor-editor",
+                "[data-test-id*='description']"
+            ]
             cd = None
-            try:
-                cd = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "[contenteditable='true']")))
-            except:
-                pass
-            if not cd:
+            for sel in desc_selectors:
                 try:
-                    cd = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "public-DraftEditor-editor")))
+                    elements = driver.find_elements(By.CSS_SELECTOR, sel)
+                    if elements and elements[0].is_displayed():
+                        cd = elements[0]
+                        break
                 except:
-                    pass
-            if not cd:
-                try:
-                    cd = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "[data-test-id*='description']")))
-                except:
-                    pass
-            
+                    continue
+
             if cd:
                 driver.execute_script("arguments[0].scrollIntoView({block:'center'});", cd)
                 time.sleep(0.5)
@@ -186,8 +185,27 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
 
         # ── Step 6: Link ───────────────────────────────────────────
         log("Filling link...")
-        try:
-            lf = wait.until(EC.presence_of_element_located((By.ID, "WebsiteField")))
+        link_selectors = [
+            "input[name='link']",
+            "input[id='WebsiteField']",
+            "input[placeholder*='link']",
+            "input[placeholder*='Link']",
+            "input[placeholder*='destination']",
+            "input[placeholder*='Destination']",
+            "[data-test-id*='link']",
+            "[data-test-id*='website']"
+        ]
+        lf = None
+        for sel in link_selectors:
+            try:
+                elements = driver.find_elements(By.CSS_SELECTOR, sel)
+                if elements and elements[0].is_displayed():
+                    lf = elements[0]
+                    log(f"Found link field with selector: {sel}")
+                    break
+            except:
+                continue
+        if lf:
             driver.execute_script("arguments[0].scrollIntoView({block:'center'});", lf)
             time.sleep(0.5)
             try:
@@ -196,8 +214,8 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
             except Exception as e2:
                 js_set_value(driver, lf, target_site)
             log("Link OK!")
-        except Exception as e:
-            log(f"Link: {e}")
+        else:
+            log("Link element not found via any selectors")
 
         # ── Step 7: Board ──────────────────────────────────────────
         log("Opening board dropdown...")

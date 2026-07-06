@@ -118,20 +118,43 @@ def post_substack(driver, wait, email, password, keyword, target_site, content):
 # TUMBLR
 # ─────────────────────────────────────────────────────────────
 def post_tumblr(driver, wait, email, password, keyword, target_site, content):
+    import re
+    def clean_title(title_str, kw):
+        words = title_str.split()
+        clean_words = []
+        prev = ""
+        for w in words:
+            if w.lower() == "training" and prev.lower() == "training":
+                continue
+            clean_words.append(w)
+            prev = w
+        return " ".join(clean_words)
+
+    # 1. Try to extract title from content if it starts with h1/p/strong
     title = f"Best {keyword.title()} Training - {time.strftime('%Y')}"
+    title = clean_title(title, keyword)
+    body_text = content
+
+    m = re.match(r'^\s*<(h[1-6]|p)>\s*(<strong>)?(.*?)(</strong>)?\s*</\1>', content, re.IGNORECASE | re.DOTALL)
+    if m:
+        extracted = m.group(3).strip()
+        extracted = re.sub(r'<[^>]+>', '', extracted)
+        if len(extracted) > 5:
+            title = clean_title(extracted, keyword)
+            body_text = content[m.end():].strip()
 
     log("Opening Tumblr login...")
     driver.get("https://www.tumblr.com/login")
-    time.sleep(3)
+    time.sleep(5)
 
     wait_and_type(driver, wait, "input[name='email'], input[type='email'], #signup_email", email)
     time.sleep(0.5)
     wait_and_click(driver, wait, "button[type='submit'], [data-action='next']")
-    time.sleep(2)
+    time.sleep(4)
 
     wait_and_type(driver, wait, "input[type='password'], #signup_password", password)
     wait_and_click(driver, wait, "button[type='submit'], [data-action='login']")
-    time.sleep(5)
+    time.sleep(8)
 
     if "login" in driver.current_url:
         result(False, error="Tumblr login failed.")
@@ -139,25 +162,109 @@ def post_tumblr(driver, wait, email, password, keyword, target_site, content):
 
     log("Tumblr: logged in!")
     driver.get("https://www.tumblr.com/new/text")
-    time.sleep(4)
+    time.sleep(6)
 
     # Title
-    wait_and_type(driver, wait, "input[placeholder*='Title'], .title", title)
-
-    # Body
     try:
-        body = driver.find_element(By.CSS_SELECTOR, ".CodeMirror, [contenteditable='true'], [data-testid='editor-content']")
-        body.click()
-        body.send_keys(content[:2000] + f"\n\nLearn more: {target_site}")
+        title_el = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".wp-block-heading, [class*='wp-block-heading'], .heading1")))
+        title_el.click()
+        time.sleep(0.5)
+        driver.execute_script("arguments[0].innerText = arguments[1]; arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", title_el, title)
+        log("Tumblr: title typed")
     except Exception as e:
-        log(f"Body: {e}")
+        log(f"Title input failed: {e}")
 
-    # Post
-    wait_and_click(driver, wait, "button[data-testid='post-button'], button[class*='post']")
-    time.sleep(5)
+    # Body (rich HTML paste via DataTransfer)
+    try:
+        body_el = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".wp-block-paragraph, [class*='wp-block-paragraph']")))
+        body_el.click()
+        time.sleep(0.5)
+        
+        if "learnmoretech" not in body_text.lower() and "learn more" not in body_text.lower():
+            body_text += f"<p>Learn more: <a href='{target_site}'>{target_site}</a></p>"
+            
+        driver.execute_script("""
+            var el = arguments[0];
+            var html = arguments[1];
+            var dt = new DataTransfer();
+            dt.setData('text/html', html);
+            dt.setData('text/plain', el.innerText);
+            var event = new ClipboardEvent('paste', {
+                clipboardData: dt,
+                bubbles: true,
+                cancelable: true
+            });
+            el.dispatchEvent(event);
+        """, body_el, body_text)
+        log("Tumblr: body typed with rich HTML")
+    except Exception as e:
+        log(f"Body input failed: {e}")
+    time.sleep(2)
 
-    url = driver.current_url
-    result(True, url=url if "tumblr.com" in url and "new" not in url else "https://www.tumblr.com/dashboard")
+    # Click Post now
+    try:
+        publish_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[class*='VxmZd']")))
+        driver.execute_script("arguments[0].click();", publish_btn)
+        log("Tumblr: Post now clicked")
+    except Exception as e:
+        log(f"Publish button click failed: {e}")
+    time.sleep(4)
+
+    # Confirm publish without tags if prompted
+    try:
+        confirm_btn = None
+        btns = driver.find_elements(By.TAG_NAME, "button")
+        for b in btns:
+            if b.text.strip().lower() == "post":
+                confirm_btn = b
+                break
+        if confirm_btn:
+            driver.execute_script("arguments[0].click();", confirm_btn)
+            log("Tumblr: Tags confirmation post clicked")
+            time.sleep(6)
+    except Exception as e:
+        log(f"Tags confirmation click failed: {e}")
+
+    # Extract public blog username and get post link
+    final_url = "https://www.tumblr.com/dashboard"
+    try:
+        # Load user profile to extract link
+        driver.get("https://www.tumblr.com/dashboard")
+        time.sleep(5)
+        links = driver.find_elements(By.TAG_NAME, "a")
+        username = ""
+        for l in links:
+            href = l.get_attribute("href") or ""
+            if "tumblr.com/blog/" in href:
+                username = href.split("tumblr.com/blog/")[-1].split("/")[0]
+                break
+        
+        if not username:
+            for l in links:
+                href = l.get_attribute("href") or ""
+                if "tumblr.com/" in href and not any(x in href for x in ["/dashboard", "/explore", "/communities", "/settings", "/messages", "/inbox", "/help"]):
+                    parts = href.split("tumblr.com/")[-1].split("/")
+                    if parts and parts[0]:
+                        username = parts[0]
+                        break
+        
+        if username:
+            profile_url = f"https://www.tumblr.com/{username}"
+            log(f"Tumblr: Profile URL determined = {profile_url}")
+            driver.get(profile_url)
+            time.sleep(5)
+            import re
+            links = driver.find_elements(By.TAG_NAME, "a")
+            for l in links:
+                href = l.get_attribute("href") or ""
+                if re.search(r'tumblr\.com/' + re.escape(username) + r'/[0-9]+', href) or re.search(r'tumblr\.com/blog/' + re.escape(username) + r'/[0-9]+', href):
+                    final_url = href
+                    break
+    except Exception as e:
+        log(f"Failed to extract post URL: {e}")
+
+    log(f"Tumblr: Final URL = {final_url}")
+    result(True, url=final_url)
 
 # ─────────────────────────────────────────────────────────────
 # SCOOP.IT
@@ -385,7 +492,7 @@ PLATFORM_MAP = {
 
 if __name__ == "__main__":
     if len(sys.argv) < 6:
-        result(False, error="Usage: generic_post.py <platform> <email> <password> <keyword> <target_site> [content]")
+        result(False, error="Usage: generic_post.py <platform> <email> <password> <keyword> <target_site> [content/content_file]")
         sys.exit(1)
 
     platform    = sys.argv[1].lower()
@@ -393,7 +500,16 @@ if __name__ == "__main__":
     password    = sys.argv[3]
     keyword     = sys.argv[4]
     target_site = sys.argv[5]
-    content     = sys.argv[6] if len(sys.argv) > 6 else f"Best {keyword} training. Learn more: {target_site}"
+
+    content_arg = sys.argv[6] if len(sys.argv) > 6 else ""
+    if content_arg and os.path.exists(content_arg):
+        try:
+            with open(content_arg, "r", encoding="utf-8") as f:
+                content = f.read()
+        except Exception as e:
+            content = f"Best {keyword} training. Learn more: {target_site}"
+    else:
+        content = content_arg if content_arg else f"Best {keyword} training. Learn more: {target_site}"
 
     if platform not in PLATFORM_MAP:
         result(False, error=f"Platform '{platform}' not supported in generic_post.py")

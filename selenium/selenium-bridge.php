@@ -138,24 +138,53 @@ function seleniumPinterest(array $creds, string $keyword, string $targetSite, in
     // Pinterest description: keyword-rich, long, with URL — max 500 chars
     $aiDesc = strip_tags($ai['content'] ?? '');
     if (empty($aiDesc)) {
-        // Fallback: keyword-rich description
-        $kw = $keyword;
-        $aiDesc = "Looking for the best {$kw}? Learnmore Technologies offers expert-led {$kw} with hands-on live projects, industry-recognized certification, and 100% placement support. "
-                . "Our {$kw} covers all key concepts from beginner to advanced level. "
-                . "Join hundreds of successful students who built their careers with us. "
-                . "Flexible batch timings, experienced trainers, small batches for personal attention. "
-                . "Enroll now at {$targetSite} — Limited seats available!";
+        return ['error' => $ai['error'] ?? 'AI description generation failed for Pinterest. Check API keys.'];
     }
     // Keep max 500 chars (Pinterest limit)
     $aiDesc = mb_substr($aiDesc, 0, 500, 'UTF-8');
 
-    // Find latest project image
+    // Find or generate vertical project image
     $imagePath = '';
     $uploadDir = dirname(__DIR__) . '/uploads/';
-    $images    = glob($uploadDir . '*.{jpg,jpeg,png}', GLOB_BRACE);
-    if ($images) {
-        usort($images, fn($a, $b) => filemtime($b) - filemtime($a));
-        $imagePath = $images[0];
+
+    // 1. Get project details including post_image
+    $projectImg = '';
+    if ($projectId > 0) {
+        try {
+            $db = getDB();
+            $s = $db->prepare("SELECT post_image FROM projects WHERE id=?");
+            $s->execute([$projectId]);
+            $projectImg = $s->fetchColumn();
+        } catch (Exception $e) {}
+    }
+
+    // 2. Use project_image if exists
+    if ($projectImg && file_exists($uploadDir . $projectImg)) {
+        $imagePath = $uploadDir . $projectImg;
+    } else {
+        // 3. Try vertical image
+        $verticalImage = $uploadDir . 'auto_img_vertical_' . $projectId . '.jpg';
+        if (file_exists($verticalImage)) {
+            $imagePath = $verticalImage;
+        } else {
+            // 4. Generate vertical image (1000x1500 px) on the fly
+            require_once dirname(__DIR__) . '/image-generator.php';
+            $phone = '9036354554';
+            $email = 'office.learnmore@gmail.com';
+            $res = generateMarketingImage($keyword, $targetSite, $phone, $email, $verticalImage, true);
+            if (!empty($res['success'])) {
+                $imagePath = $verticalImage;
+            }
+        }
+    }
+
+    if (empty($imagePath)) {
+        // Fallback: Find latest project image
+        $images = glob($uploadDir . '*.{jpg,jpeg,png}', GLOB_BRACE);
+        if ($images) {
+            usort($images, fn($a, $b) => filemtime($b) - filemtime($a));
+            $imagePath = $images[0];
+        }
     }
 
     $args = [$email, $password, $keyword, $targetSite];
@@ -215,8 +244,11 @@ function seleniumMedium(array $creds, string $keyword, string $targetSite, strin
     } catch (Exception $e) {}
 
     $ai      = generateAIContent($keyword, $targetSite, 'medium', 'blog_post', '', OPENAI_API_KEY, $postCount, $usedTitles, $businessName, $businessDesc);
+    if (empty($content) && empty($ai['content'])) {
+        return ['error' => $ai['error'] ?? 'AI content generation failed for Medium. Check API keys.'];
+    }
     $aiTitle = $ai['title'] ?? generateUniqueTitle($keyword, $postCount, $usedTitles, OPENAI_API_KEY);
-    $aiBody  = !empty($content) ? $content : (strip_tags($ai['content'] ?? '') ?: "Best {$keyword}. Learn more: {$targetSite}");
+    $aiBody  = !empty($content) ? $content : strip_tags($ai['content']);
 
     // Get project image path
     $imgPath = '';
@@ -264,8 +296,14 @@ function seleniumGeneric(string $platform, array $creds, string $keyword, string
         return ['error' => ucfirst($platform) . ': Add email + password in Social Accounts.'];
     }
 
-    $args   = [$platform, $email, $password, $keyword, $targetSite, $content];
+    // Write content to temp file to preserve HTML tags and formatting
+    $tmpFile = sys_get_temp_dir() . '/' . $platform . '_content_' . time() . '.txt';
+    file_put_contents($tmpFile, $content);
+
+    $args   = [$platform, $email, $password, $keyword, $targetSite, $tmpFile];
     $result = runSeleniumScript('generic_post.py', $args, 120);
+
+    @unlink($tmpFile);
 
     if (!empty($result['success'])) {
         return ['success' => true, 'url' => $result['url'] ?: "https://www.{$platform}.com", 'source' => 'Selenium'];
@@ -322,8 +360,11 @@ function seleniumMicroBlog(string $platform, array $creds, string $keyword, stri
         } catch (Exception $e) { /* ignore */ }
 
         $ai = generateAIContent($keyword, $targetSite, $platform, 'micro_blog', '', OPENAI_API_KEY, $postCount, $usedTitles, $businessName, $businessDesc);
+        if (empty($ai['content'])) {
+            return ['error' => $ai['error'] ?? 'AI content generation failed for ' . ucfirst($platform) . '. Check API keys.'];
+        }
         $aiTitle   = $ai['title']   ?? generateUniqueTitle($keyword, $postCount, $usedTitles, OPENAI_API_KEY);
-        $aiContent = strip_tags($ai['content'] ?? '') ?: "Best {$keyword}. Learn more: {$targetSite}";
+        $aiContent = strip_tags($ai['content']);
     }
 
     // Write content to temp file — avoids Windows CLI 8191 char limit

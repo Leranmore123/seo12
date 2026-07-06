@@ -1,6 +1,6 @@
 <?php
 require_once 'config.php';
-requireLogin();
+requireMenuPermission('submissions');
 
 $db = getDB();
 $userId = $_SESSION['user_id'];
@@ -17,6 +17,9 @@ try {
 } catch (PDOException $e) {}
 try {
     $db->exec("ALTER TABLE backlinks ADD COLUMN last_checked_at DATETIME DEFAULT NULL");
+} catch (PDOException $e) {}
+try {
+    $db->exec("ALTER TABLE backlinks ADD COLUMN target_url VARCHAR(1000) DEFAULT NULL");
 } catch (PDOException $e) {}
 
 // Handle AJAX keyword / target site url updates
@@ -419,13 +422,58 @@ foreach ($savedAccounts as $acc) {
     $savedMapAll[$acc['platform']][] = $acc;
 }
 
+function checkPlatformCooldown($db, $projectId, $platform, $keyword, $targetUrl) {
+    // Cooldown is 12 hours = 43200 seconds
+    $cooldownPeriod = 43200; 
+
+    $blCheck = $db->prepare("
+        SELECT created_at FROM backlinks 
+        WHERE project_id = ? 
+          AND platform = ? 
+          AND status = 'created' 
+          AND (keyword = ? OR (keyword IS NULL AND (post_title LIKE ? OR backlink_url LIKE ?)))
+          AND (target_url = ? OR target_url IS NULL)
+        ORDER BY created_at DESC LIMIT 1
+    ");
+    $blCheck->execute([
+        $projectId, 
+        $platform, 
+        $keyword, 
+        '%' . $keyword . '%', 
+        '%' . $keyword . '%', 
+        $targetUrl
+    ]);
+    $lastPost = $blCheck->fetch();
+
+    if ($lastPost) {
+        $lastPostTime = strtotime($lastPost['created_at']);
+        $elapsed = time() - $lastPostTime;
+        if ($elapsed < $cooldownPeriod) {
+            $remaining = $cooldownPeriod - $elapsed;
+            $hours = floor($remaining / 3600);
+            $minutes = floor(($remaining % 3600) / 60);
+            $timeString = ($hours > 0 ? "{$hours}h " : "") . "{$minutes}m";
+            return [
+                'is_cooldown' => true,
+                'remaining' => $remaining,
+                'time_str' => $timeString
+            ];
+        }
+    }
+    return [
+        'is_cooldown' => false,
+        'remaining' => 0,
+        'time_str' => ''
+    ];
+}
+
 // Platform list with what system does automatically
 $platforms = [
     'profile_creation' => [
         'title' => '👤 Profile Creation Sites',
         'color' => 'primary',
         'sites' => [
-            ['id' => 'google_business', 'name' => 'Google Business Profile', 'url' => 'https://business.google.com', 'what_system_does' => '🤖 Browser Automation — Google Email (Username). System Chrome reads master profile chrome_profile_gsc, goes to Business Search dashboard, and posts updates with text + image automatically!'],
+            ['id' => 'google_business', 'name' => 'Google Business Profile', 'url' => 'https://business.google.com', 'what_system_does' => '🤖 Browser Automation — Google Email (Username). System Chrome reads master profile chrome_profile_gsc, goes to Business Search dashboard, and posts updates with text + image automatically!', 'autopost' => false],
             ['id' => 'pinterest',    'name' => 'Pinterest',      'url' => 'https://www.pinterest.com',   'what_system_does' => '🤖 Browser Automation — Email + Password save karo. System Chrome kholine auto login kare + pin create kare with image + backlink'],
             ['id' => 'bluesky',      'name' => 'Bluesky',        'url' => 'https://bsky.app',            'what_system_does' => '✅ 100% Auto — AT Protocol API. Use App Password from bsky.app → Settings → App Passwords'],
             ['id' => 'mastodon',     'name' => 'Mastodon',       'url' => 'https://mastodon.social',     'what_system_does' => '🤖 Browser Automation — Email + Password save karo. System auto-login kare, app create kare, token generate kare + post kare automatically!'],
@@ -442,7 +490,7 @@ $platforms = [
         'title' => '✍️ Micro Blogging',
         'color' => 'success',
         'sites' => [
-            ['id' => 'scoopit',      'name' => 'Scoop.it',       'url' => 'https://www.scoop.it',        'what_system_does' => '📋 Semi-Auto — Auto Post dabavo → Title + Description auto-generate thay → Copy karo → Scoop.it khulse → Paste karo → Publish button dabavo'],
+            ['id' => 'scoopit',      'name' => 'Scoop.it',       'url' => 'https://www.scoop.it',        'what_system_does' => '📋 Semi-Auto — Auto Post dabavo → Title + Description auto-generate thay → Copy karo → Scoop.it khulse → Paste karo → Publish button dabavo', 'autopost' => false],
             ['id' => 'wakelet',      'name' => 'Wakelet',        'url' => 'https://wakelet.com',         'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System collection create kare + URL add kare with keyword + backlink'],
             ['id' => 'vivauae',      'name' => 'Vivauae',        'url' => 'https://vivauae.com',         'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System article submit kare with keyword + backlink'],
             ['id' => 'padlet',       'name' => 'Padlet',         'url' => 'https://padlet.com',          'what_system_does' => '🤖 Browser Session — Chrome band karo → Auto Post click karo → System tumhara browser session use karke post add karega. Board: lmt-wb7faycbn66hp2z5'],
@@ -459,10 +507,10 @@ $platforms = [
             ['id' => 'postimage',    'name' => 'PostImage',      'url' => 'http://www.postimage.org',    'what_system_does' => 'Image post with keyword + website link'],
             ['id' => 'photobucket',  'name' => 'Photobucket',    'url' => 'https://photobucket.com',     'what_system_does' => 'Photo album with keyword + backlink'],
             ['id' => 'behance',      'name' => 'Behance',        'url' => 'https://www.behance.net',     'what_system_does' => 'Portfolio project with keyword + website link'],
-            ['id' => 'pbase',        'name' => 'Pbase',          'url' => 'https://www.pbase.com',       'what_system_does' => 'Photo gallery with keyword + backlink'],
-            ['id' => 'dropbox',      'name' => 'Dropbox',        'url' => 'https://www.dropbox.com',     'what_system_does' => 'Shared folder with keyword content'],
+            ['id' => 'pbase',        'name' => 'Pbase',          'url' => 'https://www.pbase.com',       'what_system_does' => 'Photo gallery with keyword + backlink', 'autopost' => false],
+            ['id' => 'dropbox',      'name' => 'Dropbox',        'url' => 'https://www.dropbox.com',     'what_system_does' => 'Shared folder with keyword content', 'autopost' => false],
             ['id' => 'imgbb',        'name' => 'ImgBB',          'url' => 'https://imgbb.com',           'what_system_does' => '✅ 100% Auto — Upload image with keyword + backlink. Get free API key: imgbb.com/api'],
-            ['id' => 'googledrive',  'name' => 'Google Drive',   'url' => 'https://drive.google.com',    'what_system_does' => '✅ 100% Auto — Upload PDF to public folder. Get token: console.cloud.google.com → Drive API'],
+            ['id' => 'googledrive',  'name' => 'Google Drive',   'url' => 'https://drive.google.com',    'what_system_does' => '✅ 100% Auto — Upload PDF to public folder. Get token: console.cloud.google.com → Drive API', 'autopost' => false],
         ]
     ],
     'blog_posting' => [
@@ -498,6 +546,68 @@ $platforms = [
         ]
     ],
 ];
+
+// Sort sites inside each category so that active auto-post sites are at the top
+foreach ($platforms as $catKey => &$category) {
+    usort($category['sites'], function($a, $b) {
+        $a_auto = isset($a['autopost']) ? $a['autopost'] : true;
+        $b_auto = isset($b['autopost']) ? $b['autopost'] : true;
+        if ($a_auto === $b_auto) {
+            return strcasecmp($a['name'], $b['name']);
+        }
+        return $a_auto ? -1 : 1;
+    });
+}
+unset($category);
+
+// 12 Primary platforms in the exact order requested
+$primaryIds = ['pinterest', 'bluesky', 'mastodon', 'minds', 'symbaloo', 'devto', 'linktree', 'site123', 'livejournal', 'blogger', 'tumblr', 'github'];
+
+$orderedSitesList = [];
+$addedIds = [];
+
+// 1. Add the primary 12 platforms in the exact order requested
+foreach ($primaryIds as $id) {
+    foreach ($platforms as $catKey => $cat) {
+        foreach ($cat['sites'] as $site) {
+            if ($site['id'] === $id && !in_array($id, $addedIds)) {
+                $orderedSitesList[] = $site;
+                $addedIds[] = $id;
+                break 2;
+            }
+        }
+    }
+}
+
+// 2. Add all other remaining platforms
+// Grouped into auto-post first, then coming soon
+$otherAuto = [];
+$otherComing = [];
+
+foreach ($platforms as $catKey => $cat) {
+    foreach ($cat['sites'] as $site) {
+        if (!in_array($site['id'], $addedIds)) {
+            $isAuto = isset($site['autopost']) ? $site['autopost'] : true;
+            if ($isAuto) {
+                $otherAuto[] = $site;
+            } else {
+                $otherComing[] = $site;
+            }
+            $addedIds[] = $site['id'];
+        }
+    }
+}
+
+// Sort others alphabetically to be neat
+usort($otherAuto, fn($a, $b) => strcasecmp($a['name'], $b['name']));
+usort($otherComing, fn($a, $b) => strcasecmp($a['name'], $b['name']));
+
+// Combine them into a single flat array
+$orderedSitesList = array_merge($orderedSitesList, $otherAuto, $otherComing);
+
+// Split into two boxes: 1-13 and 14-45
+$firstBoxList  = array_slice($orderedSitesList, 0, 13);
+$secondBoxList = array_slice($orderedSitesList, 13);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -667,6 +777,103 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
     </div>
   </div>
 
+  <?php
+  // 12 Primary platforms in the exact order requested
+  $primaryIds = ['pinterest', 'bluesky', 'mastodon', 'minds', 'symbaloo', 'devto', 'linktree', 'site123', 'livejournal', 'blogger', 'tumblr', 'github'];
+  $primaryPlatforms = [];
+  
+  // Icon Mapping
+  $iconMap = [
+      'pinterest' => 'fab fa-pinterest text-danger',
+      'bluesky' => 'fas fa-cloud text-primary',
+      'mastodon' => 'fab fa-mastodon text-info',
+      'minds' => 'fas fa-circle-notch text-dark',
+      'symbaloo' => 'fas fa-th text-warning',
+      'devto' => 'fab fa-dev text-dark',
+      'linktree' => 'fas fa-tree text-success',
+      'site123' => 'fas fa-globe text-primary',
+      'livejournal' => 'fas fa-book text-info',
+      'blogger' => 'fab fa-blogger text-warning',
+      'tumblr' => 'fab fa-tumblr text-primary',
+      'github' => 'fab fa-github text-dark'
+  ];
+
+  foreach ($primaryIds as $id) {
+      foreach ($platforms as $catKey => $cat) {
+          foreach ($cat['sites'] as $site) {
+              if ($site['id'] === $id) {
+                  $site['icon'] = $iconMap[$id] ?? 'fas fa-share-alt';
+                  $primaryPlatforms[] = $site;
+                  break 2;
+              }
+          }
+      }
+  }
+  ?>
+
+  <!-- Primary Platforms Status Widget -->
+  <div class="card mb-4 border-primary shadow-sm">
+    <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-bold"><i class="fas fa-star me-2"></i>Primary Platforms Quick Status</h6>
+      <span class="badge bg-light text-primary small fw-bold">12 Platforms</span>
+    </div>
+    <div class="card-body p-3 bg-light">
+      <div class="row g-2">
+        <?php foreach ($primaryPlatforms as $idx => $pSite): ?>
+          <?php 
+          $pSaved = isset($savedMap[$pSite['id']]);
+          $pAllAccounts = $savedMapAll[$pSite['id']] ?? [];
+          
+          // Cooldown check
+          $pCooldown = checkPlatformCooldown($db, $selectedProjectId, $pSite['id'], $currentKeyword, $currentTargetSite);
+          ?>
+          <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+            <div class="card h-100 border text-center p-2 bg-white shadow-none" style="transition: all 0.2s ease-in-out; border-radius: 8px;"
+                 onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; this.style.transform='translateY(-2px)';" 
+                 onmouseout="this.style.boxShadow='none'; this.style.transform='none';">
+              <div class="mb-1 mt-1">
+                <i class="<?= $pSite['icon'] ?> fa-lg"></i>
+              </div>
+              <div class="fw-bold text-dark mb-1" style="font-size: 12.5px; line-height: 1.2; height: 30px; display: flex; align-items: center; justify-content: center;">
+                <?= $idx + 1 ?>. <?= $pSite['name'] ?>
+              </div>
+              
+              <!-- Status Badge -->
+              <div class="mb-2">
+                <?php if ($pCooldown['is_cooldown']): ?>
+                  <span class="badge bg-warning text-dark" style="font-size: 9px; padding: 3px 6px;">Posted (Cooldown)</span>
+                <?php elseif (isset($pSite['autopost']) && $pSite['autopost'] === false): ?>
+                  <span class="badge bg-secondary text-white" style="font-size: 9px; padding: 3px 6px;">Coming Soon</span>
+                <?php elseif (!empty($pAllAccounts)): ?>
+                  <span class="badge bg-success" style="font-size: 9px; padding: 3px 6px;">Ready</span>
+                <?php else: ?>
+                  <span class="badge bg-light text-muted border" style="font-size: 9px; padding: 2px 5px;">Needs Creds</span>
+                <?php endif; ?>
+              </div>
+
+              <!-- Action button -->
+              <div class="mt-auto pt-1 mb-1">
+                <?php if ($pCooldown['is_cooldown']): ?>
+                  <span class="text-muted fw-bold" style="font-size: 11px;"><i class="fas fa-clock me-1"></i>Wait <?= $pCooldown['time_str'] ?></span>
+                <?php elseif (isset($pSite['autopost']) && $pSite['autopost'] === false): ?>
+                  <span class="text-muted" style="font-size: 11px;">Coming Soon</span>
+                <?php elseif (!empty($pAllAccounts)): ?>
+                  <button class="btn btn-xs btn-success py-0 px-2 fw-bold" style="font-size: 10px;" onclick="autoPostAll('<?= $pSite['id'] ?>', '<?= $pSite['name'] ?>', <?= $selectedProjectId ?>, <?= count($pAllAccounts) ?>)">
+                    <i class="fas fa-paper-plane me-1"></i>Post
+                  </button>
+                <?php else: ?>
+                  <button class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 10px;" onclick="showCredForm('<?= $pSite['id'] ?>', '<?= $pSite['name'] ?>', <?= $selectedProjectId ?>)">
+                    <i class="fas fa-key me-1"></i>Add
+                  </button>
+                <?php endif; ?>
+              </div>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </div>
+
   <!-- Logo Upload + Image Section -->
   <?php
   $postImage = $project['post_image'] ?? null;
@@ -765,8 +972,14 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
         $totalSites = 0;
         foreach ($platforms as $cat) $totalSites += count($cat['sites']);
         $savedCount = count($savedMap);
-        $submittedCount = $db->prepare("SELECT COUNT(*) FROM backlinks WHERE project_id=? AND status='created'");
-        $submittedCount->execute([$selectedProjectId]);
+        $submittedCount = $db->prepare("
+            SELECT COUNT(*) FROM backlinks 
+            WHERE project_id = ? 
+              AND status = 'created' 
+              AND (keyword = ? OR (keyword IS NULL AND ? = ''))
+              AND (target_url = ? OR target_url IS NULL OR (target_url IS NULL AND ? = ''))
+        ");
+        $submittedCount->execute([$selectedProjectId, $currentKeyword, $currentKeyword, $currentTargetSite, $currentTargetSite]);
         $submittedCount = $submittedCount->fetchColumn();
         ?>
         <div class="col-3">
@@ -791,8 +1004,15 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
 
   <!-- Created Backlinks Table -->
   <?php
-  $createdBL = $db->prepare("SELECT * FROM backlinks WHERE project_id=? AND status='created' ORDER BY created_at DESC");
-  $createdBL->execute([$selectedProjectId]);
+  $createdBL = $db->prepare("
+      SELECT * FROM backlinks 
+      WHERE project_id = ? 
+        AND status = 'created' 
+        AND (keyword = ? OR (keyword IS NULL AND ? = ''))
+        AND (target_url = ? OR target_url IS NULL OR (target_url IS NULL AND ? = ''))
+      ORDER BY created_at DESC
+  ");
+  $createdBL->execute([$selectedProjectId, $currentKeyword, $currentKeyword, $currentTargetSite, $currentTargetSite]);
   $createdBL = $createdBL->fetchAll();
   ?>
   <?php if (!empty($createdBL)): ?>
@@ -871,102 +1091,109 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
   </div>
   <?php endif; ?>
 
-  <!-- Platform Categories -->
-  <?php foreach ($platforms as $catKey => $category): ?>
+  <!-- Platform Submission Console (1 - 13) -->
   <div class="card mb-4 border-0 shadow-sm">
-    <div class="card-header bg-<?= $category['color'] ?> text-white">
-      <h5 class="mb-0"><?= $category['title'] ?></h5>
+    <div class="card-header bg-dark text-white">
+      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Primary Platforms Console (1 - 13)</h5>
     </div>
     <div class="card-body p-0">
       <div class="table-responsive">
         <table class="table table-hover mb-0">
           <thead class="table-light">
             <tr>
-              <th>Platform</th>
-              <th>What System Does Automatically</th>
-              <th>Your Credentials</th>
-              <th>Status</th>
-              <th>Action</th>
+              <th style="width: 5%;">#</th>
+              <th style="width: 15%;">Platform</th>
+              <th style="width: 35%;">What System Does Automatically</th>
+              <th style="width: 20%;">Your Credentials</th>
+              <th style="width: 12%;">Status</th>
+              <th style="width: 13%;">Action</th>
             </tr>
           </thead>
           <tbody>
-          <?php foreach ($category['sites'] as $site): ?>
-            <?php $saved = $savedMap[$site['id']] ?? null;
-                  $allAccounts = $savedMapAll[$site['id']] ?? []; ?>
+          <?php foreach ($firstBoxList as $idx => $site): ?>
+            <?php 
+            $saved = isset($savedMap[$site['id']]);
+            $allAccounts = $savedMapAll[$site['id']] ?? []; 
+            ?>
             <tr>
+              <td><?= $idx + 1 ?></td>
               <td>
-                <strong><?= $site['name'] ?></strong><br>
-                <a href="<?= $site['url'] ?>" target="_blank" class="small text-muted">
-                  <?= $site['url'] ?> <i class="fas fa-external-link-alt"></i>
+                <strong><?= htmlspecialchars($site['name']) ?></strong><br>
+                <a href="<?= htmlspecialchars($site['url']) ?>" target="_blank" class="small text-muted">
+                  <?= htmlspecialchars(substr($site['url'], 0, 30)) ?><?= strlen($site['url']) > 30 ? '...' : '' ?> <i class="fas fa-external-link-alt"></i>
                 </a>
               </td>
               <td>
                 <small class="text-success">
-                  <i class="fas fa-robot me-1"></i><?= $site['what_system_does'] ?>
+                  <i class="fas fa-robot me-1"></i><?= htmlspecialchars($site['what_system_does']) ?>
                 </small>
               </td>
               <td>
-                <?php if (!empty($allAccounts)): ?>
-                  <?php foreach ($allAccounts as $acc): ?>
-                  <div class="d-flex align-items-center gap-1 mb-1">
-                    <span class="text-success small">
-                      <i class="fas fa-check-circle me-1"></i><?php
-                        // For Mastodon: show email (api_secret) instead of instance
-                        if ($site['id'] === 'mastodon' && !empty($acc['api_secret'])) {
-                            echo clean($acc['api_secret']);
-                        } else {
-                            echo clean($acc['username']);
-                        }
-                      ?>
-                    </span>
-                    <button class="btn btn-xs btn-outline-danger py-0 px-1"
-                            onclick="deleteAccount(<?= $acc['id'] ?>, this)"
-                            title="Remove">
-                      <i class="fas fa-times"></i>
-                    </button>
-                  </div>
-                  <?php endforeach; ?>
-                  <?php if ($site['id'] === 'wordpress'): ?>
-                    <button onclick="showWpConnect()" class="btn btn-xs btn-primary mt-1">
-                      <i class="fab fa-wordpress me-1"></i>Re-Connect WordPress
-                    </button>
-                  <?php else: ?>
-                  <button class="btn btn-xs btn-outline-primary mt-1"
-                          onclick="showCredForm('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>)">
-                    <i class="fas fa-plus me-1"></i>Add More Account
-                  </button>
-                  <?php endif; ?>
+                <?php if (isset($site['autopost']) && $site['autopost'] === false && empty($allAccounts)): ?>
+                  <span class="text-muted small">Coming Soon</span>
                 <?php else: ?>
-                  <?php if ($site['id'] === 'wordpress'): ?>
-                    <button onclick="showWpConnect()" class="btn btn-sm btn-primary">
-                      <i class="fab fa-wordpress me-1"></i>Connect WordPress
+                  <?php if (!empty($allAccounts)): ?>
+                    <?php foreach ($allAccounts as $acc): ?>
+                    <div class="d-flex align-items-center gap-1 mb-1">
+                      <span class="text-success small">
+                        <i class="fas fa-check-circle me-1"></i><?php
+                          if ($site['id'] === 'mastodon' && !empty($acc['api_secret'])) {
+                              echo clean($acc['api_secret']);
+                          } else {
+                              echo clean($acc['username']);
+                          }
+                        ?>
+                      </span>
+                      <button class="btn btn-xs btn-outline-danger py-0 px-1"
+                              onclick="deleteAccount(<?= $acc['id'] ?>, this)"
+                              title="Remove">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                    <?php endforeach; ?>
+                    <?php if ($site['id'] === 'wordpress'): ?>
+                      <button onclick="showWpConnect()" class="btn btn-xs btn-primary mt-1">
+                        <i class="fab fa-wordpress me-1"></i>Re-Connect WordPress
+                      </button>
+                    <?php else: ?>
+                    <button class="btn btn-xs btn-outline-primary mt-1"
+                            onclick="showCredForm('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>)">
+                      <i class="fas fa-plus me-1"></i>Add More
                     </button>
-                    <br><small class="text-muted">Email + Password → Auto-save</small>
+                    <?php endif; ?>
                   <?php else: ?>
-                  <button class="btn btn-sm btn-outline-primary"
-                          onclick="showCredForm('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>)">
-                    <i class="fas fa-key me-1"></i>Add Credentials
-                  </button>
+                    <?php if ($site['id'] === 'wordpress'): ?>
+                      <button onclick="showWpConnect()" class="btn btn-sm btn-primary">
+                        <i class="fab fa-wordpress me-1"></i>Connect WordPress
+                      </button>
+                      <br><small class="text-muted">Email + Password → Auto-save</small>
+                    <?php else: ?>
+                    <button class="btn btn-sm btn-outline-primary"
+                            onclick="showCredForm('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>)">
+                      <i class="fas fa-key me-1"></i>Add Credentials
+                    </button>
+                    <?php endif; ?>
                   <?php endif; ?>
                 <?php endif; ?>
               </td>
               <td>
                 <?php
-                // Check if a backlink exists specifically for the selected keyword
-                $blCheck = $db->prepare("SELECT id FROM backlinks WHERE project_id=? AND platform=? AND status='created' AND (keyword=? OR (keyword IS NULL AND (post_title LIKE ? OR backlink_url LIKE ?)))");
-                $blCheck->execute([$selectedProjectId, $site['id'], $currentKeyword, '%' . $currentKeyword . '%', '%' . $currentKeyword . '%']);
-                $posted = $blCheck->fetch();
+                $cooldown = checkPlatformCooldown($db, $selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite);
                 ?>
-                <?php if ($posted): ?>
-                  <span class="badge bg-success">✅ Posted</span>
+                <?php if ($cooldown['is_cooldown']): ?>
+                  <span class="badge bg-warning text-dark"><i class="fas fa-history me-1"></i>Posted (Cooldown)</span>
+                <?php elseif (isset($site['autopost']) && $site['autopost'] === false): ?>
+                  <span class="badge bg-secondary"><i class="fas fa-clock me-1"></i>Coming Soon</span>
                 <?php elseif ($saved): ?>
-                  <span class="badge bg-warning">Ready to Post</span>
+                  <span class="badge bg-success">Ready to Post</span>
                 <?php else: ?>
                   <span class="badge bg-secondary">Needs Credentials</span>
                 <?php endif; ?>
               </td>
               <td>
-                <?php if (!empty($allAccounts) && !$posted): ?>
+                <?php if ($cooldown['is_cooldown']): ?>
+                  <span class="text-muted fw-bold"><i class="fas fa-clock me-1"></i>Wait <?= $cooldown['time_str'] ?></span>
+                <?php elseif (!empty($allAccounts) && (!isset($site['autopost']) || $site['autopost'] !== false)): ?>
                   <button class="btn btn-sm btn-success"
                           onclick="autoPostAll('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>, <?= count($allAccounts) ?>)">
                     <i class="fas fa-paper-plane me-1"></i>Auto Post
@@ -974,8 +1201,8 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
                       <span class="badge bg-warning text-dark ms-1"><?= count($allAccounts) ?> accounts</span>
                     <?php endif; ?>
                   </button>
-                <?php elseif ($posted): ?>
-                  <span class="text-success"><i class="fas fa-check"></i> Done</span>
+                <?php elseif (isset($site['autopost']) && $site['autopost'] === false): ?>
+                  <span class="text-muted small">Coming Soon</span>
                 <?php else: ?>
                   <span class="text-muted small">Add credentials first</span>
                 <?php endif; ?>
@@ -987,7 +1214,130 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
       </div>
     </div>
   </div>
-  <?php endforeach; ?>
+
+  <!-- Platform Submission Console (14 - 45) -->
+  <div class="card mb-4 border-0 shadow-sm">
+    <div class="card-header bg-dark text-white">
+      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Secondary Platforms Console (14 - 45)</h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 5%;">#</th>
+              <th style="width: 15%;">Platform</th>
+              <th style="width: 35%;">What System Does Automatically</th>
+              <th style="width: 20%;">Your Credentials</th>
+              <th style="width: 12%;">Status</th>
+              <th style="width: 13%;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+          <?php foreach ($secondBoxList as $idx => $site): ?>
+            <?php 
+            $saved = isset($savedMap[$site['id']]);
+            $allAccounts = $savedMapAll[$site['id']] ?? []; 
+            ?>
+            <tr>
+              <td><?= $idx + 14 ?></td>
+              <td>
+                <strong><?= htmlspecialchars($site['name']) ?></strong><br>
+                <a href="<?= htmlspecialchars($site['url']) ?>" target="_blank" class="small text-muted">
+                  <?= htmlspecialchars(substr($site['url'], 0, 30)) ?><?= strlen($site['url']) > 30 ? '...' : '' ?> <i class="fas fa-external-link-alt"></i>
+                </a>
+              </td>
+              <td>
+                <small class="text-success">
+                  <i class="fas fa-robot me-1"></i><?= htmlspecialchars($site['what_system_does']) ?>
+                </small>
+              </td>
+              <td>
+                <?php if (isset($site['autopost']) && $site['autopost'] === false && empty($allAccounts)): ?>
+                  <span class="text-muted small">Coming Soon</span>
+                <?php else: ?>
+                  <?php if (!empty($allAccounts)): ?>
+                    <?php foreach ($allAccounts as $acc): ?>
+                    <div class="d-flex align-items-center gap-1 mb-1">
+                      <span class="text-success small">
+                        <i class="fas fa-check-circle me-1"></i><?php
+                          if ($site['id'] === 'mastodon' && !empty($acc['api_secret'])) {
+                              echo clean($acc['api_secret']);
+                          } else {
+                              echo clean($acc['username']);
+                          }
+                        ?>
+                      </span>
+                      <button class="btn btn-xs btn-outline-danger py-0 px-1"
+                              onclick="deleteAccount(<?= $acc['id'] ?>, this)"
+                              title="Remove">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                    <?php endforeach; ?>
+                    <?php if ($site['id'] === 'wordpress'): ?>
+                      <button onclick="showWpConnect()" class="btn btn-xs btn-primary mt-1">
+                        <i class="fab fa-wordpress me-1"></i>Re-Connect WordPress
+                      </button>
+                    <?php else: ?>
+                    <button class="btn btn-xs btn-outline-primary mt-1"
+                            onclick="showCredForm('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>)">
+                      <i class="fas fa-plus me-1"></i>Add More
+                    </button>
+                    <?php endif; ?>
+                  <?php else: ?>
+                    <?php if ($site['id'] === 'wordpress'): ?>
+                      <button onclick="showWpConnect()" class="btn btn-sm btn-primary">
+                        <i class="fab fa-wordpress me-1"></i>Connect WordPress
+                      </button>
+                      <br><small class="text-muted">Email + Password → Auto-save</small>
+                    <?php else: ?>
+                    <button class="btn btn-sm btn-outline-primary"
+                            onclick="showCredForm('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>)">
+                      <i class="fas fa-key me-1"></i>Add Credentials
+                    </button>
+                    <?php endif; ?>
+                  <?php endif; ?>
+                <?php endif; ?>
+              </td>
+              <td>
+                <?php
+                $cooldown = checkPlatformCooldown($db, $selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite);
+                ?>
+                <?php if ($cooldown['is_cooldown']): ?>
+                  <span class="badge bg-warning text-dark"><i class="fas fa-history me-1"></i>Posted (Cooldown)</span>
+                <?php elseif (isset($site['autopost']) && $site['autopost'] === false): ?>
+                  <span class="badge bg-secondary"><i class="fas fa-clock me-1"></i>Coming Soon</span>
+                <?php elseif ($saved): ?>
+                  <span class="badge bg-success">Ready to Post</span>
+                <?php else: ?>
+                  <span class="badge bg-secondary">Needs Credentials</span>
+                <?php endif; ?>
+              </td>
+              <td>
+                <?php if ($cooldown['is_cooldown']): ?>
+                  <span class="text-muted fw-bold"><i class="fas fa-clock me-1"></i>Wait <?= $cooldown['time_str'] ?></span>
+                <?php elseif (!empty($allAccounts) && (!isset($site['autopost']) || $site['autopost'] !== false)): ?>
+                  <button class="btn btn-sm btn-success"
+                          onclick="autoPostAll('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>, <?= count($allAccounts) ?>)">
+                    <i class="fas fa-paper-plane me-1"></i>Auto Post
+                    <?php if (count($allAccounts) > 1): ?>
+                      <span class="badge bg-warning text-dark ms-1"><?= count($allAccounts) ?> accounts</span>
+                    <?php endif; ?>
+                  </button>
+                <?php elseif (isset($site['autopost']) && $site['autopost'] === false): ?>
+                  <span class="text-muted small">Coming Soon</span>
+                <?php else: ?>
+                  <span class="text-muted small">Add credentials first</span>
+                <?php endif; ?>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
   <?php endif; ?>
 </div>
@@ -1318,12 +1668,16 @@ function autoPostAll(platformId, platformName, projectId) {
       if (data.success) {
         document.getElementById('postingStatus').innerHTML = '✅ Posted Successfully!';
         const countMsg = data.posted_count > 1 ? `<strong>${data.posted_count} accounts</strong> posted!<br>` : '';
+        let sourceMsg = '';
+        if (data.source === 'Template') {
+          sourceMsg = '<br><div class="alert alert-warning py-1 px-2 mt-2 mb-0 small text-start"><i class="fas fa-exclamation-triangle"></i> OpenAI/Gemini Key quota exceeded or expired. Posted using dynamic Template Fallback. Update keys in API Setup.</div>';
+        }
         document.getElementById('postingDetail').innerHTML =
-          countMsg + 'Backlink: <a href="' + data.url + '" target="_blank">' + data.url + '</a>';
-        setTimeout(() => { modal.hide(); location.reload(); }, 3000);
+          countMsg + 'Backlink: <a href="' + data.url + '" target="_blank">' + data.url + '</a>' + sourceMsg;
+        setTimeout(() => { modal.hide(); location.reload(); }, data.source === 'Template' ? 6000 : 3000);
       } else if (data.manual) {
         modal.hide();
-        showManualContent(platformName, data.content, data.title, data.url || siteInfo[platformId]?.url, data.pdf_url || null);
+        showManualContent(platformName, data.content, data.title, data.url || siteInfo[platformId]?.url, data.pdf_url || null, data.source || 'ChatGPT');
       } else {
         document.getElementById('postingStatus').innerHTML = '⚠️ ' + (data.error || 'Failed');
         document.getElementById('postingDetail').innerHTML =
@@ -1399,7 +1753,7 @@ function bulkBlueskyPost(projectId) {
 }
 
 
-function showManualContent(platformName, content, title, siteUrl, pdfUrl = null) {
+function showManualContent(platformName, content, title, siteUrl, pdfUrl = null, source = 'ChatGPT') {
   // Create a modal to show generated content for copy-paste
   const existing = document.getElementById('manualModal');
   if (existing) existing.remove();
@@ -1409,6 +1763,15 @@ function showManualContent(platformName, content, title, siteUrl, pdfUrl = null)
          <i class="fas fa-file-pdf me-2"></i>Download Generated PDF
        </a>`
     : '';
+
+  let warningBanner = '';
+  if (source === 'Template') {
+    warningBanner = `
+    <div class="alert alert-warning py-2 mb-3">
+      <strong><i class="fas fa-exclamation-triangle me-2"></i>API Key Warning:</strong> 
+      Your OpenAI/Gemini API key has exceeded its quota or expired. This content was generated using a randomized local spintax template. Update your API Keys on the <a href="api-setup.php" class="alert-link">API Setup</a> page to resume direct live ChatGPT generation.
+    </div>`;
+  }
 
   const html = `
   <div class="modal fade" id="manualModal" tabindex="-1">
@@ -1421,6 +1784,7 @@ function showManualContent(platformName, content, title, siteUrl, pdfUrl = null)
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
+          ${warningBanner}
           ${pdfUrl ? `
           <div class="alert alert-success">
             <strong><i class="fas fa-file-pdf me-2"></i>PDF Generated!</strong>
