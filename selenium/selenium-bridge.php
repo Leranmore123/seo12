@@ -8,7 +8,7 @@
 if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
     define('PYTHON_EXE', 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\Python\\Python311\\python.exe');
 } else {
-    define('PYTHON_EXE', 'python3');
+    define('PYTHON_EXE', '/usr/bin/python3');
 }
 define('SELENIUM_DIR', __DIR__);
 
