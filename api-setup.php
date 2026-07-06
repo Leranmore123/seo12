@@ -178,6 +178,21 @@ function maskKey($v) {
         </div>
       </details>
 
+      <details class="mb-3">
+        <summary class="fw-bold">SMTP Email Setup (Optional)</summary>
+        <div class="mt-2 mb-2">
+          <label class="form-label">SMTP Username (Email)</label>
+          <input type="text" name="smtp_user" class="form-control" placeholder="e.g. your-email@gmail.com"
+                 value="<?= clean($local['SMTP_USER'] ?? (SMTP_USER === 'your-smtp-username' ? '' : SMTP_USER)) ?>">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">SMTP Password / App Password</label>
+          <input type="password" name="smtp_pass" class="form-control" placeholder="••••••••"
+                 value="<?= clean($local['SMTP_PASS'] ?? (SMTP_PASS === 'your-smtp-password' ? '' : SMTP_PASS)) ?>">
+          <small class="text-muted">For Gmail: Go to Google Account → Security → 2-Step Verification → App passwords → Generate 16-character password.</small>
+        </div>
+      </details>
+
       <button type="submit" class="btn btn-primary btn-lg">
         <i class="fas fa-save me-2"></i>Save All Keys
       </button>
