@@ -95,8 +95,8 @@ function runSeleniumScript(string $script, array $args, int $timeout = 120): arr
     // No valid result found
     return [
         'success' => false,
-        'error'   => 'No result from Selenium script. Stderr: ' . substr($stderr, 0, 500),
-        'raw'     => substr($output, 0, 500),
+        'error'   => 'No result from Selenium script. Stderr: ' . substr($stderr, 0, 5000),
+        'raw'     => substr($output, 0, 5000),
     ];
 }
 
