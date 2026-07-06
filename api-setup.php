@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_keys'])) {
     } else {
         $keys = [
             'OPENAI_API_KEY'       => trim($_POST['openai'] ?? ''),
+            'GEMINI_API_KEY'       => trim($_POST['gemini'] ?? ''),
             'DATAFORSEO_LOGIN'     => trim($_POST['dataforseo_login'] ?? ''),
             'DATAFORSEO_PASSWORD'  => trim($_POST['dataforseo_password'] ?? ''),
             'GOOGLE_API_KEY'       => trim($_POST['google'] ?? ''),
@@ -60,7 +61,7 @@ function maskKey($v) {
 <div class="container py-4" style="max-width:900px;">
 
   <h3><i class="fas fa-key me-2 text-primary"></i>API Keys Setup</h3>
-  <p class="text-muted">અહીં તમારી API keys સેવ કરો. સિસ્ટમ AI content, rank tracking અને images માટે તેનો ઉપયોગ કરશે.</p>
+  <p class="text-muted">Save your API keys here. The system will use them for AI content, rank tracking, and images.</p>
 
   <?php if ($flash): ?>
   <div class="alert alert-<?= $flash['type'] ?>"><?= $flash['msg'] ?></div>
@@ -73,11 +74,16 @@ function maskKey($v) {
     <div class="col-md-4">
       <div class="card h-100 border-success">
         <div class="card-body">
-          <h6 class="text-success">✅ જરૂરી</h6>
-          <p class="small mb-0"><strong>ChatGPT (OpenAI)</strong> — Content, articles, meta tags, social posts.</p>
-          <span class="badge <?= hasChatGPT() ? 'bg-success' : 'bg-danger' ?> mt-2">
-            <?= hasChatGPT() ? 'Configured' : 'Missing' ?>
-          </span>
+          <h6 class="text-success">✅ Required (At least one AI Key)</h6>
+          <p class="small mb-0"><strong>ChatGPT (OpenAI)</strong> or <strong>Gemini (Google)</strong> — Content, articles, meta tags, social posts.</p>
+          <div class="mt-2">
+            <span class="badge <?= hasChatGPT() ? 'bg-success' : 'bg-danger' ?> me-1">
+              OpenAI: <?= hasChatGPT() ? 'Configured' : 'Missing' ?>
+            </span>
+            <span class="badge <?= hasGemini() ? 'bg-success' : 'bg-danger' ?>">
+              Gemini: <?= hasGemini() ? 'Configured' : 'Missing' ?>
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -96,7 +102,7 @@ function maskKey($v) {
       <div class="card h-100 border-warning">
         <div class="card-body">
           <h6 class="text-warning">🔌 Social Auto-Post</h6>
-          <p class="small mb-0">WordPress, Blogger, Bluesky, Dev.to — keys <strong>Submissions</strong> page પર દર platform માટે.</p>
+          <p class="small mb-0">WordPress, Blogger, Bluesky, Dev.to — keys <strong>Submissions</strong> for each platform.</p>
         </div>
       </div>
     </div>
@@ -111,11 +117,21 @@ function maskKey($v) {
       <div class="mb-3">
         <label class="form-label fw-bold">OpenAI / ChatGPT API Key <span class="text-danger">*</span></label>
         <input type="text" name="openai" class="form-control" placeholder="sk-..."
-               value="<?= clean($local['OPENAI_API_KEY'] ?? OPENAI_API_KEY) ?>">
+               value="<?= clean($local['OPENAI_API_KEY'] ?? (OPENAI_API_KEY === 'your-openai-api-key' ? '' : OPENAI_API_KEY)) ?>">
         <div class="form-text">
-          <strong>કેવી રીતે મળશે:</strong> <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>
-          → Login → <strong>Create new secret key</strong> → copy <code>sk-...</code> → paste અહીં.
-          <br>Model: <code><?= clean(OPENAI_MODEL) ?></code> (બધી content generation માટે)
+          <strong>How to get:</strong> <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>
+          → Login → <strong>Create new secret key</strong> → copy <code>sk-...</code> → paste here.
+          <br>Model: <code><?= clean(OPENAI_MODEL) ?></code> (for all content generation)
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-bold">Google Gemini API Key <span class="text-secondary">(Free Alternative / Backup)</span></label>
+        <input type="text" name="gemini" class="form-control" placeholder="AIzaSy..."
+               value="<?= clean($local['GEMINI_API_KEY'] ?? (GEMINI_API_KEY === 'your-gemini-api-key' ? '' : GEMINI_API_KEY)) ?>">
+        <div class="form-text">
+          <strong>How to get:</strong> <a href="https://aistudio.google.com/" target="_blank">aistudio.google.com</a>
+          → Login → <strong>Get API key</strong> → copy key → paste here.
         </div>
       </div>
 
@@ -169,10 +185,10 @@ function maskKey($v) {
   </form>
 
   <div class="card mb-4">
-    <div class="card-header"><h5 class="mb-0">📱 Social Platforms — Submissions પર keys</h5></div>
+    <div class="card-header"><h5 class="mb-0">📱 Social Platforms — keys on Submissions</h5></div>
     <div class="card-body table-responsive">
       <table class="table table-sm">
-        <thead><tr><th>Platform</th><th>શું જોઈએ</th><th>ક્યાંથી મળશે</th></tr></thead>
+        <thead><tr><th>Platform</th><th>What is needed</th><th>Where to find</th></tr></thead>
         <tbody>
           <tr><td><strong>Bluesky</strong></td><td>Username + App Password</td><td>bsky.app → Settings → App Passwords</td></tr>
           <tr><td><strong>Blogger</strong></td><td>OAuth Access Token + Blog ID</td><td><a href="https://developers.google.com/oauthplayground" target="_blank">OAuth Playground</a> → Blogger API v3</td></tr>

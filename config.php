@@ -174,6 +174,11 @@ function hasChatGPT(): bool {
     return $k !== '' && strpos($k, 'sk-') === 0;
 }
 
+function hasGemini(): bool {
+    $k = GEMINI_API_KEY;
+    return $k !== '' && strpos($k, 'your-') === false;
+}
+
 /**
  * Shared utility to check if a backlink webpage links back to client's website.
  */
