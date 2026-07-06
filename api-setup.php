@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_keys'])) {
         $existing = is_readable(__DIR__ . '/config.local.php')
             ? (array) include __DIR__ . '/config.local.php'
             : [];
-        $merged = array_merge($existing, array_filter($keys, fn($v) => $v !== ''));
+        $merged = array_merge($existing, $keys);
 
         $export = "<?php\n// Auto-saved from API Setup — " . date('Y-m-d H:i') . "\nreturn " . var_export($merged, true) . ";\n";
         if (file_put_contents(__DIR__ . '/config.local.php', $export) !== false) {
