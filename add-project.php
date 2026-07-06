@@ -51,6 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->exec("ALTER TABLE projects ADD COLUMN admin_pass TEXT DEFAULT NULL");
         $db->exec("ALTER TABLE projects ADD COLUMN competitor_sites TEXT DEFAULT NULL");
         $db->exec("ALTER TABLE projects ADD COLUMN business_desc TEXT DEFAULT NULL");
+        $db->exec("ALTER TABLE projects MODIFY COLUMN target_keyword TEXT NOT NULL");
+        $db->exec("ALTER TABLE projects MODIFY COLUMN target_site TEXT DEFAULT NULL");
     } catch (PDOException $e) {
         // already exists or migrated
     }

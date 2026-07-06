@@ -15,6 +15,13 @@ try {
     $db->exec("ALTER TABLE projects ADD COLUMN google_ads_id VARCHAR(100) DEFAULT NULL");
 } catch (Exception $e) {}
 
+try {
+    $db->exec("ALTER TABLE projects MODIFY COLUMN target_keyword TEXT NOT NULL");
+} catch (Exception $e) {}
+try {
+    $db->exec("ALTER TABLE projects MODIFY COLUMN target_site TEXT DEFAULT NULL");
+} catch (Exception $e) {}
+
 // Dynamic database schema updates for PageSpeed, Ranking history logs, and Broken Links
 try {
     $db->exec("CREATE TABLE IF NOT EXISTS keyword_rankings_log (
