@@ -35,7 +35,9 @@ def get_driver(profile_name, headless=False):
     opts.add_argument('--start-maximized')
     
     if sys.platform != "win32":
-        profile_dir = os.path.join('/tmp', profile_name)
+        import getpass
+        sys_user = getpass.getuser().lower()
+        profile_dir = os.path.join('/tmp', f"{profile_name}_{sys_user}")
     else:
         profile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), profile_name)
     opts.add_argument(f'--user-data-dir={profile_dir}')

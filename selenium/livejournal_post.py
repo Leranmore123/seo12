@@ -27,7 +27,9 @@ email_hash = hashlib.md5(username.lower().encode('utf-8')).hexdigest() if userna
 
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
 if sys.platform != "win32":
-    PROFILE_DIR = os.path.join('/tmp', f'chrome_profile_livejournal_{email_hash}')
+    import getpass
+    sys_user = getpass.getuser().lower()
+    PROFILE_DIR = os.path.join('/tmp', f'chrome_profile_livejournal_{email_hash}_{sys_user}')
 else:
     PROFILE_DIR = os.path.join(SCRIPT_DIR, f'chrome_profile_livejournal_{email_hash}')
 
