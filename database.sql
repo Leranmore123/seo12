@@ -39,7 +39,7 @@ CREATE TABLE social_accounts (
 CREATE TABLE seo_reports (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
-    rank INT DEFAULT 0,
+    `rank` INT DEFAULT 0,
     seo_score INT DEFAULT 0,
     backlinks_count INT DEFAULT 0,
     issues_found TEXT,
