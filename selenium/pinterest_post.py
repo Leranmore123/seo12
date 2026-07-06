@@ -21,6 +21,8 @@ def result(success, url='', error=''):
 
 def get_driver(email="default"):
     opts = Options()
+    if sys.platform != "win32":
+        opts.add_argument('--headless=new')
     # Non-headless: Pinterest board modal needs real rendering
     opts.add_argument('--no-sandbox')
     opts.add_argument('--disable-dev-shm-usage')
