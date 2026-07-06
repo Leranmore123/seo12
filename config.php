@@ -3,13 +3,6 @@
 // config.php - SEO 80/20 System Configuration
 // ============================================================
 
-define('DB_HOST', '127.0.0.1:3307');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'seo_system');
-
-define('SITE_NAME', 'SEO 80/20 System');
-
 // Load local overrides (API keys, DB password) — copy config.local.php.example
 $_seoLocal = [];
 if (is_readable(__DIR__ . '/config.local.php')) {
@@ -24,6 +17,13 @@ function seoCfg(string $key, $default = '') {
     }
     return $_seoLocal[$key] ?? $default;
 }
+
+define('DB_HOST', (string) seoCfg('DB_HOST', '127.0.0.1:3307'));
+define('DB_USER', (string) seoCfg('DB_USER', 'root'));
+define('DB_PASS', (string) seoCfg('DB_PASS', ''));
+define('DB_NAME', (string) seoCfg('DB_NAME', 'seo_system'));
+
+define('SITE_NAME', 'SEO 80/20 System');
 
 // Auto-detect site URL (fixes menu when folder is not /seo-system/)
 function detectSiteUrl(): string {
