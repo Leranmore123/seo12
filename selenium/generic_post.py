@@ -25,6 +25,9 @@ def get_driver(headless=True):
     opts = Options()
     if headless:
         opts.add_argument('--headless=new')
+    if sys.platform != "win32":
+        opts.add_argument('--disable-gpu')
+        opts.add_argument('--disable-software-rasterizer')
     opts.add_argument('--no-sandbox')
     opts.add_argument('--disable-dev-shm-usage')
     opts.add_argument('--disable-blink-features=AutomationControlled')

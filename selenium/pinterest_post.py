@@ -23,6 +23,8 @@ def get_driver(email="default"):
     opts = Options()
     if sys.platform != "win32":
         opts.add_argument('--headless=new')
+        opts.add_argument('--disable-gpu')
+        opts.add_argument('--disable-software-rasterizer')
     # Non-headless: Pinterest board modal needs real rendering
     opts.add_argument('--no-sandbox')
     opts.add_argument('--disable-dev-shm-usage')
