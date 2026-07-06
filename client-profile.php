@@ -576,6 +576,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $business_address = clean($_POST['business_address'] ?? '');
     $business_hours   = clean($_POST['business_hours'] ?? '');
     $google_ads_id    = clean($_POST['google_ads_id'] ?? '');
+    file_put_contents(__DIR__ . '/debug_post.txt', print_r($_POST, true));
 
     if (empty($website_url) || empty($target_keyword)) {
         $message = ['type' => 'danger', 'text' => 'Website URL and Target Keyword are required.'];
