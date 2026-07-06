@@ -37,7 +37,12 @@ def get_driver(headless=True):
     opts.add_argument('--window-size=1280,900')
     service = Service(ChromeDriverManager().install())
     driver  = webdriver.Chrome(service=service, options=opts)
-    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    try:
+        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+        })
+    except Exception as e:
+        pass
     return driver
 
 def wait_and_type(driver, wait, selector, text, by=By.CSS_SELECTOR, clear=True, timeout=15):

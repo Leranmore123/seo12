@@ -88,7 +88,12 @@ def get_driver():
     opts.add_argument(f'--user-data-dir={PROFILE_DIR}')  # Persistent profile
     service = Service(ChromeDriverManager().install())
     driver  = webdriver.Chrome(service=service, options=opts)
-    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    try:
+        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+        })
+    except Exception as e:
+        pass
     return driver
 
 try:
