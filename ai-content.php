@@ -516,8 +516,10 @@ Platform: {$platform}. Post variation #{$postCount}. Random seed: {$randomSeed}.
             default:
                 $content = "<h1>{$title}</h1>\n"
                     . "<p>{Learn and master|Gain deep expertise in} <strong>{$kw}</strong> with our comprehensive training program. Visit <a href='{$targetSite}'>{$targetSite}</a> for more information and to enroll today.</p>";
-                break;
         }
+    if ($source === 'Template') {
+        $content = spinText($content);
+    }
     $content = injectKeywordLinks($content, $keyword, $targetSite);
     return ['content' => $content, 'source' => $source, 'title' => $generatedTitle];
 }
