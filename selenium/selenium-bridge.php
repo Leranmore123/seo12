@@ -673,7 +673,7 @@ function seleniumGbpPost(int $projectId, string $businessName, string $postText,
 // ============================================================
 // SYMBALOO — Selenium auto-post
 // ============================================================
-function seleniumSymbaloo(array $creds, string $keyword, string $targetSite): array {
+function seleniumSymbaloo(array $creds, string $keyword, string $targetSite, string $aiDesc = ''): array {
     $email    = $creds['username'] ?? '';
     $password = decodePass($creds['password'] ?? '');
 
@@ -682,7 +682,7 @@ function seleniumSymbaloo(array $creds, string $keyword, string $targetSite): ar
     }
 
     $customMix = $creds['api_key'] ?? '';
-    $args      = [$email, $password, $keyword, $targetSite, $customMix];
+    $args      = [$email, $password, $keyword, $targetSite, $customMix, $aiDesc];
     $result    = runSeleniumScript('symbaloo_post_tile.py', $args, 180);
 
     if (!empty($result['success'])) {

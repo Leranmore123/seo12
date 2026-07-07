@@ -3645,7 +3645,9 @@ function runPlatformAutoPost(string $platform, array $creds, array $project, int
             return seleniumMicroBlog('dribbble', $creds, $keyword, $site, '', '', $projectId);
 
         case 'symbaloo':
-            return seleniumSymbaloo($creds, $keyword, $site);
+            $ai = generateAIContent($keyword, $site, 'symbaloo', 'micro_blog', '', OPENAI_API_KEY, $postCount, $usedTitles, $project['business_name'] ?? '', $project['business_desc'] ?? '');
+            $aiDesc = $ai['content'] ?? '';
+            return seleniumSymbaloo($creds, $keyword, $site, $aiDesc);
 
         case 'penzu':
             return seleniumMicroBlog('penzu', $creds, $keyword, $site, '', '', $projectId);

@@ -32,6 +32,7 @@ password   = sys.argv[2] if len(sys.argv) > 2 else "@DISHA12@"
 keyword    = sys.argv[3] if len(sys.argv) > 3 else "python training bangalore"
 target_url = sys.argv[4] if len(sys.argv) > 4 else "https://learnmoretech.in/"
 custom_mix_url = sys.argv[5] if len(sys.argv) > 5 else ""
+ai_description = sys.argv[6] if len(sys.argv) > 6 else ""
 
 import hashlib
 email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
@@ -351,9 +352,12 @@ try:
                     except: continue
 
                 # Fill Tile description (textarea)
-                tile_desc = ("Best " + keyword + " training at Learnmore Technologies. "
-                             "Expert trainers, live projects, placement support. "
-                             "Enroll: " + target_url)
+                if ai_description:
+                    tile_desc = ai_description
+                else:
+                    tile_desc = ("Best " + keyword + " training at Learnmore Technologies. "
+                                 "Expert trainers, live projects, placement support. "
+                                 "Enroll: " + target_url)
                 for ta in driver.find_elements(By.TAG_NAME, 'textarea'):
                     try:
                         if ta.is_displayed():

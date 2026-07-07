@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/selenium/selenium-bridge.php';
+require_once dirname(__DIR__) . '/ai-content.php';
 
 $projectId = 211; // Project ID
 $platform  = 'symbaloo';
@@ -24,9 +25,14 @@ foreach ($accounts as $idx => $creds) {
     echo "----------------------------------------\n";
     echo "Testing Account #" . ($idx + 1) . ": " . $creds['username'] . " (Project ID: " . $creds['project_id'] . ")\n";
     echo "Custom Webmix URL: " . ($creds['api_key'] ?: 'None (Default)') . "\n";
+    
+    // Generate AI content first (simulating the live system)
+    $ai = generateAIContent($keyword, $site, 'symbaloo', 'micro_blog', '', OPENAI_API_KEY, 1, [], 'SkyRank Solution', 'AI-powered SEO agency');
+    $aiDesc = $ai['content'] ?? '';
+    echo "Generated AI Description: " . substr($aiDesc, 0, 80) . "...\n";
     echo "Running seleniumSymbaloo...\n";
     
-    $res = seleniumSymbaloo($creds, $keyword, $site);
+    $res = seleniumSymbaloo($creds, $keyword, $site, $aiDesc);
     print_r($res);
     echo "\n";
 }
