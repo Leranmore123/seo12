@@ -24,7 +24,7 @@ def result(success, url='', error='', message=''):
 def get_driver(platform="generic", email="default", headless=True):
     opts = Options()
     if headless:
-        opts.add_argument('--headless=new')
+        opts.add_argument('--headless=old')
     if sys.platform != "win32":
         opts.add_argument('--disable-gpu')
         opts.add_argument('--disable-software-rasterizer')
@@ -35,6 +35,7 @@ def get_driver(platform="generic", email="default", headless=True):
     opts.add_experimental_option('useAutomationExtension', False)
     opts.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36')
     opts.add_argument('--window-size=1280,900')
+    opts.add_argument('--js-flags=--max-old-space-size=512')
     opts.add_argument('--disable-extensions')
     opts.add_argument('--disable-features=Translate,SafeBrowsing')
     opts.add_experimental_option("prefs", {"profile.managed_default_content_settings.images": 2})
