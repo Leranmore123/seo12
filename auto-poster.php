@@ -3800,7 +3800,16 @@ function getPostCount(PDO $db, int $projectId, string $platform): int {
 function ensureManualContent(&$result, $platform, $project) {
     if (!empty($result['manual']) && empty($result['content'])) {
         $keyword = !empty($_GET['keyword']) ? clean($_GET['keyword']) : $project['target_keyword'];
-        $site    = $project['target_site'] ?: $project['website_url'];
+        $site    = !empty($_GET['target_site']) ? clean($_GET['target_site']) : ($project['target_site'] ?: $project['website_url']);
+        
+        if (strpos($keyword, ',') !== false) {
+            $parts = explode(',', $keyword);
+            $keyword = trim($parts[0]);
+        }
+        if (strpos($site, ',') !== false) {
+            $parts = explode(',', $site);
+            $site = trim($parts[0]);
+        }
         $manualContent = generateManualContent($platform, $keyword, $site, GEMINI_API_KEY, OPENAI_API_KEY);
         if (is_array($manualContent) && !empty($manualContent['content'])) {
             $result['content'] = $manualContent['content'];
