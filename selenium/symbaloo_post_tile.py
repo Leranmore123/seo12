@@ -173,8 +173,26 @@ try:
     cell = cells[0]
     driver.execute_script("arguments[0].scrollIntoView({block:'center'});", cell)
     time.sleep(0.5)
-    ActionChains(driver).double_click(cell).perform()
-    log("Symbaloo: Empty cell double-clicked")
+
+    # Try Javascript double-click first (highly reliable in headless mode)
+    try:
+        driver.execute_script("""
+            var target = arguments[0];
+            var clickEvent = document.createEvent('MouseEvents');
+            clickEvent.initEvent('dblclick', true, true);
+            target.dispatchEvent(clickEvent);
+        """, cell)
+        log("Symbaloo: Double-clicked empty cell via JS dispatch")
+    except Exception as e:
+        log(f"Symbaloo: JS double-click failed: {e}")
+
+    # Fallback to ActionChains double click
+    try:
+        ActionChains(driver).double_click(cell).perform()
+        log("Symbaloo: Double-clicked empty cell via ActionChains")
+    except Exception as e:
+        log(f"Symbaloo: ActionChains double-click failed: {e}")
+
     time.sleep(4)
     close_adblock_modal(driver)
 
