@@ -359,25 +359,13 @@ function postToTumblr($creds, $keyword, $targetSite, $geminiKey, $openaiKey, $po
         return ['error' => $ai['error'] ?? 'AI content generation failed. Check API keys.'];
     }
     $title = $ai['title'] ?? ucwords($keyword) . ' - ' . date('M Y');
-    $imgPath = getProjectImagePath($projectId ?? 0);
-    
     $url = "https://api.tumblr.com/v2/blog/{$blogName}/post";
-    
-    if ($imgPath && file_exists($imgPath)) {
-        $postFields = [
-            'type'    => 'photo',
-            'caption' => $title . "\n\n" . strip_tags($ai['content']) . "\n\nLearn more: " . $targetSite,
-            'tags'    => $keyword . ',training,education',
-            'data64'  => base64_encode(file_get_contents($imgPath)),
-        ];
-    } else {
-        $postFields = [
-            'type'  => 'text',
-            'title' => $title,
-            'body'  => $ai['content'],
-            'tags'  => $keyword . ',training,education',
-        ];
-    }
+    $postFields = [
+        'type'  => 'text',
+        'title' => $title,
+        'body'  => $ai['content'],
+        'tags'  => $keyword . ',training,education',
+    ];
     
     // Generate OAuth 1.0a header
     $authHeader = getTumblrOAuthHeader($consumerKey, $consumerSecret, $oauthToken, $oauthTokenSecret, $url, 'POST', $postFields);
