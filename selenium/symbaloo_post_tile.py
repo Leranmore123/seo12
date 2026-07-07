@@ -146,6 +146,7 @@ try:
         except: continue
 
     if not tile_input:
+        driver.save_screenshot(os.path.join(SCRIPT_DIR, 'symbaloo_error.png'))
         result(False, error="Symbaloo: tileSearchInput not found after double-click")
         exit()
 
