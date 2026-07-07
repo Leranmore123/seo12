@@ -25,19 +25,22 @@ from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
-PROFILE_DIR = os.path.join(SCRIPT_DIR, 'chrome_profile_symbaloo')
-
-for lf in [os.path.join(PROFILE_DIR,'Default','LOCK'),
-           os.path.join(PROFILE_DIR,'SingletonLock')]:
-    try:
-        if os.path.exists(lf): os.remove(lf)
-    except: pass
 
 # Args: email password keyword target_url
 email      = sys.argv[1] if len(sys.argv) > 1 else "kanzariyapratik124@gmail.com"
 password   = sys.argv[2] if len(sys.argv) > 2 else "@DISHA12@"
 keyword    = sys.argv[3] if len(sys.argv) > 3 else "python training bangalore"
 target_url = sys.argv[4] if len(sys.argv) > 4 else "https://learnmoretech.in/"
+
+import hashlib
+email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
+PROFILE_DIR = os.path.join(SCRIPT_DIR, f'chrome_profile_symbaloo_{email_hash}')
+
+for lf in [os.path.join(PROFILE_DIR,'Default','LOCK'),
+           os.path.join(PROFILE_DIR,'SingletonLock')]:
+    try:
+        if os.path.exists(lf): os.remove(lf)
+    except: pass
 
 MIX_URL = "https://www.symbaloo.com/home/mix/13ePQXNM4g"
 
