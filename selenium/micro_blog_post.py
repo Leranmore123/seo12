@@ -853,6 +853,8 @@ def get_profile_driver(platform_name, email='default'):
                 except: pass
 
     opts = Options()
+    if sys.platform != "win32":
+        opts.add_argument('--headless=new')
     opts.add_argument('--no-sandbox')
     opts.add_argument('--disable-dev-shm-usage')
     opts.add_argument('--disable-blink-features=AutomationControlled')
