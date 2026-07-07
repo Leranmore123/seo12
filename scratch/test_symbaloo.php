@@ -29,6 +29,11 @@ foreach ($accounts as $idx => $creds) {
     // Generate AI content first (simulating the live system)
     $ai = generateAIContent($keyword, $site, 'symbaloo', 'micro_blog', '', OPENAI_API_KEY, 1, [], 'SkyRank Solution', 'AI-powered SEO agency');
     $aiDesc = $ai['content'] ?? '';
+    // Convert HTML links to Anchor (URL) format and strip other tags
+    $aiDesc = preg_replace('/<a[^>]+href="([^"]+)"[^>]*>(.*?)<\/a>/i', '$2 ($1)', $aiDesc);
+    $aiDesc = strip_tags($aiDesc);
+    $aiDesc = html_entity_decode($aiDesc, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $aiDesc = trim(preg_replace("/\s+/", " ", $aiDesc));
     echo "Generated AI Description: " . substr($aiDesc, 0, 80) . "...\n";
     echo "Running seleniumSymbaloo...\n";
     

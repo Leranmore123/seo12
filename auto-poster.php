@@ -3647,6 +3647,11 @@ function runPlatformAutoPost(string $platform, array $creds, array $project, int
         case 'symbaloo':
             $ai = generateAIContent($keyword, $site, 'symbaloo', 'micro_blog', '', OPENAI_API_KEY, $postCount, $usedTitles, $project['business_name'] ?? '', $project['business_desc'] ?? '');
             $aiDesc = $ai['content'] ?? '';
+            // Convert HTML links to Anchor (URL) format and strip other tags
+            $aiDesc = preg_replace('/<a[^>]+href="([^"]+)"[^>]*>(.*?)<\/a>/i', '$2 ($1)', $aiDesc);
+            $aiDesc = strip_tags($aiDesc);
+            $aiDesc = html_entity_decode($aiDesc, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $aiDesc = trim(preg_replace("/\s+/", " ", $aiDesc));
             return seleniumSymbaloo($creds, $keyword, $site, $aiDesc);
 
         case 'penzu':
