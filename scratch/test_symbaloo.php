@@ -6,8 +6,8 @@ $projectId = 208; // Project ID 208
 $platform  = 'symbaloo';
 
 $db = getDB();
-$stmt = $db->prepare("SELECT * FROM social_accounts WHERE project_id=? AND platform=?");
-$stmt->execute([$projectId, $platform]);
+$stmt = $db->prepare("SELECT * FROM social_accounts WHERE platform=?");
+$stmt->execute([$platform]);
 $accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if (empty($accounts)) {
@@ -22,7 +22,7 @@ $site    = "https://skyranksolution-bice.vercel.app/services";
 
 foreach ($accounts as $idx => $creds) {
     echo "----------------------------------------\n";
-    echo "Testing Account #" . ($idx + 1) . ": " . $creds['username'] . "\n";
+    echo "Testing Account #" . ($idx + 1) . ": " . $creds['username'] . " (Project ID: " . $creds['project_id'] . ")\n";
     echo "Custom Webmix URL: " . ($creds['api_key'] ?: 'None (Default)') . "\n";
     echo "Running seleniumSymbaloo...\n";
     
