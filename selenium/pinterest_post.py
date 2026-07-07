@@ -3,10 +3,11 @@
 Pinterest Auto-Post via Selenium — v4 Final
 Verified selectors from live page inspection on kanzariyapratik124@gmail.com
 """
-import sys, json, time, os, re
-os.environ['HOME'] = '/tmp'
+import sys, json, time, os, re, getpass
+sys_user = getpass.getuser()
+os.environ['HOME'] = f'/tmp/.home_{sys_user}'
 os.environ['WDM_LOG'] = '0'
-os.environ['WDM_DIR'] = '/tmp/.wdm'
+os.environ['WDM_DIR'] = f'/tmp/.wdm_{sys_user}'
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains

@@ -4,9 +4,11 @@ Micro Blog / Bookmarking Platforms Selenium Auto-Poster
 Handles: scoopit, wakelet, padlet, pearltrees, mewe, instapaper, vivauae
 Usage: python micro_blog_post.py <platform> <email> <password> <keyword> <target_site>
 """
-import sys, json, time, re, os
+import sys, json, time, re, os, getpass
+sys_user = getpass.getuser()
+os.environ['HOME'] = f'/tmp/.home_{sys_user}'
 os.environ['WDM_LOG'] = '0'
-os.environ['WDM_DIR'] = '/tmp/.wdm'
+os.environ['WDM_DIR'] = f'/tmp/.wdm_{sys_user}'
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
