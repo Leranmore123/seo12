@@ -47,13 +47,6 @@ if ($isDirectRequest) {
     $credStmt->execute([$projectId, $platform]);
     $allCreds = $credStmt->fetchAll();
 
-    // Fallback to global credentials (project_id = 0) if no project-specific credentials found
-    if (empty($allCreds)) {
-        $credStmt = $db->prepare('SELECT * FROM social_accounts WHERE project_id=0 AND platform=? AND status="active" ORDER BY id ASC');
-        $credStmt->execute([$platform]);
-        $allCreds = $credStmt->fetchAll();
-    }
-
     // If specific account ID requested (from auto-post-all parallel)
     $accountId = (int)($_GET['_account'] ?? 0);
     if ($accountId) {
