@@ -294,15 +294,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_platform'])) {
         }
     }
 
-    $check = $db->prepare("SELECT id FROM social_accounts WHERE project_id=? AND platform=? AND username=?");
+    $check = $db->prepare("SELECT * FROM social_accounts WHERE project_id=? AND platform=? AND username=?");
     $check->execute([$projectId, $platform, $username]);
     $existing = $check->fetch();
+
+    if ($platform === 'tumblr') {
+        $token = $_POST['password'] ?? '';
+        $secret = $_POST['tumblr_token_secret'] ?? '';
+        
+        if ($existing) {
+            $decrypted = base64_decode($existing['password']);
+            $parts = explode(':', $decrypted);
+            $oldToken = $parts[0] ?? '';
+            $oldSecret = $parts[1] ?? '';
+            
+            $finalToken = !empty($token) ? $token : $oldToken;
+            $finalSecret = !empty($secret) ? $secret : $oldSecret;
+            
+            $encryptedPassword = base64_encode($finalToken . ':' . $finalSecret);
+        } else {
+            $encryptedPassword = base64_encode($token . ':' . $secret);
+        }
+    } else {
+        if ($existing && empty($password)) {
+            $encryptedPassword = $existing['password'];
+        } else {
+            $encryptedPassword = base64_encode($password);
+        }
+    }
+
     if ($existing) {
         $db->prepare("UPDATE social_accounts SET password=?, api_key=?, api_secret=?, user_id=?, status='active' WHERE id=?")
-           ->execute([base64_encode($password), $apiKey, $apiSecret, $userId, $existing['id']]);
+           ->execute([$encryptedPassword, $apiKey, $apiSecret, $userId, $existing['id']]);
     } else {
         $db->prepare("INSERT INTO social_accounts (user_id, project_id, platform, username, password, api_key, api_secret, status) VALUES (?,?,?,?,?,?,?,'active')")
-           ->execute([$userId, $projectId, $platform, $username, base64_encode($password), $apiKey, $apiSecret]);
+           ->execute([$userId, $projectId, $platform, $username, $encryptedPassword, $apiKey, $apiSecret]);
     }
     setFlash('success', ucfirst($platform) . ' credentials saved! System will use these to post.');
     header('Location: submission-manager.php?project_id=' . $projectId); exit;
@@ -1394,9 +1420,15 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
           </div>
 
           <div class="mb-3" id="apiSecretSection" style="display:none;">
-            <label class="form-label fw-bold">API Secret / Blog Name</label>
-            <input type="text" name="api_secret" class="form-control"
+            <label class="form-label fw-bold" id="modalApiSecretLabel">API Secret / Blog Name</label>
+            <input type="text" name="api_secret" id="modalApiSecretInput" class="form-control"
                    placeholder="API secret or blog name (e.g. yourblog.tumblr.com)">
+          </div>
+
+          <div class="mb-3" id="tumblrSecretSection" style="display:none;">
+            <label class="form-label fw-bold">OAuth Token Secret (Access Token Secret)</label>
+            <input type="password" name="tumblr_token_secret" id="modalTumblrTokenSecret" class="form-control"
+                   placeholder="Enter Access Token Secret">
           </div>
 
           <button type="submit" class="btn btn-primary w-100 btn-lg">
@@ -1541,24 +1573,54 @@ function showCredForm(platformId, platformName, projectId) {
   document.getElementById('modalPlatformName').textContent = platformName;
   document.getElementById('modalWhatSystemDoes').textContent = siteInfo[platformId]?.does || '';
 
-  // Dynamically change password label & placeholder for Bluesky
+  // Dynamically change password label & placeholder for Bluesky / Tumblr
   const passwordLabel = document.getElementById('modalPasswordLabel');
   const passwordInput = document.getElementById('modalPasswordInput');
   const usernameLabel = document.querySelector('label[for="modalUsername"], .modal-body label:first-of-type');
   const usernameInput = document.querySelector('input[name="username"]');
+  const tumblrSecretSection = document.getElementById('tumblrSecretSection');
+  const apiSecretLabel = document.getElementById('modalApiSecretLabel');
+  const apiSecretInput = document.getElementById('modalApiSecretInput');
+  const apiKeyLabel = document.querySelector('#apiKeySection label');
 
-  if (platformId === 'bluesky') {
+  // Reset defaults
+  if (tumblrSecretSection) tumblrSecretSection.style.display = 'none';
+  if (apiSecretLabel) apiSecretLabel.textContent = 'API Secret / Blog Name';
+  if (apiSecretInput) {
+    apiSecretInput.type = 'text';
+    apiSecretInput.placeholder = 'API secret or blog name (e.g. yourblog.tumblr.com)';
+  }
+  if (apiKeyLabel) {
+    apiKeyLabel.innerHTML = 'API Key / Integration Token <span class="badge bg-danger ms-1">Required for Auto Post</span>';
+  }
+
+  if (platformId === 'tumblr') {
+    passwordLabel.textContent = 'OAuth Token (Access Token)';
+    passwordInput.placeholder = 'Enter OAuth Token';
+    if (usernameLabel) usernameLabel.textContent = 'Blog Hostname (e.g., skyrankseo.tumblr.com)';
+    if (usernameInput) usernameInput.placeholder = 'skyrankseo.tumblr.com';
+    if (apiKeyLabel) {
+      apiKeyLabel.innerHTML = 'OAuth Consumer Key (API Key) <span class="badge bg-danger ms-1">Required for Auto Post</span>';
+    }
+    if (apiSecretLabel) apiSecretLabel.textContent = 'OAuth Consumer Secret (Secret Key)';
+    if (apiSecretInput) {
+      apiSecretInput.type = 'password';
+      apiSecretInput.placeholder = 'Enter OAuth Consumer Secret';
+    }
+    if (tumblrSecretSection) tumblrSecretSection.style.display = '';
+  } else if (platformId === 'bluesky') {
     passwordLabel.textContent = 'App Password';
     passwordInput.placeholder = 'Your Bluesky App Password (e.g. xxxx-xxxx-xxxx-xxxx)';
     if (usernameInput) usernameInput.placeholder = 'Your Bluesky handle (e.g. user.bsky.social)';
+    if (usernameLabel) usernameLabel.textContent = 'Username / Email';
   } else if (platformId === 'mastodon') {
     passwordLabel.textContent = 'Password';
     passwordInput.placeholder = 'Your Mastodon password';
-    // For mastodon, username = email address
     if (usernameInput) {
       usernameInput.placeholder = 'Your Mastodon email (e.g. you@gmail.com)';
       usernameInput.type = 'email';
     }
+    if (usernameLabel) usernameLabel.textContent = 'Username / Email';
   } else {
     passwordLabel.textContent = 'Password';
     passwordInput.placeholder = 'Your password';
@@ -1566,6 +1628,7 @@ function showCredForm(platformId, platformName, projectId) {
       usernameInput.placeholder = 'Your username or email';
       usernameInput.type = 'text';
     }
+    if (usernameLabel) usernameLabel.textContent = 'Username / Email';
   }
 
   // Show API key help based on platform
