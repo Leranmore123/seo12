@@ -74,6 +74,35 @@ def close_consent_modal(driver):
         log(f"Symbaloo: Consent check error: {e}")
     return False
 
+def close_adblock_modal(driver):
+    try:
+        for sel in [
+            "button[aria-label*='Close' i]",
+            "button[class*='close' i]",
+            "[class*='close-btn' i]",
+            "[class*='CloseBtn']",
+            "span[class*='close' i]"
+        ]:
+            try:
+                close_btn = driver.find_elements(By.CSS_SELECTOR, sel)
+                for cb in close_btn:
+                    if cb.is_displayed():
+                        cb.click()
+                        log(f"Symbaloo: Closed adblock popup via {sel}")
+                        time.sleep(2)
+                        return True
+            except:
+                continue
+        try:
+            driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+            log("Symbaloo: Pressed Escape to close popup")
+            time.sleep(1)
+            return True
+        except: pass
+    except Exception as e:
+        log(f"Symbaloo: Adblock close error: {e}")
+    return False
+
 opts = Options()
 if sys.platform != "win32":
     opts.add_argument('--headless=new')
@@ -127,6 +156,7 @@ try:
     driver.get("https://www.symbaloo.com/")
     time.sleep(10)
     close_consent_modal(driver)
+    close_adblock_modal(driver)
     log(f"Symbaloo: URL = {driver.current_url}")
 
     log(f"Symbaloo: Mix loaded = {driver.current_url}")
@@ -146,6 +176,7 @@ try:
     ActionChains(driver).double_click(cell).perform()
     log("Symbaloo: Empty cell double-clicked")
     time.sleep(4)
+    close_adblock_modal(driver)
 
     # Find tileSearchInput — it appears after double-click
     tile_input = None
