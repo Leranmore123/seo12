@@ -3501,6 +3501,17 @@ function postToPowerShow($username, $password, $keyword, $targetSite, $openaiKey
 function runPlatformAutoPost(string $platform, array $creds, array $project, int $projectId): array {
     $keyword   = !empty($_GET['keyword']) ? clean($_GET['keyword']) : $project['target_keyword'];
     $site      = !empty($_GET['target_site']) ? clean($_GET['target_site']) : ($project['target_site'] ?: $project['website_url']);
+    
+    // If multiple comma-separated keywords or URLs are passed, extract only the first one
+    if (strpos($keyword, ',') !== false) {
+        $parts = explode(',', $keyword);
+        $keyword = trim($parts[0]);
+    }
+    if (strpos($site, ',') !== false) {
+        $parts = explode(',', $site);
+        $site = trim($parts[0]);
+    }
+
     $apiKey    = $creds['api_key'] ?? '';
     $apiSecret = $creds['api_secret'] ?? '';
     $username  = $creds['username'] ?? '';
