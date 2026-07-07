@@ -271,20 +271,90 @@ function postToBlogger($accessToken, $blogId, $keyword, $targetSite, $openaiKey,
     ];
 }
 
-// ============================================================
-// TUMBLR - OAuth API v2
-// Token: https://www.tumblr.com/oauth/apps
-// ============================================================
-function postToTumblr($apiKey, $blogName, $keyword, $targetSite, $geminiKey, $openaiKey, $postCount = 1, array $usedTitles = [], int $projectId = 0, string $businessName = '', string $businessDesc = '') {
-    if (empty($apiKey))   return ['error' => 'Tumblr API key missing. Get from: https://www.tumblr.com/oauth/apps'];
-    if (empty($blogName)) return ['error' => 'Blog name missing. Enter yourblog.tumblr.com in username field.'];
-    $blogName = str_replace(['https://', 'http://'], '', $blogName);
-    $ai    = generateAIContent($keyword, $targetSite, 'tumblr', 'micro_blog', '', $openaiKey, $postCount, $usedTitles, $businessName, $businessDesc);
-    if (empty($ai['content'])) return ['error' => $ai['error'] ?? 'AI content generation failed. Check OpenAI/Gemini API keys.'];
-    $title     = $ai['title'] ?? ucwords($keyword) . ' - ' . date('M Y');
-    $imgPath   = getProjectImagePath($projectId ?? 0);
+// Helper to build signed OAuth 1.0a headers for Tumblr API
+function getTumblrOAuthHeader($consumerKey, $consumerSecret, $token, $tokenSecret, $url, $method, $params) {
+    $nonce = md5(uniqid(rand(), true));
+    $timestamp = time();
+    
+    $oauthParams = [
+        'oauth_consumer_key' => $consumerKey,
+        'oauth_nonce' => $nonce,
+        'oauth_signature_method' => 'HMAC-SHA1',
+        'oauth_timestamp' => $timestamp,
+        'oauth_token' => $token,
+        'oauth_version' => '1.0'
+    ];
+    
+    // Merge OAuth parameters with request parameters (excluding binary/base64 data like data64)
+    $sigParams = [];
+    foreach ($params as $key => $val) {
+        if ($key !== 'data64') {
+            $sigParams[$key] = $val;
+        }
+    }
+    $allParams = array_merge($oauthParams, $sigParams);
+    ksort($allParams);
+    
+    // Build query string
+    $queryParts = [];
+    foreach ($allParams as $key => $val) {
+        $queryParts[] = rawurlencode($key) . '=' . rawurlencode($val);
+    }
+    $queryString = implode('&', $queryParts);
+    
+    // Base String
+    $baseString = strtoupper($method) . '&' . rawurlencode($url) . '&' . rawurlencode($queryString);
+    
+    // Signature Key
+    $signatureKey = rawurlencode($consumerSecret) . '&' . rawurlencode($tokenSecret);
+    
+    // Generate signature
+    $signature = base64_encode(hash_hmac('sha1', $baseString, $signatureKey, true));
+    
+    // Add signature to OAuth parameters
+    $oauthParams['oauth_signature'] = $signature;
+    
+    // Build Authorization Header
+    $headerParts = [];
+    foreach ($oauthParams as $key => $val) {
+        $headerParts[] = $key . '="' . rawurlencode($val) . '"';
+    }
+    return 'Authorization: OAuth ' . implode(', ', $headerParts);
+}
 
-    // Use photo post if image available, else text post
+function postToTumblr($creds, $keyword, $targetSite, $geminiKey, $openaiKey, $postCount = 1, array $usedTitles = [], int $projectId = 0, string $businessName = '', string $businessDesc = '') {
+    $consumerKey = $creds['api_key'] ?? '';
+    $consumerSecret = $creds['api_secret'] ?? '';
+    $blogName = $creds['username'] ?? '';
+    
+    if (empty($consumerKey) || empty($consumerSecret)) {
+        return ['error' => 'Tumblr OAuth Consumer Key or Secret missing.'];
+    }
+    if (empty($blogName)) {
+        return ['error' => 'Blog name missing. Enter yourblog.tumblr.com in Blog Hostname field.'];
+    }
+    
+    $blogName = str_replace(['https://', 'http://'], '', $blogName);
+    
+    // Extract OAuth Token and Secret from password column
+    $decrypted = base64_decode($creds['password'] ?? '');
+    $parts = explode(':', $decrypted);
+    $oauthToken = $parts[0] ?? '';
+    $oauthTokenSecret = $parts[1] ?? '';
+    
+    if (empty($oauthToken) || empty($oauthTokenSecret)) {
+        return ['error' => 'Tumblr OAuth Token or Token Secret is missing. Click Explore API to authorize and get all 4 keys.'];
+    }
+    
+    $ai = generateAIContent($keyword, $targetSite, 'tumblr', 'micro_blog', '', $openaiKey, $postCount, $usedTitles, $businessName, $businessDesc);
+    if (empty($ai['content'])) {
+        return ['error' => $ai['error'] ?? 'AI content generation failed. Check API keys.'];
+    }
+    $title = $ai['title'] ?? ucwords($keyword) . ' - ' . date('M Y');
+    $imgPath = getProjectImagePath($projectId ?? 0);
+    
+    $url = "https://api.tumblr.com/v2/blog/{$blogName}/post";
+    
     if ($imgPath && file_exists($imgPath)) {
         $postFields = [
             'type'    => 'photo',
@@ -300,13 +370,16 @@ function postToTumblr($apiKey, $blogName, $keyword, $targetSite, $geminiKey, $op
             'tags'  => $keyword . ',training,education',
         ];
     }
-
-    $ch = curl_init("https://api.tumblr.com/v2/blog/{$blogName}/post");
+    
+    // Generate OAuth 1.0a header
+    $authHeader = getTumblrOAuthHeader($consumerKey, $consumerSecret, $oauthToken, $oauthTokenSecret, $url, 'POST', $postFields);
+    
+    $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => http_build_query($postFields),
-        CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $apiKey],
+        CURLOPT_HTTPHEADER     => [$authHeader],
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_SSL_VERIFYPEER => false,
     ]);
@@ -316,15 +389,21 @@ function postToTumblr($apiKey, $blogName, $keyword, $targetSite, $geminiKey, $op
     curl_close($ch);
     
     if ($error) {
-        return array_merge(generateManualContent('tumblr', $keyword, $targetSite, $openaiKey), ['message' => 'Tumblr OAuth error - the Consumer Key needs full OAuth flow. Content ready - copy and post manually.', 'url' => 'https://www.tumblr.com/new/text']);
+        return ['error' => 'Tumblr connection error: ' . $error];
     }
+    
     $result = json_decode($response, true);
-    if (isset($result['response']['id'])) return ['success' => true, 'url' => "https://{$blogName}/post/" . $result['response']['id'], 'source' => $ai['source'], 'post_title' => $title ?? null];
-    // 401 = wrong key format (needs Consumer Key + OAuth secret flow, not Bearer)
-    if ($httpCode === 401 || (isset($result['meta']['status']) && $result['meta']['status'] === 401)) {
-        return array_merge(generateManualContent('tumblr', $keyword, $targetSite, $openaiKey), ['message' => 'Tumblr requires Consumer Key + OAuth secret flow - Bearer token not supported. Content ready - copy and post manually at tumblr.com.', 'url' => 'https://www.tumblr.com/new/text']);
+    if (isset($result['response']['id'])) {
+        return [
+            'success' => true,
+            'url' => "https://{$blogName}/post/" . $result['response']['id'],
+            'source' => $ai['source'],
+            'post_title' => $title
+        ];
     }
-    return array_merge(generateManualContent('tumblr', $keyword, $targetSite, $openaiKey), ['message' => 'Tumblr post failed (HTTP ' . $httpCode . '). Content ready - copy and post manually.', 'url' => 'https://www.tumblr.com/new/text']);
+    
+    $msg = $result['meta']['msg'] ?? ($result['errors'][0]['detail'] ?? $response);
+    return ['error' => "Tumblr API error (HTTP {$httpCode}): {$msg}"];
 }
 
 // ============================================================
@@ -3519,8 +3598,7 @@ function runPlatformAutoPost(string $platform, array $creds, array $project, int
         case 'tumblr':
             // Try OAuth API first; fallback → Selenium
             if (!empty($apiKey)) {
-                $blogName = !empty($apiSecret) ? $apiSecret : $username;
-                $r = postToTumblr($apiKey, $blogName, $keyword, $site, GEMINI_API_KEY, OPENAI_API_KEY, $postCount, $usedTitles, $projectId, $project['business_name'] ?? '', $project['business_desc'] ?? '');
+                $r = postToTumblr($creds, $keyword, $site, GEMINI_API_KEY, OPENAI_API_KEY, $postCount, $usedTitles, $projectId, $project['business_name'] ?? '', $project['business_desc'] ?? '');
                 if (!empty($r['success'])) return $r;
             }
             $tumblrContent = (generateAIContent($keyword, $site, 'tumblr', 'micro_blog', '', OPENAI_API_KEY, $postCount, $usedTitles, $project['business_name'] ?? '', $project['business_desc'] ?? ''))['content'] ?? '';

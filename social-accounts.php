@@ -13,18 +13,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_account'])) {
     
     $platform = clean($_POST['platform']);
     $username = clean($_POST['username']);
-    $password = $_POST['password']; // Encrypt before storing
+    $password = $_POST['password']; 
     $apiKey   = clean($_POST['api_key'] ?? '');
     $apiSecret = clean($_POST['api_secret'] ?? '');
     
-    // Encrypt password
-    $encryptedPassword = base64_encode($password);
-    
     // Check if exists
-    $check = $db->prepare("SELECT id FROM social_accounts WHERE user_id=? AND platform=?");
+    $check = $db->prepare("SELECT * FROM social_accounts WHERE user_id=? AND platform=?");
     $check->execute([$userId, $platform]);
+    $existing = $check->fetch();
     
-    if ($check->fetch()) {
+    if ($platform === 'tumblr') {
+        $token = $_POST['password'] ?? '';
+        $secret = $_POST['tumblr_token_secret'] ?? '';
+        
+        if ($existing) {
+            $decrypted = base64_decode($existing['password']);
+            $parts = explode(':', $decrypted);
+            $oldToken = $parts[0] ?? '';
+            $oldSecret = $parts[1] ?? '';
+            
+            $finalToken = !empty($token) ? $token : $oldToken;
+            $finalSecret = !empty($secret) ? $secret : $oldSecret;
+            
+            $encryptedPassword = base64_encode($finalToken . ':' . $finalSecret);
+        } else {
+            $encryptedPassword = base64_encode($token . ':' . $secret);
+        }
+    } else {
+        if ($existing && empty($password)) {
+            $encryptedPassword = $existing['password'];
+        } else {
+            $encryptedPassword = base64_encode($password);
+        }
+    }
+    
+    if ($existing) {
         $db->prepare("UPDATE social_accounts SET username=?, password=?, api_key=?, api_secret=?, status='active' WHERE user_id=? AND platform=?")
            ->execute([$username, $encryptedPassword, $apiKey, $apiSecret, $userId, $platform]);
         setFlash('success', ucfirst($platform) . ' credentials updated!');
@@ -154,6 +177,36 @@ $platforms = [
             <input type="hidden" name="save_account" value="1">
             <input type="hidden" name="platform" value="<?= $p['id'] ?>">
             
+            <?php if ($p['id'] === 'tumblr'): ?>
+            <div class="alert alert-warning small py-2 mb-3">
+              <i class="fas fa-key me-1"></i><strong>API Credentials:</strong> Register at <a href="https://www.tumblr.com/oauth/apps" target="_blank">tumblr.com/oauth/apps</a>. Then click <strong>"Explore API"</strong> to authorize and get your OAuth tokens.
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Blog Hostname (e.g., skyrankseo.tumblr.com)</label>
+              <input type="text" name="username" class="form-control" 
+                     value="<?= clean($saved['username'] ?? '') ?>" placeholder="skyrankseo.tumblr.com" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">OAuth Consumer Key (API Key)</label>
+              <input type="text" name="api_key" class="form-control" 
+                     value="<?= clean($saved['api_key'] ?? '') ?>" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">OAuth Consumer Secret (Secret Key)</label>
+              <input type="password" name="api_secret" class="form-control" 
+                     value="<?= clean($saved['api_secret'] ?? '') ?>" placeholder="<?= $saved ? '••••••••' : 'Enter Secret Key' ?>" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">OAuth Token (Access Token)</label>
+              <input type="password" name="password" class="form-control" 
+                     placeholder="<?= $saved ? '••••••••' : 'Enter Access Token' ?>" <?= $saved ? '' : 'required' ?>>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">OAuth Token Secret (Access Token Secret)</label>
+              <input type="password" name="tumblr_token_secret" class="form-control" 
+                     placeholder="<?= $saved ? '••••••••' : 'Enter Access Token Secret' ?>" <?= $saved ? '' : 'required' ?>>
+            </div>
+            <?php else: ?>
             <div class="mb-3">
               <label class="form-label">Username / Email</label>
               <input type="text" name="username" class="form-control" 
@@ -197,6 +250,7 @@ $platforms = [
               <input type="text" name="api_secret" class="form-control" 
                      value="<?= clean($saved['api_secret'] ?? '') ?>">
             </div>
+            <?php endif; ?>
             <?php endif; ?>
 
             <button type="submit" class="btn btn-primary w-100">
