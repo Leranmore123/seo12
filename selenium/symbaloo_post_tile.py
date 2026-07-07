@@ -76,6 +76,16 @@ def close_consent_modal(driver):
 
 def close_adblock_modal(driver):
     try:
+        # Check if adblock text is present before trying to close
+        body_text = ""
+        try:
+            body_text = driver.find_element(By.TAG_NAME, 'body').text
+        except: pass
+
+        if "ad-block" not in body_text.lower() and "adblock" not in body_text.lower():
+            return False
+
+        log("Symbaloo: Adblock warning detected, closing...")
         for sel in [
             "button[aria-label*='Close' i]",
             "button[class*='close' i]",
