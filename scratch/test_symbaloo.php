@@ -14,6 +14,7 @@ if (!$creds) {
     die("Error: No Symbaloo account found for Project ID {$projectId}\n");
 }
 
+echo "Using DB credentials: " . $creds['username'] . " / " . decodePass($creds['password']) . "\n";
 echo "Running Symbaloo Selenium script via seleniumSymbaloo...\n";
 
 // Target site and keyword
