@@ -433,8 +433,8 @@ foreach ($projects as $p) {
     if ($p['id'] == $selectedProjectId) { $project = $p; break; }
 }
 
-// Fetch saved credentials
-$savedAccounts = $db->prepare("SELECT * FROM social_accounts WHERE project_id=?");
+// Fetch saved credentials (both project-specific and global fallback)
+$savedAccounts = $db->prepare("SELECT * FROM social_accounts WHERE project_id = ? OR project_id = 0 ORDER BY project_id DESC");
 $savedAccounts->execute([$selectedProjectId]);
 $savedAccounts = $savedAccounts->fetchAll();
 // savedMap: platform => first account (for backward compat)
@@ -442,10 +442,29 @@ $savedAccounts = $savedAccounts->fetchAll();
 $savedMap    = [];
 $savedMapAll = [];
 foreach ($savedAccounts as $acc) {
-    if (!isset($savedMap[$acc['platform']])) {
-        $savedMap[$acc['platform']] = $acc;
+    $platform = $acc['platform'];
+    $pId = (int)$acc['project_id'];
+    
+    // Prioritize project-specific credentials over global fallback
+    if (isset($savedMapAll[$platform])) {
+        $existingFirst = $savedMapAll[$platform][0];
+        $existingPid = (int)$existingFirst['project_id'];
+        
+        if ($pId === 0 && $existingPid > 0) {
+            continue; // Skip global if project-specific exists
+        }
+        if ($existingPid === 0 && $pId > 0) {
+            // Overwrite global with project-specific
+            $savedMap[$platform] = $acc;
+            $savedMapAll[$platform] = [$acc];
+            continue;
+        }
     }
-    $savedMapAll[$acc['platform']][] = $acc;
+    
+    if (!isset($savedMap[$platform])) {
+        $savedMap[$platform] = $acc;
+    }
+    $savedMapAll[$platform][] = $acc;
 }
 
 function checkPlatformCooldown($db, $projectId, $platform, $keyword, $targetUrl) {
