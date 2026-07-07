@@ -18,7 +18,7 @@ function seoCfg(string $key, $default = '') {
     return $_seoLocal[$key] ?? $default;
 }
 
-define('DB_HOST', (string) seoCfg('DB_HOST', '127.0.0.1:3307'));
+define('DB_HOST', (string) seoCfg('DB_HOST', '127.0.0.1:3306'));
 define('DB_USER', (string) seoCfg('DB_USER', 'root'));
 define('DB_PASS', (string) seoCfg('DB_PASS', ''));
 define('DB_NAME', (string) seoCfg('DB_NAME', 'seo_system'));
