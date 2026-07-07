@@ -24,7 +24,7 @@ def result(success, url='', error='', message=''):
 def get_driver(platform="generic", email="default", headless=True):
     opts = Options()
     if headless:
-        opts.add_argument('--headless=old')
+        opts.add_argument('--headless=new')
     if sys.platform != "win32":
         opts.add_argument('--disable-gpu')
         opts.add_argument('--disable-software-rasterizer')
