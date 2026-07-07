@@ -161,6 +161,29 @@ try:
 
     log(f"Symbaloo: Mix loaded = {driver.current_url}")
 
+    # Check if we need to enter Edit mode
+    try:
+        edit_clicked = False
+        for btn in driver.find_elements(By.TAG_NAME, 'button'):
+            txt = btn.text.strip()
+            if 'Edit Webmix' in txt or 'Edit webmix' in txt:
+                driver.execute_script("arguments[0].click();", btn)
+                log("Symbaloo: Clicked 'Edit Webmix' to enter edit mode")
+                time.sleep(4)
+                edit_clicked = True
+                break
+        if not edit_clicked:
+            for el in driver.find_elements(By.XPATH, "//*[contains(text(), 'Edit Webmix') or contains(text(), 'Edit webmix')]"):
+                try:
+                    if el.is_displayed():
+                        driver.execute_script("arguments[0].click();", el)
+                        log("Symbaloo: Clicked 'Edit Webmix' element to enter edit mode")
+                        time.sleep(4)
+                        break
+                except: continue
+    except Exception as e:
+        log(f"Symbaloo: Edit mode click error: {e}")
+
     # Find empty cells
     cells = driver.find_elements(By.CSS_SELECTOR, "[id^='gridEmptyCell']")
     log(f"Symbaloo: Empty cells = {len(cells)}")
