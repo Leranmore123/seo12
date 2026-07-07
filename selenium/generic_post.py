@@ -45,10 +45,7 @@ def get_driver(platform="generic", email="default", headless=True):
     import hashlib, getpass
     email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
     sys_user = getpass.getuser().lower()
-    if sys.platform != "win32":
-        profile_dir = os.path.join('/tmp', f'chrome_profile_{platform}_{email_hash}_{sys_user}')
-    else:
-        profile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'chrome_profile_{platform}_{email_hash}')
+    profile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'chrome_profile_{platform}_{email_hash}_{sys_user}')
         
     # Clean up lock files from any previous crashed runs to prevent startup crash
     if os.path.exists(profile_dir):
