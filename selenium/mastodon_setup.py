@@ -4,7 +4,9 @@ Mastodon Auto-Post
 Method: Register App via API → OAuth authorize via Selenium → Extract token → Post
 Usage: python mastodon_setup.py <email> <password> <keyword> <target_site>
 """
-import sys, json, time, re, requests
+import sys, json, time, re, requests, os
+os.environ['WDM_LOG'] = '0'
+os.environ['WDM_DIR'] = '/tmp/.wdm'
 import urllib3
 urllib3.disable_warnings()
 

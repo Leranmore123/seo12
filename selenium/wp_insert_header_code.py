@@ -4,6 +4,8 @@ WordPress Header Code Injector via Selenium
 Logs into WP-admin and safely inserts or updates code (like GA or Schema) in header.php.
 """
 import sys, json, time, os, re, base64
+os.environ['WDM_LOG'] = '0'
+os.environ['WDM_DIR'] = '/tmp/.wdm'
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait

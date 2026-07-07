@@ -4,6 +4,8 @@
 Usage: python fourshared_upload.py <email> <password> <pdf_path> <keyword>
 """
 import sys, json, time, os
+os.environ['WDM_LOG'] = '0'
+os.environ['WDM_DIR'] = '/tmp/.wdm'
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait

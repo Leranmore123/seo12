@@ -10,6 +10,8 @@ import time
 import os
 import re
 import datetime
+os.environ['WDM_LOG'] = '0'
+os.environ['WDM_DIR'] = '/tmp/.wdm'
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By

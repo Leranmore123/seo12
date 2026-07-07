@@ -7,6 +7,8 @@ Platforms: Minds, Dribbble, Symbaloo, Penzu, Plurk, Linktree
 After running, Auto Post will use saved sessions automatically.
 """
 import os, time, sys
+os.environ['WDM_LOG'] = '0'
+os.environ['WDM_DIR'] = '/tmp/.wdm'
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service

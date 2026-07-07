@@ -5,6 +5,8 @@ Flow: Login → Topic page → PUBLISH dropdown → URL input → metadata fetch
 Usage: python scoopit_post.py <email> <password> <keyword> <target_url>
 """
 import sys, json, time, os
+os.environ['WDM_LOG'] = '0'
+os.environ['WDM_DIR'] = '/tmp/.wdm'
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
