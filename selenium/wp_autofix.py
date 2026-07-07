@@ -20,6 +20,8 @@ def result(success, url='', error=''):
 
 def get_driver(project_id):
     opts = Options()
+    if sys.platform != "win32":
+        opts.add_argument('--headless=new')
     opts.add_argument('--no-sandbox')
     opts.add_argument('--disable-dev-shm-usage')
     opts.add_argument('--disable-blink-features=AutomationControlled')

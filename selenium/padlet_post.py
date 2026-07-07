@@ -44,6 +44,8 @@ BOARD_URL = "https://padlet.com/kanzariyapratik124/lmt-wb7faycbn66hp2z5"
 # Pinterest-style driver with saved profile
 def get_driver():
     opts = Options()
+    if sys.platform != "win32":
+        opts.add_argument('--headless=new')
     opts.add_argument('--no-sandbox')
     opts.add_argument('--disable-dev-shm-usage')
     opts.add_argument('--disable-blink-features=AutomationControlled')

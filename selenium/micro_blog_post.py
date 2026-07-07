@@ -23,6 +23,8 @@ def result(success, url='', error=''):
 
 def get_driver(platform=''):
     opts = Options()
+    if sys.platform != "win32":
+        opts.add_argument('--headless=new')
     opts.add_argument('--no-sandbox')
     opts.add_argument('--disable-dev-shm-usage')
     opts.add_argument('--disable-blink-features=AutomationControlled')
@@ -44,6 +46,8 @@ def get_driver_with_profile(platform='', email='default'):
     os.makedirs(profile_dir, exist_ok=True)
 
     opts = Options()
+    if sys.platform != "win32":
+        opts.add_argument('--headless=new')
     opts.add_argument('--no-sandbox')
     opts.add_argument('--disable-dev-shm-usage')
     opts.add_argument('--disable-blink-features=AutomationControlled')
