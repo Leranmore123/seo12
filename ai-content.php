@@ -452,13 +452,7 @@ Platform: {$platform}. Post variation #{$postCount}. Random seed: {$randomSeed}.
     }
 
     if (!$content) {
-        return [
-            'content' => '',
-            'source'  => '',
-            'title'   => $generatedTitle,
-            'error'   => 'AI Generation Failed: Both OpenAI and Gemini API keys are exhausted, invalid, or returned an error. Posting stopped.'
-        ];
-    }
+        $source = 'Template';
         $title = $generatedTitle;
         $kw = ucwords($keyword);
         $yr = date('Y');
@@ -515,8 +509,8 @@ Platform: {$platform}. Post variation #{$postCount}. Random seed: {$randomSeed}.
                 
             default:
                 $content = "<h1>{$title}</h1>\n"
-                    . "<p>{Learn and master|Gain deep expertise in} <strong>{$kw}</strong> with our comprehensive training program. Visit <a href='{$targetSite}'>{$targetSite}</a> for more information and to enroll today.</p>";
         }
+    }
     if ($source === 'Template') {
         $content = spinText($content);
     }
