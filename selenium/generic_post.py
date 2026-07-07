@@ -49,6 +49,20 @@ def get_driver(platform="generic", email="default", headless=True):
         profile_dir = os.path.join('/tmp', f'chrome_profile_{platform}_{email_hash}_{sys_user}')
     else:
         profile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'chrome_profile_{platform}_{email_hash}')
+        
+    # Clean up lock files from any previous crashed runs to prevent startup crash
+    if os.path.exists(profile_dir):
+        for lock_name in ["SingletonLock", "SingletonCookie", "SingletonSocket", "lock"]:
+            lock_path = os.path.join(profile_dir, lock_name)
+            if os.path.exists(lock_path) or os.path.islink(lock_path):
+                try:
+                    if os.path.islink(lock_path):
+                        os.unlink(lock_path)
+                    else:
+                        os.remove(lock_path)
+                except:
+                    pass
+                    
     opts.add_argument(f'--user-data-dir={profile_dir}')
 
     service = Service(ChromeDriverManager().install())
