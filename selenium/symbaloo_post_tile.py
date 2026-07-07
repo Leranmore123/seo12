@@ -102,9 +102,9 @@ try:
     else:
         log("Symbaloo: Already logged in!")
 
-    # Now go to target mix URL
-    driver.get(MIX_URL)
-    time.sleep(6)
+    # Now go to the default dashboard / home page (redirects to user's own editable webmix)
+    driver.get("https://www.symbaloo.com/")
+    time.sleep(10)
     log(f"Symbaloo: URL = {driver.current_url}")
 
     log(f"Symbaloo: Mix loaded = {driver.current_url}")
