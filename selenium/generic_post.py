@@ -35,6 +35,10 @@ def get_driver(headless=True):
     opts.add_experimental_option('useAutomationExtension', False)
     opts.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36')
     opts.add_argument('--window-size=1280,900')
+    opts.add_argument('--js-flags=--max-old-space-size=256')
+    opts.add_argument('--disable-extensions')
+    opts.add_argument('--disable-features=Translate,SafeBrowsing')
+    opts.add_experimental_option("prefs", {"profile.managed_default_content_settings.images": 2})
     service = Service(ChromeDriverManager().install())
     driver  = webdriver.Chrome(service=service, options=opts)
     try:
@@ -211,11 +215,20 @@ def post_tumblr(driver, wait, email, password, keyword, target_site, content):
 
     # Click Post now
     try:
-        publish_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[class*='VxmZd']")))
+        publish_btn = None
+        btns = driver.find_elements(By.TAG_NAME, "button")
+        for b in btns:
+            txt = b.text.strip().lower()
+            aria = (b.get_attribute("aria-label") or "").strip().lower()
+            if "post now" in txt or txt == "post" or txt == "publish" or "post" in aria:
+                publish_btn = b
+                break
+        if not publish_btn:
+            publish_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[class*='VxmZd'], button[type='submit']")))
         driver.execute_script("arguments[0].click();", publish_btn)
         log("Tumblr: Post now clicked")
     except Exception as e:
-        log(f"Publish button click failed: {e}")
+        raise Exception(f"Publish button click failed: {e}")
     time.sleep(4)
 
     # Confirm publish without tags if prompted
