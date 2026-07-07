@@ -374,7 +374,7 @@ try:
 
     driver.save_screenshot(os.path.join(SCRIPT_DIR, 'symbaloo_tile_final.png'))
     log(f"Symbaloo: Final URL = {driver.current_url}")
-    result(True, url=MIX_URL)
+    result(True, url=driver.current_url)
 
 except Exception as e:
     result(False, error=str(e))
