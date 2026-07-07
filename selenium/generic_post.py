@@ -27,42 +27,12 @@ def get_driver(platform="generic", email="default", headless=True):
         opts.add_argument('--headless=new')
     if sys.platform != "win32":
         opts.add_argument('--disable-gpu')
-        opts.add_argument('--disable-software-rasterizer')
     opts.add_argument('--no-sandbox')
     opts.add_argument('--disable-dev-shm-usage')
-    opts.add_argument('--disable-blink-features=AutomationControlled')
-    opts.add_experimental_option('excludeSwitches', ['enable-automation'])
-    opts.add_experimental_option('useAutomationExtension', False)
-    opts.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36')
-    opts.add_argument('--window-size=1280,900')
-    opts.add_argument('--js-flags=--max-old-space-size=512')
-    opts.add_argument('--disable-extensions')
-    opts.add_argument('--disable-features=Translate,SafeBrowsing')
-    opts.add_experimental_option("prefs", {"profile.managed_default_content_settings.images": 2})
     opts.add_argument('--disable-setuid-sandbox')
     opts.add_argument('--disable-namespace-sandbox')
-    opts.add_argument('--disable-breakpad')
-    opts.add_argument('--disable-crash-reporter')
-
-    import hashlib, getpass
-    email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
-    sys_user = getpass.getuser().lower()
-    profile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'chrome_profile_{platform}_{email_hash}_{sys_user}')
-        
-    # Clean up lock files from any previous crashed runs to prevent startup crash
-    if os.path.exists(profile_dir):
-        for lock_name in ["SingletonLock", "SingletonCookie", "SingletonSocket", "lock"]:
-            lock_path = os.path.join(profile_dir, lock_name)
-            if os.path.exists(lock_path) or os.path.islink(lock_path):
-                try:
-                    if os.path.islink(lock_path):
-                        os.unlink(lock_path)
-                    else:
-                        os.remove(lock_path)
-                except:
-                    pass
-                    
-    # opts.add_argument(f'--user-data-dir={profile_dir}')
+    opts.add_argument('--window-size=1280,900')
+    opts.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36')
 
     service = Service(ChromeDriverManager().install())
     driver  = webdriver.Chrome(service=service, options=opts)
