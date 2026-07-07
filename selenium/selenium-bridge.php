@@ -669,3 +669,30 @@ function seleniumGbpPost(int $projectId, string $businessName, string $postText,
     }
     return ['success' => false, 'error' => $result['error'] ?? 'Unknown error'];
 }
+
+// ============================================================
+// SYMBALOO — Selenium auto-post
+// ============================================================
+function seleniumSymbaloo(array $creds, string $keyword, string $targetSite): array {
+    $email    = $creds['username'] ?? '';
+    $password = decodePass($creds['password'] ?? '');
+
+    if (empty($email) || empty($password)) {
+        return ['error' => 'Symbaloo: Add email + password in credentials.'];
+    }
+
+    $args   = [$email, $password, $keyword, $targetSite];
+    $result = runSeleniumScript('symbaloo_post_tile.py', $args, 180);
+
+    if (!empty($result['success'])) {
+        return [
+            'success'    => true,
+            'url'        => $result['url'] ?: 'https://www.symbaloo.com/home/mix/13ePQXNM4g',
+            'source'     => 'Selenium',
+            'post_title' => $keyword,
+        ];
+    }
+
+    $errorMsg = $result['error'] ?? 'Unknown error';
+    return ['error' => 'Symbaloo: ' . $errorMsg];
+}

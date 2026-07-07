@@ -3645,7 +3645,7 @@ function runPlatformAutoPost(string $platform, array $creds, array $project, int
             return seleniumMicroBlog('dribbble', $creds, $keyword, $site, '', '', $projectId);
 
         case 'symbaloo':
-            return seleniumMicroBlog('symbaloo', $creds, $keyword, $site, '', '', $projectId);
+            return seleniumSymbaloo($creds, $keyword, $site);
 
         case 'penzu':
             return seleniumMicroBlog('penzu', $creds, $keyword, $site, '', '', $projectId);

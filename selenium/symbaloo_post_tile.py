@@ -5,6 +5,15 @@ Flow: Open mix → Double-click empty cell → tileSearchInput appears
       → Type URL → Enter → Tile appears → Done
 """
 import os, sys, time, json
+script_dir = os.path.dirname(os.path.abspath(__file__))
+app_tmp_dir = os.path.join(script_dir, 'tmp_dir')
+try:
+    os.makedirs(app_tmp_dir, exist_ok=True)
+except Exception:
+    pass
+os.environ['HOME'] = app_tmp_dir
+os.environ['WDM_LOG'] = '0'
+os.environ['WDM_DIR'] = os.path.join(app_tmp_dir, '.wdm')
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -39,6 +48,8 @@ def result(success, url='', error=''):
     print(json.dumps({"success": success, "url": url, "error": error}), flush=True)
 
 opts = Options()
+if sys.platform != "win32":
+    opts.add_argument('--headless=new')
 opts.add_argument('--no-sandbox')
 opts.add_argument('--disable-dev-shm-usage')
 opts.add_argument('--disable-blink-features=AutomationControlled')
