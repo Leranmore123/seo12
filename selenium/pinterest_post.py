@@ -4,16 +4,15 @@ Pinterest Auto-Post via Selenium — v4 Final
 Verified selectors from live page inspection on kanzariyapratik124@gmail.com
 """
 import sys, json, time, os, re
-if os.name != 'nt':
-    try:
-        import pwd
-        sys_user = pwd.getpwuid(os.getuid()).pw_name
-    except:
-        import getpass
-        sys_user = getpass.getuser()
-    os.environ['HOME'] = f'/tmp/.home_{sys_user}'
-    os.environ['WDM_LOG'] = '0'
-    os.environ['WDM_DIR'] = f'/tmp/.wdm_{sys_user}'
+script_dir = os.path.dirname(os.path.abspath(__file__))
+app_tmp_dir = os.path.join(script_dir, 'tmp_dir')
+try:
+    os.makedirs(app_tmp_dir, exist_ok=True)
+except Exception:
+    pass
+os.environ['HOME'] = app_tmp_dir
+os.environ['WDM_LOG'] = '0'
+os.environ['WDM_DIR'] = os.path.join(app_tmp_dir, '.wdm')
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
