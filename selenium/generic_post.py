@@ -62,7 +62,7 @@ def get_driver(platform="generic", email="default", headless=True):
                 except:
                     pass
                     
-    opts.add_argument(f'--user-data-dir={profile_dir}')
+    # opts.add_argument(f'--user-data-dir={profile_dir}')
 
     service = Service(ChromeDriverManager().install())
     driver  = webdriver.Chrome(service=service, options=opts)
