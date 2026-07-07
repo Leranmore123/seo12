@@ -1501,6 +1501,24 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
 <script>
 const PROJECT_ID = <?= $selectedProjectId ?>;
 
+function getTumblrHelpText() {
+  let host = window.location.host;
+  if (/^[0-9.]+(:[0-9]+)?$/.test(host)) {
+      const parts = host.split(':');
+      const ip = parts[0];
+      const port = parts[1] ? ':' + parts[1] : '';
+      host = ip + '.nip.io' + port;
+  }
+  const helperUrl = window.location.protocol + '//' + host + '/scratch/tumblr_oauth_helper.php';
+  return '<strong>How to get Tumblr keys:</strong><br>' +
+    '1. Register App at <a href="https://www.tumblr.com/oauth/apps" target="_blank" class="fw-bold text-decoration-underline">tumblr.com/oauth/apps</a>.<br>' +
+    '2. Set <strong>Default Callback URL</strong> to:<br>' +
+    '<code class="bg-light p-1 border rounded d-inline-block my-1" style="font-size:10px; word-break: break-all; color: #d63384;">' + helperUrl + '</code><br>' +
+    '3. Save & copy <strong>OAuth Consumer Key</strong> and <strong>Secret Key</strong>.<br>' +
+    '4. <a href="' + helperUrl + '" target="_blank" class="btn btn-xs btn-success text-white py-0 px-2 my-1 fw-bold" style="font-size:11px;">Click here to Authorize & Generate Tokens</a><br>' +
+    '5. Paste the generated tokens in the fields above.';
+}
+
 const siteInfo = {
 <?php foreach ($platforms as $cat): foreach ($cat['sites'] as $site): ?>
   '<?= $site['id'] ?>': { name: '<?= $site['name'] ?>', does: '<?= addslashes($site['what_system_does']) ?>' },
@@ -1636,7 +1654,7 @@ function showCredForm(platformId, platformName, projectId) {
     'pinterest':  '🤖 Browser Automation — No API key needed! Enter Pinterest Email + Password. System will open Chrome, auto-login, and create a pin with image + keyword + backlink automatically.',
     'mastodon':   '🤖 Browser Automation — No API key needed! Enter Mastodon Email + Password. System will auto-login, create an app, generate access token, and post automatically!',
     'wordpress': 'Get token: <a href="https://developer.wordpress.com/apps/" target="_blank">developer.wordpress.com/apps</a> → Create New App → Access Token',
-    'tumblr':    'Get key: <a href="https://www.tumblr.com/oauth/apps" target="_blank">tumblr.com/oauth/apps</a> → Register App → OAuth Consumer Key',
+    'tumblr':    getTumblrHelpText(),
     'blogger':   'Get token: <a href="https://developers.google.com/oauthplayground" target="_blank">OAuth Playground</a> → Blogger scope → Access Token. Blog ID in API Secret.',
     'github':    'Get token: <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> → Generate token → repo scope',
     'devto':     'Get key: <a href="https://dev.to/settings/extensions" target="_blank">dev.to/settings/extensions</a> → DEV Community API Keys → Generate',
