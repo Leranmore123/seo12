@@ -21,7 +21,7 @@ def log(msg):
 def result(success, url='', error='', message=''):
     print(json.dumps({"success": success, "url": url, "error": error, "message": message}), flush=True)
 
-def get_driver(headless=True):
+def get_driver(platform="generic", email="default", headless=True):
     opts = Options()
     if headless:
         opts.add_argument('--headless=new')
@@ -39,6 +39,18 @@ def get_driver(headless=True):
     opts.add_argument('--disable-extensions')
     opts.add_argument('--disable-features=Translate,SafeBrowsing')
     opts.add_experimental_option("prefs", {"profile.managed_default_content_settings.images": 2})
+    opts.add_argument('--disable-setuid-sandbox')
+    opts.add_argument('--disable-namespace-sandbox')
+
+    import hashlib, getpass
+    email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
+    sys_user = getpass.getuser().lower()
+    if sys.platform != "win32":
+        profile_dir = os.path.join('/tmp', f'chrome_profile_{platform}_{email_hash}_{sys_user}')
+    else:
+        profile_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'chrome_profile_{platform}_{email_hash}')
+    opts.add_argument(f'--user-data-dir={profile_dir}')
+
     service = Service(ChromeDriverManager().install())
     driver  = webdriver.Chrome(service=service, options=opts)
     try:
@@ -536,7 +548,7 @@ if __name__ == "__main__":
         result(False, error=f"Platform '{platform}' not supported in generic_post.py")
         sys.exit(1)
 
-    driver = get_driver(headless=True)
+    driver = get_driver(platform, email, headless=True)
     wait   = WebDriverWait(driver, 20)
 
     try:
