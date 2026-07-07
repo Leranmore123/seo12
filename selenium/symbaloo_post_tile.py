@@ -31,6 +31,7 @@ email      = sys.argv[1] if len(sys.argv) > 1 else "kanzariyapratik124@gmail.com
 password   = sys.argv[2] if len(sys.argv) > 2 else "@DISHA12@"
 keyword    = sys.argv[3] if len(sys.argv) > 3 else "python training bangalore"
 target_url = sys.argv[4] if len(sys.argv) > 4 else "https://learnmoretech.in/"
+custom_mix_url = sys.argv[5] if len(sys.argv) > 5 else ""
 
 import hashlib
 email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
@@ -162,8 +163,10 @@ try:
     else:
         log("Symbaloo: Already logged in!")
 
-    # Now go to the default dashboard / home page (redirects to user's own editable webmix)
-    driver.get("https://www.symbaloo.com/")
+    # Now go to the target mix URL (defaults to user's home page if custom_mix_url is not provided)
+    target_mix = custom_mix_url if (custom_mix_url and "symbaloo.com" in custom_mix_url) else "https://www.symbaloo.com/"
+    log(f"Symbaloo: Navigating to mix = {target_mix}")
+    driver.get(target_mix)
     time.sleep(10)
     close_consent_modal(driver)
     close_adblock_modal(driver)

@@ -681,8 +681,9 @@ function seleniumSymbaloo(array $creds, string $keyword, string $targetSite): ar
         return ['error' => 'Symbaloo: Add email + password in credentials.'];
     }
 
-    $args   = [$email, $password, $keyword, $targetSite];
-    $result = runSeleniumScript('symbaloo_post_tile.py', $args, 180);
+    $customMix = $creds['api_key'] ?? '';
+    $args      = [$email, $password, $keyword, $targetSite, $customMix];
+    $result    = runSeleniumScript('symbaloo_post_tile.py', $args, 180);
 
     if (!empty($result['success'])) {
         return [

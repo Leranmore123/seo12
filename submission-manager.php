@@ -1600,6 +1600,7 @@ function showCredForm(platformId, platformName, projectId) {
   const apiSecretLabel = document.getElementById('modalApiSecretLabel');
   const apiSecretInput = document.getElementById('modalApiSecretInput');
   const apiKeyLabel = document.querySelector('#apiKeySection label');
+  const apiKeyInput = document.querySelector('input[name="api_key"]');
 
   // Reset defaults
   if (tumblrSecretSection) tumblrSecretSection.style.display = 'none';
@@ -1610,6 +1611,9 @@ function showCredForm(platformId, platformName, projectId) {
   }
   if (apiKeyLabel) {
     apiKeyLabel.innerHTML = 'API Key / Integration Token <span class="badge bg-danger ms-1">Required for Auto Post</span>';
+  }
+  if (apiKeyInput) {
+    apiKeyInput.placeholder = 'Enter API Key';
   }
 
   if (platformId === 'tumblr') {
@@ -1649,6 +1653,15 @@ function showCredForm(platformId, platformName, projectId) {
     if (usernameLabel) usernameLabel.textContent = 'Username / Email';
   }
 
+  if (platformId === 'symbaloo') {
+    if (apiKeyLabel) {
+      apiKeyLabel.innerHTML = 'Custom Webmix URL (Optional) <span class="badge bg-secondary ms-1">Optional</span>';
+    }
+    if (apiKeyInput) {
+      apiKeyInput.placeholder = 'e.g., https://www.symbaloo.com/home/mix/13eOcXQ5OS';
+    }
+  }
+
   // Show API key help based on platform
   const apiKeyHelp = {
     'pinterest':  '🤖 Browser Automation — No API key needed! Enter Pinterest Email + Password. System will open Chrome, auto-login, and create a pin with image + keyword + backlink automatically.',
@@ -1684,7 +1697,7 @@ function showCredForm(platformId, platformName, projectId) {
   const apiSection = document.getElementById('apiKeySection');
   const apiSecretSection = document.getElementById('apiSecretSection');
   const noApiNotice = document.getElementById('noApiNotice');
-  if (noApiNeeded.includes(platformId) || platformId === 'bluesky') {
+  if ((noApiNeeded.includes(platformId) || platformId === 'bluesky') && platformId !== 'symbaloo') {
     apiSection.style.display = 'none';
     if(apiSecretSection) apiSecretSection.style.display = 'none';
     if(noApiNotice) {
@@ -1705,7 +1718,17 @@ function showCredForm(platformId, platformName, projectId) {
     }
   } else {
     apiSection.style.display = '';
-    if(noApiNotice) noApiNotice.style.display = 'none';
+    if(noApiNotice) {
+      if (platformId === 'symbaloo') {
+        noApiNotice.style.display = '';
+        const noticeText = document.getElementById('noApiNoticeText');
+        if(noticeText) {
+          noticeText.innerHTML = '🤖 <strong>Selenium Browser Automation</strong> — System will use Email + Password to auto-login and add tile to your webmix.';
+        }
+      } else {
+        noApiNotice.style.display = 'none';
+      }
+    }
     if(apiSecretSection) apiSecretSection.style.display = ['tumblr','wordpress','blogger','hashnode'].includes(platformId) ? '' : 'none';
   }
 
