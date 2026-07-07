@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['wp_ajax_connect'])) {
     $wpPassword   = $_POST['wp_password'] ?? '';
 
     if (empty($wpEmail) || empty($wpPassword)) {
-        echo json_encode(['error' => 'Email અને Password required']);
+        echo json_encode(['error' => 'Email and Password required']);
         exit;
     }
 
@@ -298,10 +298,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_platform'])) {
     $check->execute([$projectId, $platform, $username]);
     $existing = $check->fetch();
     if ($existing) {
-        $db->prepare("UPDATE social_accounts SET password=?, api_key=?, api_secret=?, user_id=? WHERE id=?")
+        $db->prepare("UPDATE social_accounts SET password=?, api_key=?, api_secret=?, user_id=?, status='active' WHERE id=?")
            ->execute([base64_encode($password), $apiKey, $apiSecret, $userId, $existing['id']]);
     } else {
-        $db->prepare("INSERT INTO social_accounts (user_id, project_id, platform, username, password, api_key, api_secret) VALUES (?,?,?,?,?,?,?)")
+        $db->prepare("INSERT INTO social_accounts (user_id, project_id, platform, username, password, api_key, api_secret, status) VALUES (?,?,?,?,?,?,?,'active')")
            ->execute([$userId, $projectId, $platform, $username, base64_encode($password), $apiKey, $apiSecret]);
     }
     setFlash('success', ucfirst($platform) . ' credentials saved! System will use these to post.');
@@ -626,7 +626,7 @@ $secondBoxList = array_slice($orderedSitesList, 13);
   <div class="row mb-4">
     <div class="col">
       <h3><i class="fas fa-paper-plane me-2 text-primary"></i>Submission Manager</h3>
-      <p class="text-muted">User credentials આપો → System automatically post કરે</p>
+      <p class="text-muted">Provide user credentials → System will post automatically</p>
     </div>
     <div class="col-auto">
       <!-- Project selector -->
@@ -1436,7 +1436,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
       </div>
       <div class="modal-body">
         <div id="wpConnectForm">
-          <p class="text-muted small mb-3">Email + Password enter કરો — token auto-fetch થઈ system માં save થશે</p>
+          <p class="text-muted small mb-3">Enter Email + Password — token will be auto-fetched and saved in the system</p>
           <div class="mb-3">
             <label class="form-label fw-bold">WordPress.com Email</label>
             <input type="email" id="wpEmail" class="form-control" value="kanzariyapratik124@gmail.com" placeholder="email@gmail.com">
@@ -1490,7 +1490,7 @@ function doWpConnect() {
   const msg      = document.getElementById('wpConnectMsg');
 
   if (!email || !password) {
-    msg.innerHTML = '<div class="alert alert-warning py-2">Email અને Password enter કરો</div>';
+    msg.innerHTML = '<div class="alert alert-warning py-2">Enter Email and Password</div>';
     return;
   }
 

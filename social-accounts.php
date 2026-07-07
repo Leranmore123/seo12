@@ -25,11 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_account'])) {
     $check->execute([$userId, $platform]);
     
     if ($check->fetch()) {
-        $db->prepare("UPDATE social_accounts SET username=?, password=?, api_key=?, api_secret=? WHERE user_id=? AND platform=?")
+        $db->prepare("UPDATE social_accounts SET username=?, password=?, api_key=?, api_secret=?, status='active' WHERE user_id=? AND platform=?")
            ->execute([$username, $encryptedPassword, $apiKey, $apiSecret, $userId, $platform]);
         setFlash('success', ucfirst($platform) . ' credentials updated!');
     } else {
-        $db->prepare("INSERT INTO social_accounts (user_id, platform, username, password, api_key, api_secret) VALUES (?,?,?,?,?,?)")
+        $db->prepare("INSERT INTO social_accounts (user_id, platform, username, password, api_key, api_secret, status) VALUES (?,?,?,?,?,?,'active')")
            ->execute([$userId, $platform, $username, $encryptedPassword, $apiKey, $apiSecret]);
         setFlash('success', ucfirst($platform) . ' credentials saved!');
     }
