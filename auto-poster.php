@@ -79,6 +79,7 @@ if ($isDirectRequest) {
 
         foreach ($allCreds as $oneCred) {
             $r = runPlatformAutoPost($platform, $oneCred, $project, $projectId);
+            ensureManualContent($r, $platform, $project);
             $results[] = ['username' => $oneCred['username'], 'result' => $r];
             if (!empty($r['success'])) {
                 savePostedBacklink($db, $projectId, $platform, $r);
@@ -3804,6 +3805,19 @@ function getPostCount(PDO $db, int $projectId, string $platform): int {
     return (int) $stmt->fetchColumn();
 }
 
+function ensureManualContent(&$result, $platform, $project) {
+    if (!empty($result['manual']) && empty($result['content'])) {
+        $keyword = !empty($_GET['keyword']) ? clean($_GET['keyword']) : $project['target_keyword'];
+        $site    = $project['target_site'] ?: $project['website_url'];
+        $manualContent = generateManualContent($platform, $keyword, $site, GEMINI_API_KEY, OPENAI_API_KEY);
+        if (is_array($manualContent) && !empty($manualContent['content'])) {
+            $result['content'] = $manualContent['content'];
+            $result['title']   = $manualContent['title'] ?? $result['title'] ?? $result['post_title'] ?? ucwords($keyword) . ' - Post';
+            $result['source']  = $manualContent['source'] ?? 'Template';
+        }
+    }
+}
+
 // ============================================================
 // ROUTE â€” single platform (direct request only)
 // ============================================================
@@ -3815,6 +3829,7 @@ if ($isDirectRequest) {
     }
 
     $result = runPlatformAutoPost($platform, $creds, $project, $projectId);
+    ensureManualContent($result, $platform, $project);
     savePostedBacklink($db, $projectId, $platform, $result);
 
     header('Content-Type: application/json');
