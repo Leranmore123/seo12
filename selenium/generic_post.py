@@ -204,6 +204,20 @@ def post_tumblr(driver, wait, email, password, keyword, target_site, content):
         driver.get("https://www.tumblr.com/new/text")
     time.sleep(6)
 
+    # Check if there is an editor iframe and switch to it
+    in_iframe = False
+    try:
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        for iframe in iframes:
+            cl = (iframe.get_attribute("class") or "").lower()
+            if "canvas" in cl or "block-editor" in cl or "editor" in cl:
+                driver.switch_to.frame(iframe)
+                log("Tumblr: switched to block editor iframe")
+                in_iframe = True
+                break
+    except Exception as e:
+        log(f"Failed to switch to iframe: {e}")
+
     # Title
     try:
         title_el = None
@@ -289,6 +303,14 @@ def post_tumblr(driver, wait, email, password, keyword, target_site, content):
         log("Tumblr: body typed with rich HTML")
     except Exception as e:
         log(f"Body input failed: {e}")
+
+    # Switch back to main document to click Publish button
+    if in_iframe:
+        try:
+            driver.switch_to.default_content()
+            log("Tumblr: switched back to default content")
+        except Exception as e:
+            log(f"Failed to switch to default content: {e}")
     time.sleep(2)
 
     # Click Post now
