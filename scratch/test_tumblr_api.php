@@ -24,22 +24,20 @@ $parts = explode(':', $decrypted);
 $oauthToken = $parts[0] ?? '';
 $oauthTokenSecret = $parts[1] ?? '';
 
-echo "Blog Hostname: $blogName\n";
-echo "Consumer Key:  " . substr($consumerKey, 0, 5) . "...\n";
-echo "Consumer Sec:  " . substr($consumerSecret, 0, 5) . "...\n";
-echo "OAuth Token:   " . substr($oauthToken, 0, 5) . "...\n";
-echo "OAuth Secret:  " . substr($oauthTokenSecret, 0, 5) . "...\n\n";
+$keyword = "AI SEO solutions";
+$site = "https://skyranksolution-bice.vercel.app/services, https://skyranksolution-bice.vercel.app/, https://skyranksolution-bice.vercel.app/pricing, https://skyranksolution-bice.vercel.app/tools";
+
+$ai = generateAIContent($keyword, $site, 'tumblr', 'micro_blog', '', '', 1, []);
 
 $url = "https://api.tumblr.com/v2/blog/{$blogName}/post";
 
 $postFields = [
     'type'  => 'text',
-    'title' => 'Test Post ' . time(),
-    'body'  => 'This is a test post to verify OAuth signature.',
+    'title' => $ai['title'],
+    'body'  => $ai['content'],
     'tags'  => 'test,api',
 ];
 
-// Helper to sign and execute request
 function runTestRequest($consumerKey, $consumerSecret, $token, $tokenSecret, $url, $postFields, $signFields = true, $useRfc3986 = false) {
     $nonce = md5(uniqid(rand(), true));
     $timestamp = time();
@@ -53,7 +51,6 @@ function runTestRequest($consumerKey, $consumerSecret, $token, $tokenSecret, $ur
         'oauth_version' => '1.0'
     ];
     
-    // Sort parameters
     $sigParams = [];
     if ($signFields) {
         $sigParams = $postFields;
@@ -61,33 +58,23 @@ function runTestRequest($consumerKey, $consumerSecret, $token, $tokenSecret, $ur
     $allParams = array_merge($oauthParams, $sigParams);
     ksort($allParams);
     
-    // Build query string
     $queryParts = [];
     foreach ($allParams as $key => $val) {
         $queryParts[] = rawurlencode($key) . '=' . rawurlencode($val);
     }
     $queryString = implode('&', $queryParts);
     
-    // Base String
     $baseString = 'POST&' . rawurlencode($url) . '&' . rawurlencode($queryString);
-    
-    // Signature Key
     $signatureKey = rawurlencode($consumerSecret) . '&' . rawurlencode($tokenSecret);
-    
-    // Generate signature
     $signature = base64_encode(hash_hmac('sha1', $baseString, $signatureKey, true));
-    
-    // Add signature to OAuth parameters
     $oauthParams['oauth_signature'] = $signature;
     
-    // Build Authorization Header
     $headerParts = [];
     foreach ($oauthParams as $key => $val) {
         $headerParts[] = $key . '="' . rawurlencode($val) . '"';
     }
     $authHeader = 'Authorization: OAuth ' . implode(', ', $headerParts);
     
-    // Post fields encoding
     $postBody = $useRfc3986 
         ? http_build_query($postFields, '', '&', PHP_QUERY_RFC3986)
         : http_build_query($postFields);
@@ -112,17 +99,7 @@ function runTestRequest($consumerKey, $consumerSecret, $token, $tokenSecret, $ur
     ];
 }
 
-echo "=== TEST A: Sign with Fields (RFC1738 http_build_query) ===\n";
-$resA = runTestRequest($consumerKey, $consumerSecret, $oauthToken, $oauthTokenSecret, $url, $postFields, true, false);
-echo "HTTP Code: " . $resA['code'] . "\n";
-echo "Response:  " . $resA['response'] . "\n\n";
-
-echo "=== TEST B: Sign with Fields (RFC3986 http_build_query) ===\n";
-$resB = runTestRequest($consumerKey, $consumerSecret, $oauthToken, $oauthTokenSecret, $url, $postFields, true, true);
-echo "HTTP Code: " . $resB['code'] . "\n";
-echo "Response:  " . $resB['response'] . "\n\n";
-
-echo "=== TEST C: Sign WITHOUT Fields (OAuth params only) ===\n";
-$resC = runTestRequest($consumerKey, $consumerSecret, $oauthToken, $oauthTokenSecret, $url, $postFields, false, false);
-echo "HTTP Code: " . $resC['code'] . "\n";
-echo "Response:  " . $resC['response'] . "\n\n";
+echo "=== TEST WITH REAL GENERATED CONTENT ===\n";
+$res = runTestRequest($consumerKey, $consumerSecret, $oauthToken, $oauthTokenSecret, $url, $postFields, true, true);
+echo "HTTP Code: " . $res['code'] . "\n";
+echo "Response:  " . $res['response'] . "\n\n";
