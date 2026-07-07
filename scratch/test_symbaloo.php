@@ -2,12 +2,12 @@
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/selenium/selenium-bridge.php';
 
-$projectId = 208; // Project ID 208
+$projectId = 211; // Project ID
 $platform  = 'symbaloo';
 
 $db = getDB();
-$stmt = $db->prepare("SELECT * FROM social_accounts WHERE platform=?");
-$stmt->execute([$platform]);
+$stmt = $db->prepare("SELECT * FROM social_accounts WHERE project_id=? AND platform=?");
+$stmt->execute([$projectId, $platform]);
 $accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if (empty($accounts)) {
