@@ -38,10 +38,14 @@ function runSeleniumScript(string $script, array $args, int $timeout = 120): arr
     if (!is_array($env)) {
         $env = [];
     }
-    $env['WDM_DIR'] = '/tmp/.wdm';
-    $env['HOME'] = '/tmp';
-    $env['XDG_CONFIG_HOME'] = '/tmp';
-    $env['XDG_CACHE_HOME'] = '/tmp';
+    $appTmpDir = __DIR__ . DIRECTORY_SEPARATOR . 'tmp_dir';
+    if (!file_exists($appTmpDir)) {
+        @mkdir($appTmpDir, 0777, true);
+    }
+    $env['WDM_DIR'] = $appTmpDir . DIRECTORY_SEPARATOR . '.wdm';
+    $env['HOME'] = $appTmpDir;
+    $env['XDG_CONFIG_HOME'] = $appTmpDir;
+    $env['XDG_CACHE_HOME'] = $appTmpDir;
 
     $process = proc_open($cmd, $descriptors, $pipes, null, $env);
     if (!is_resource($process)) {
