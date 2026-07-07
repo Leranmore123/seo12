@@ -1668,7 +1668,7 @@ function showCredForm(platformId, platformName, projectId) {
   };
 
   // Platforms that need NO API key — ChatGPT content, copy-paste manually
-  const noApiNeeded = ['pinterest','mastodon','minds','symbaloo','penzu','linktree',
+  const noApiNeeded = ['pinterest','mastodon','symbaloo','penzu','linktree',
     'scoopit','wakelet','vivauae','padlet','pearltrees','mewe','instapaper',
     'gifyu','postimage','photobucket','behance','pbase','dropbox','imgbb',
     'site123','posteezy','livejournal','justpaste','substack','dribbble',
