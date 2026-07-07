@@ -34,6 +34,8 @@ def get_driver(email="default"):
     opts.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36')
     opts.add_argument('--window-size=1400,900')
     opts.add_argument('--start-maximized')
+    opts.add_argument('--disable-breakpad')
+    opts.add_argument('--disable-crash-reporter')
     # Persistent profile per email account — prevents cross-posting session hijack
     import hashlib, getpass
     email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()

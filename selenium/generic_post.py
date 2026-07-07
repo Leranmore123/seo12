@@ -41,6 +41,8 @@ def get_driver(platform="generic", email="default", headless=True):
     opts.add_experimental_option("prefs", {"profile.managed_default_content_settings.images": 2})
     opts.add_argument('--disable-setuid-sandbox')
     opts.add_argument('--disable-namespace-sandbox')
+    opts.add_argument('--disable-breakpad')
+    opts.add_argument('--disable-crash-reporter')
 
     import hashlib, getpass
     email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
