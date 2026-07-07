@@ -5,9 +5,16 @@ require_once __DIR__ . '/../auto-poster.php';
 $db = getDB();
 
 // Fetch the saved tumblr account credentials
-$stmt = $db->prepare("SELECT * FROM social_accounts WHERE platform='tumblr' AND status='active' LIMIT 1");
+$stmt = $db->prepare("SELECT * FROM social_accounts WHERE platform='tumblr' AND status='active' AND api_key != '' AND api_key IS NOT NULL ORDER BY id DESC LIMIT 1");
 $stmt->execute();
 $creds = $stmt->fetch();
+
+if (!$creds) {
+    // Fallback to first active one to show descriptive error
+    $stmt = $db->prepare("SELECT * FROM social_accounts WHERE platform='tumblr' AND status='active' LIMIT 1");
+    $stmt->execute();
+    $creds = $stmt->fetch();
+}
 
 if (!$creds) {
     echo "No active Tumblr credentials saved. Go to social-accounts.php, fill the form, and save first.\n";
