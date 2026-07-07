@@ -190,17 +190,67 @@ def post_tumblr(driver, wait, email, password, keyword, target_site, content):
 
     # Title
     try:
-        title_el = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".wp-block-heading, [class*='wp-block-heading'], .heading1")))
+        title_el = None
+        selectors = [
+            "[aria-label='Title']",
+            "[data-placeholder='Title']",
+            "h1[data-placeholder]",
+            ".wp-block-heading",
+            "[class*='wp-block-heading']",
+            ".heading1",
+            "textarea[placeholder='Title']",
+            "[placeholder='Title']"
+        ]
+        for sel in selectors:
+            try:
+                title_el = driver.find_element(By.CSS_SELECTOR, sel)
+                if title_el.is_displayed():
+                    break
+            except:
+                pass
+        
+        if not title_el:
+            title_el = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "[role='textbox'], [contenteditable='true']")))
+        
         title_el.click()
         time.sleep(0.5)
-        driver.execute_script("arguments[0].innerText = arguments[1]; arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", title_el, title)
+        title_el.send_keys(Keys.CONTROL + "a")
+        title_el.send_keys(Keys.BACKSPACE)
+        time.sleep(0.2)
+        title_el.send_keys(title)
         log("Tumblr: title typed")
     except Exception as e:
         log(f"Title input failed: {e}")
 
     # Body (rich HTML paste via DataTransfer)
     try:
-        body_el = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".wp-block-paragraph, [class*='wp-block-paragraph']")))
+        body_el = None
+        selectors = [
+            "[data-placeholder*='Go ahead']",
+            "[data-placeholder*='put anything']",
+            "[aria-placeholder*='Go ahead']",
+            "[aria-label*='body']",
+            "[aria-label*='Post body']",
+            ".wp-block-paragraph",
+            "[class*='wp-block-paragraph']",
+            "[class*='block-editor-rich-text']"
+        ]
+        for sel in selectors:
+            try:
+                body_el = driver.find_element(By.CSS_SELECTOR, sel)
+                if body_el.is_displayed() and body_el != title_el:
+                    break
+            except:
+                pass
+        if not body_el:
+            textboxes = driver.find_elements(By.CSS_SELECTOR, "[role='textbox'], [contenteditable='true']")
+            for tb in textboxes:
+                if tb != title_el and tb.is_displayed():
+                    body_el = tb
+                    break
+        if not body_el:
+            raise Exception("No body element found")
+
         body_el.click()
         time.sleep(0.5)
         
