@@ -35,7 +35,6 @@ def get_driver(platform="generic", email="default", headless=True):
     opts.add_experimental_option('useAutomationExtension', False)
     opts.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36')
     opts.add_argument('--window-size=1280,900')
-    opts.add_argument('--js-flags=--max-old-space-size=256')
     opts.add_argument('--disable-extensions')
     opts.add_argument('--disable-features=Translate,SafeBrowsing')
     opts.add_experimental_option("prefs", {"profile.managed_default_content_settings.images": 2})
@@ -185,7 +184,23 @@ def post_tumblr(driver, wait, email, password, keyword, target_site, content):
         return
 
     log("Tumblr: logged in!")
-    driver.get("https://www.tumblr.com/new/text")
+    compose_clicked = False
+    try:
+        btns = driver.find_elements(By.CSS_SELECTOR, "button, a")
+        for b in btns:
+            aria = (b.get_attribute("aria-label") or "").strip().lower()
+            txt = b.text.strip().lower()
+            if aria == "text" or txt == "text":
+                driver.execute_script("arguments[0].click();", b)
+                log("Tumblr: clicked dashboard compose button")
+                compose_clicked = True
+                break
+    except Exception as e:
+        log(f"Dashboard compose click failed: {e}")
+
+    if not compose_clicked:
+        log("Tumblr: Navigating to /new/text...")
+        driver.get("https://www.tumblr.com/new/text")
     time.sleep(6)
 
     # Title
