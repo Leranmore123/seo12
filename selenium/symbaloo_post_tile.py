@@ -50,6 +50,30 @@ def log(msg):
 def result(success, url='', error=''):
     print(json.dumps({"success": success, "url": url, "error": error}), flush=True)
 
+def close_consent_modal(driver):
+    try:
+        for sel in [
+            "//button[contains(., 'CONFIRM')]",
+            "//button[contains(., 'Confirm')]",
+            "//button[contains(., 'AGREE')]",
+            "//button[contains(., 'Agree')]",
+            "#accept-btn",
+            ".qc-cmp2-summary-buttons button",
+            "button[class*='confirm']",
+            "button[class*='accept']"
+        ]:
+            try:
+                agree = WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.XPATH, sel) if sel.startswith('/') else (By.CSS_SELECTOR, sel)))
+                agree.click()
+                log(f"Symbaloo: Cookie Consent Accepted via {sel}.")
+                time.sleep(3)
+                return True
+            except:
+                continue
+    except Exception as e:
+        log(f"Symbaloo: Consent check error: {e}")
+    return False
+
 opts = Options()
 if sys.platform != "win32":
     opts.add_argument('--headless=new')
@@ -71,13 +95,7 @@ try:
     time.sleep(5)
 
     # Accept GDPR if visible
-    try:
-        agree = WebDriverWait(driver, 8).until(EC.element_to_be_clickable((By.ID, "accept-btn")))
-        agree.click()
-        log("Symbaloo: GDPR Cookie Consent Accepted.")
-        time.sleep(3)
-    except:
-        log("Symbaloo: GDPR consent banner not found or already accepted.")
+    close_consent_modal(driver)
 
     # Check if we are still on login page
     if "login" in driver.current_url.lower():
@@ -108,6 +126,7 @@ try:
     # Now go to the default dashboard / home page (redirects to user's own editable webmix)
     driver.get("https://www.symbaloo.com/")
     time.sleep(10)
+    close_consent_modal(driver)
     log(f"Symbaloo: URL = {driver.current_url}")
 
     log(f"Symbaloo: Mix loaded = {driver.current_url}")
