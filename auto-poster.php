@@ -378,8 +378,8 @@ function postToTumblr($creds, $keyword, $targetSite, $geminiKey, $openaiKey, $po
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => http_build_query($postFields),
-        CURLOPT_HTTPHEADER     => [$authHeader],
+        CURLOPT_POSTFIELDS     => http_build_query($postFields, '', '&', PHP_QUERY_RFC3986),
+        CURLOPT_HTTPHEADER     => [$authHeader, 'Content-Type: application/x-www-form-urlencoded'],
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_SSL_VERIFYPEER => false,
     ]);
