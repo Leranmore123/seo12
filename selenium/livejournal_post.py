@@ -176,16 +176,15 @@ try:
             submitted = True
 
         time.sleep(3)
-        # Wait for URL to change from login page
+        # Wait for URL to change from login page (LiveJournal can be slow to respond)
         try:
-            WebDriverWait(driver, 10).until(lambda d: "login" not in d.current_url.lower())
+            WebDriverWait(driver, 40).until(lambda d: "login" not in d.current_url.lower())
             log("LiveJournal: Logged in!")
         except:
             log(f"LiveJournal: URL after wait is still {driver.current_url}")
             driver.save_screenshot(os.path.join(SCRIPT_DIR, 'livejournal_login_error.png'))
             result(False, error="LiveJournal: Login failed. Check username/password. Screenshot saved.")
             driver.quit(); sys.exit(1)
-        log("LiveJournal: Logged in!")
     else:
         log("LiveJournal: Already logged in via saved profile!")
 
