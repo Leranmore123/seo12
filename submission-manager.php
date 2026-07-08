@@ -594,8 +594,8 @@ foreach ($platforms as $catKey => &$category) {
 }
 unset($category);
 
-// 12 Primary platforms in the exact order requested
-$primaryIds = ['pinterest', 'bluesky', 'mastodon', 'minds', 'symbaloo', 'devto', 'linktree', 'site123', 'livejournal', 'blogger', 'tumblr', 'github'];
+// 10 Primary platforms (linktree and site123 moved to secondary)
+$primaryIds = ['pinterest', 'bluesky', 'mastodon', 'minds', 'symbaloo', 'devto', 'livejournal', 'blogger', 'tumblr', 'github'];
 
 $orderedSitesList = [];
 $addedIds = [];
@@ -639,9 +639,9 @@ usort($otherComing, fn($a, $b) => strcasecmp($a['name'], $b['name']));
 // Combine them into a single flat array
 $orderedSitesList = array_merge($orderedSitesList, $otherAuto, $otherComing);
 
-// Split into two boxes: 1-13 and 14-45
-$firstBoxList  = array_slice($orderedSitesList, 0, 13);
-$secondBoxList = array_slice($orderedSitesList, 13);
+// Split into two boxes: 1-10 and 11-45 (linktree and site123 moved to secondary)
+$firstBoxList  = array_slice($orderedSitesList, 0, 10);
+$secondBoxList = array_slice($orderedSitesList, 10);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -817,8 +817,8 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
   </div>
 
   <?php
-  // 12 Primary platforms in the exact order requested
-  $primaryIds = ['pinterest', 'bluesky', 'mastodon', 'minds', 'symbaloo', 'devto', 'linktree', 'site123', 'livejournal', 'blogger', 'tumblr', 'github'];
+  // 10 Primary platforms (linktree and site123 moved to secondary)
+  $primaryIds = ['pinterest', 'bluesky', 'mastodon', 'minds', 'symbaloo', 'devto', 'livejournal', 'blogger', 'tumblr', 'github'];
   $primaryPlatforms = [];
   
   // Icon Mapping
@@ -854,7 +854,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
   <div class="card mb-4 border-primary shadow-sm">
     <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
       <h6 class="mb-0 fw-bold"><i class="fas fa-star me-2"></i>Primary Platforms Quick Status</h6>
-      <span class="badge bg-light text-primary small fw-bold">12 Platforms</span>
+      <span class="badge bg-light text-primary small fw-bold">10 Platforms</span>
     </div>
     <div class="card-body p-3 bg-light">
       <div class="row g-2">
@@ -1130,10 +1130,10 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
   </div>
   <?php endif; ?>
 
-  <!-- Platform Submission Console (1 - 13) -->
+  <!-- Platform Submission Console (1 - 10) -->
   <div class="card mb-4 border-0 shadow-sm">
     <div class="card-header bg-dark text-white">
-      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Primary Platforms Console (1 - 13)</h5>
+      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Primary Platforms Console (1 - 10)</h5>
     </div>
     <div class="card-body p-0">
       <div class="table-responsive">
@@ -1265,10 +1265,10 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
     </div>
   </div>
 
-  <!-- Platform Submission Console (14 - 45) -->
+  <!-- Platform Submission Console (11 - 45) -->
   <div class="card mb-4 border-0 shadow-sm">
     <div class="card-header bg-dark text-white">
-      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Secondary Platforms Console (14 - 45)</h5>
+      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Secondary Platforms Console (11 - 45)</h5>
     </div>
     <div class="card-body p-0">
       <div class="table-responsive">
