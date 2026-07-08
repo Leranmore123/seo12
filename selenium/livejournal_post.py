@@ -385,29 +385,31 @@ try:
             published = True
             time.sleep(3)  # Wait for popup to appear
 
-            # Log post-click buttons for debugging popup
-            try:
-                all_btns2 = driver.find_elements(By.TAG_NAME, 'button')
-                for b in all_btns2:
-                    try:
-                        log(f"LiveJournal: Post-click button='{b.text.strip()}' class='{b.get_attribute('class')}'")
-                    except: pass
-            except: pass
+            # Click the confirm Publish button inside the popup, checking if it is disabled
+            confirm_clicked = False
+            for attempt in range(8):
+                status = driver.execute_script("""
+                    var submitBtn = document.querySelector('.js--submit-post');
+                    if (submitBtn) {
+                        var isD = submitBtn.disabled || submitBtn.classList.contains('rootDisabled') || submitBtn.className.indexOf('Disabled') !== -1;
+                        if (isD) {
+                            return 'disabled';
+                        }
+                        submitBtn.click();
+                        return 'clicked';
+                    }
+                    return 'not_found';
+                """)
+                log(f"LiveJournal: Popup Publish button status = {status} (attempt {attempt+1})")
+                if status == 'clicked':
+                    confirm_clicked = True
+                    break
+                time.sleep(1.5)
 
-            # Click the confirm Publish button inside the popup (class js--submit-post)
-            confirm_clicked = driver.execute_script("""
-                // First try the specific js--submit-post class (the real Publish button in popup)
-                var submitBtn = document.querySelector('.js--submit-post');
-                if (submitBtn) {
-                    submitBtn.click();
-                    return submitBtn.innerText || submitBtn.textContent || 'js--submit-post';
-                }
-                return null;
-            """)
             if confirm_clicked:
-                log(f"LiveJournal: Popup confirm clicked: '{confirm_clicked.strip()}'")
+                log("LiveJournal: Popup confirm Publish button clicked successfully")
                 # Wait for page to navigate to published post URL
-                time.sleep(3)
+                time.sleep(4)
                 # Poll for URL change (up to 12 seconds)
                 for _ in range(12):
                     cur = driver.current_url
@@ -455,7 +457,7 @@ try:
     import re
     post_pattern = re.escape(subdomain) + r'\.livejournal\.com/[0-9]+\.html'
 
-    def get_latest_post_from_rss(uname):
+    def get_latest_post_from_rss(uname, expected_title):
         sub = uname.lower().replace("_", "-")
         rss_url = f"https://{sub}.livejournal.com/data/rss"
         try:
@@ -470,9 +472,15 @@ try:
             root = ET.fromstring(xml_data)
             item = root.find('.//item')
             if item is not None:
-                link = item.find('link')
-                if link is not None and link.text:
-                    return link.text.strip()
+                title_el = item.find('title')
+                link_el = item.find('link')
+                if title_el is not None and link_el is not None and link_el.text:
+                    rss_title = (title_el.text or "").strip().lower()
+                    exp_title = expected_title.strip().lower()
+                    if exp_title in rss_title or rss_title in exp_title:
+                        return link_el.text.strip()
+                    else:
+                        log(f"LiveJournal: RSS latest post title '{rss_title}' does not match expected '{exp_title}'")
         except Exception as re_err:
             log(f"LiveJournal: RSS parsing failed: {re_err}")
         return None
@@ -495,7 +503,7 @@ try:
         log(f"LiveJournal: Found post URL on current page = {final}")
     else:
         # Try fetching from RSS feed (super lightweight, avoids tab crashes)
-        rss_link = get_latest_post_from_rss(username)
+        rss_link = get_latest_post_from_rss(username, ai_title)
         if rss_link:
             final = rss_link
             log(f"LiveJournal: Found post URL via RSS = {final}")
