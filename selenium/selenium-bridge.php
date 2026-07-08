@@ -571,12 +571,32 @@ function seleniumLiveJournal(array $creds, string $keyword, string $targetSite, 
     // Strip only dangerous tags, keep <a>, <h2>, <p>, <ul>, <li>, <strong>
     $aiBody = strip_tags($aiBody, '<a><h1><h2><h3><p><ul><ol><li><strong><em><br>');
 
-    // Get project image path
+    // Get project image path and resolve its public HTTP URL
     $imgPath = '';
     $imgFiles = glob(dirname(__DIR__) . '/uploads/*.{jpg,jpeg,png}', GLOB_BRACE);
     if ($imgFiles) {
         usort($imgFiles, fn($a, $b) => filemtime($b) - filemtime($a));
         $imgPath = $imgFiles[0];
+        
+        // Construct public URL
+        $publicBase = '';
+        if (!empty($_SERVER['HTTP_HOST'])) {
+            // Check if detectSiteUrl() is defined
+            $publicBase = function_exists('detectSiteUrl') ? detectSiteUrl() : 'http://' . $_SERVER['HTTP_HOST'];
+        } else {
+            // CLI fallback: try resolving public IP or use SITE_URL constant if not localhost
+            if (defined('SITE_URL') && strpos(SITE_URL, 'localhost') === false) {
+                $publicBase = SITE_URL;
+            } else {
+                $ip = trim(@file_get_contents('https://api.ipify.org', false, stream_context_create(['http' => ['timeout' => 2.5]])));
+                if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                    $publicBase = 'http://' . $ip;
+                } else {
+                    $publicBase = defined('SITE_URL') ? SITE_URL : 'http://localhost';
+                }
+            }
+        }
+        $imgPath = rtrim($publicBase, '/') . '/uploads/' . basename($imgPath);
     }
 
     $args   = [$username, $password, $keyword, $targetSite, $aiTitle, $imgPath];
