@@ -440,8 +440,16 @@ try:
 
             if confirm_clicked:
                 log("LiveJournal: Popup confirm Publish button clicked successfully")
+                try:
+                    driver.save_screenshot("/var/www/html/scratch/lj_after_confirm_click.png")
+                except:
+                    pass
                 # Wait for page to navigate to published post URL
                 time.sleep(4)
+                try:
+                    driver.save_screenshot("/var/www/html/scratch/lj_after_confirm_click_wait.png")
+                except:
+                    pass
                 # Poll for URL change (up to 12 seconds)
                 for _ in range(12):
                     cur = driver.current_url
