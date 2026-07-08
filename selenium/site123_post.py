@@ -40,6 +40,8 @@ keyword    = sys.argv[3] if len(sys.argv) > 3 else "python training bangalore"
 target_url = sys.argv[4] if len(sys.argv) > 4 else "https://learnmoretech.in"
 
 opts = Options()
+opts.add_argument('--headless=new')
+opts.add_argument('--disable-gpu')
 opts.add_argument('--no-sandbox')
 opts.add_argument('--disable-dev-shm-usage')
 opts.add_argument('--disable-blink-features=AutomationControlled')

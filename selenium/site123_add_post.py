@@ -55,6 +55,8 @@ BLOG_URL     = "https://app.site123.com/blog?w=12200919"
 log("Site123: Starting...")
 
 opts = Options()
+opts.add_argument('--headless=new')
+opts.add_argument('--disable-gpu')
 opts.add_argument('--no-sandbox')
 opts.add_argument('--disable-dev-shm-usage')
 opts.add_argument('--disable-blink-features=AutomationControlled')
