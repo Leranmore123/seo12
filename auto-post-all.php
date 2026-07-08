@@ -51,8 +51,23 @@ if (empty($keyword)) {
 }
 
 $insertStmt = $db->prepare('INSERT INTO backlink_queue (project_id, social_account_id, platform, keyword, target_url, status) VALUES (?, ?, ?, ?, ?, "pending")');
+$checkStmt  = $db->prepare('SELECT COUNT(*) FROM backlink_queue WHERE project_id = ? AND social_account_id = ? AND platform = ? AND status IN ("pending", "processing")');
 
 foreach ($accounts as $creds) {
+    $checkStmt->execute([$projectId, $creds['id'], $creds['platform']]);
+    $exists = (int)$checkStmt->fetchColumn();
+
+    if ($exists > 0) {
+        $results[] = [
+            'platform' => $creds['platform'],
+            'name'     => ucfirst($creds['platform']) . ' (' . $creds['username'] . ')',
+            'handle'   => $creds['username'],
+            'status'   => 'duplicate',
+            'message'  => 'Already queued/processing',
+        ];
+        continue;
+    }
+
     $insertStmt->execute([
         $projectId,
         $creds['id'],
