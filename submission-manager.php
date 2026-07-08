@@ -1755,7 +1755,7 @@ function autoPostAll(platformId, platformName, projectId) {
   const kw = kwSelect ? encodeURIComponent(kwSelect.value) : '';
   const siteSelect = document.getElementById('backlinkUrlSelect');
   const siteUrl = siteSelect ? encodeURIComponent(siteSelect.value) : '';
-  fetch('auto-poster.php?id=' + projectId + '&platform=' + platformId + '&all_accounts=1&keyword=' + kw + '&target_site=' + siteUrl, {
+  fetch('auto-post-all.php?id=' + projectId + '&platform=' + platformId + '&keyword=' + kw + '&target_site=' + siteUrl, {
     signal: AbortSignal.timeout(300000),
     credentials: 'same-origin',
     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
@@ -1769,23 +1769,15 @@ function autoPostAll(platformId, platformName, projectId) {
       }
     })
     .then(data => {
-      if (data.success) {
-        document.getElementById('postingStatus').innerHTML = '✅ Posted Successfully!';
-        const countMsg = data.posted_count > 1 ? `<strong>${data.posted_count} accounts</strong> posted!<br>` : '';
-        let sourceMsg = '';
-        if (data.source === 'Template') {
-          sourceMsg = '<br><div class="alert alert-warning py-1 px-2 mt-2 mb-0 small text-start"><i class="fas fa-exclamation-triangle"></i> OpenAI/Gemini Key quota exceeded or expired. Posted using dynamic Template Fallback. Update keys in API Setup.</div>';
-        }
+      if (data.queued) {
+        document.getElementById('postingStatus').innerHTML = '✅ Tasks Queued successfully!';
         document.getElementById('postingDetail').innerHTML =
-          countMsg + 'Backlink: <a href="' + data.url + '" target="_blank">' + data.url + '</a>' + sourceMsg;
-        setTimeout(() => { modal.hide(); location.reload(); }, data.source === 'Template' ? 6000 : 3000);
-      } else if (data.manual) {
-        modal.hide();
-        showManualContent(platformName, data.content, data.title, data.url || siteInfo[platformId]?.url, data.pdf_url || null, data.source || 'ChatGPT');
+          `<strong>${data.queued} tasks</strong> added to background queue. Processing in background...`;
+        setTimeout(() => { modal.hide(); location.reload(); }, 3000);
       } else {
-        document.getElementById('postingStatus').innerHTML = '⚠️ ' + (data.error || 'Failed');
+        document.getElementById('postingStatus').innerHTML = '⚠️ ' + (data.error || 'Failed to queue task');
         document.getElementById('postingDetail').innerHTML =
-          'Check credentials. <a href="' + (siteInfo[platformId]?.url || '#') + '" target="_blank">Open site</a>';
+          'Please verify database settings and try again.';
       }
     })
     .catch((err) => {
