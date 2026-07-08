@@ -263,7 +263,7 @@ try:
 
     # ── Step 2: Go to new post page ───────────────────────────
     log("LiveJournal: Opening new post page...")
-    if "update.bml" not in driver.current_url:
+    if "update.bml" not in driver.current_url and "/post" not in driver.current_url:
         driver.get("https://www.livejournal.com/update.bml")
         time.sleep(6)
     log(f"LiveJournal: Post page = {driver.current_url}")
