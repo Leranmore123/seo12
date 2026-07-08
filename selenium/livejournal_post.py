@@ -290,16 +290,33 @@ try:
     img_html = ""
     if image_path and os.path.exists(image_path):
         try:
+            from PIL import Image
+            import io
             import base64 as _b64
-            with open(image_path, 'rb') as _f:
-                _data = _b64.b64encode(_f.read()).decode()
-            _ext = image_path.split('.')[-1].lower()
-            _mime = 'image/png' if _ext == 'png' else 'image/jpeg'
-            img_html = f'<img src="data:{_mime};base64,{_data}" alt="{keyword}" style="max-width:100%;margin-bottom:12px;" />\n\n'
-            log("LiveJournal: Image embedded in content")
+            
+            with Image.open(image_path) as img:
+                # Convert to RGB to support JPEG format
+                if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+                    img = img.convert('RGB')
+                
+                # Scale down if too wide
+                max_width = 800
+                if img.width > max_width:
+                    ratio = max_width / float(img.width)
+                    new_height = int(float(img.height) * float(ratio))
+                    img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+                
+                # Compress as JPEG
+                output = io.BytesIO()
+                img.save(output, format='JPEG', quality=70, optimize=True)
+                _data = _b64.b64encode(output.getvalue()).decode()
+                
+            img_html = f'<img src="data:image/jpeg;base64,{_data}" alt="{keyword}" style="max-width:100%;margin-bottom:12px;" />\n\n'
+            log(f"LiveJournal: Image optimized using PIL (size: {len(_data)} chars)")
         except Exception as e:
-            log(f"LiveJournal: Image embed failed: {e}")
-
+            log(f"LiveJournal: Image optimization/embedding failed: {e}")
+            img_html = ""
+    
     content_text = img_html + (ai_content if ai_content else (
         f"Best {keyword} at Learnmore Technologies — Complete Guide {time.strftime('%Y')}\n\n"
         f"Are you searching for the best {keyword} in Bangalore? Look no further. Learnmore Technologies offers a comprehensive {keyword} program designed to make you job-ready in 60-90 days.\n\n"
