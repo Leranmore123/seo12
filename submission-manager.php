@@ -1329,11 +1329,22 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
               <td>
                 <?php
                 $cooldown = checkPlatformCooldown($db, $selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite);
+                
+                // Fetch the latest background queue task for this platform
+                $queueStmt = $db->prepare("SELECT status, error_message FROM backlink_queue WHERE project_id=? AND platform=? ORDER BY id DESC LIMIT 1");
+                $queueStmt->execute([$selectedProjectId, $site['id']]);
+                $qItem = $queueStmt->fetch(PDO::FETCH_ASSOC);
                 ?>
                 <?php if ($cooldown['is_cooldown']): ?>
                   <span class="badge bg-warning text-dark"><i class="fas fa-history me-1"></i>Posted (Cooldown)</span>
                 <?php elseif (isset($site['autopost']) && $site['autopost'] === false): ?>
                   <span class="badge bg-secondary"><i class="fas fa-clock me-1"></i>Coming Soon</span>
+                <?php elseif ($qItem && $qItem['status'] === 'pending'): ?>
+                  <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>⏳ Queued</span>
+                <?php elseif ($qItem && $qItem['status'] === 'processing'): ?>
+                  <span class="badge bg-info"><i class="fas fa-spinner fa-spin me-1"></i>⚙️ Posting...</span>
+                <?php elseif ($qItem && $qItem['status'] === 'failed'): ?>
+                  <span class="badge bg-danger text-white" style="cursor:help;" title="<?= htmlspecialchars($qItem['error_message'] ?? 'Unknown Error') ?>"><i class="fas fa-exclamation-triangle me-1"></i>❌ Failed</span>
                 <?php elseif ($saved): ?>
                   <span class="badge bg-success">Ready to Post</span>
                 <?php else: ?>
