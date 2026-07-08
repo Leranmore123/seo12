@@ -3,7 +3,7 @@ require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/selenium/selenium-bridge.php';
 require_once dirname(__DIR__) . '/ai-content.php';
 
-$projectId = 210; // Project ID
+$projectId = 211; // Project ID
 $platform  = 'livejournal';
 
 $db = getDB();
