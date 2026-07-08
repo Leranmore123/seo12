@@ -257,9 +257,7 @@ try:
             "domain": ".livejournal.com",
             "path": "/"
         })
-        log("LiveJournal: Session token injected. Reloading homepage...")
-        driver.get("https://www.livejournal.com/")
-        time.sleep(3)
+        log("LiveJournal: Session token injected. Going directly to editor page...")
 
     # ── Step 2: Go to new post page ───────────────────────────
     log("LiveJournal: Opening new post page...")
