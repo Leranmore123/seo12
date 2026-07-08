@@ -26,53 +26,72 @@ def api_login(username, password):
     session.headers.update({
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
     })
-    try:
-        challenge_url = "https://www.livejournal.com/interface/flat"
-        r = session.post(challenge_url, data={"mode": "getchallenge"}, timeout=15)
-        if r.status_code != 200:
-            return None, f"Get challenge failed with status {r.status_code}"
-    except Exception as e:
-        return None, f"Failed to get challenge: {e}"
+    
+    challenge = None
+    last_err = ""
+    challenge_url = "https://www.livejournal.com/interface/flat"
+    
+    # Try up to 3 times to get the challenge
+    for attempt in range(3):
+        try:
+            r = session.post(challenge_url, data={"mode": "getchallenge"}, timeout=30)
+            if r.status_code == 200:
+                lines = [line.strip() for line in r.text.split("\n") if line.strip()]
+                data = {}
+                for i in range(0, len(lines) - 1, 2):
+                    data[lines[i]] = lines[i+1]
+                challenge = data.get("challenge")
+                if challenge:
+                    break
+                else:
+                    last_err = "No challenge string found in response"
+            else:
+                last_err = f"Get challenge failed with status {r.status_code}"
+        except Exception as e:
+            last_err = f"Failed to get challenge: {e}"
+        time.sleep(2)
         
-    lines = [line.strip() for line in r.text.split("\n") if line.strip()]
-    data = {}
-    for i in range(0, len(lines) - 1, 2):
-        data[lines[i]] = lines[i+1]
-        
-    challenge = data.get("challenge")
     if not challenge:
-        return None, "No challenge string found in response"
+        return None, last_err
         
     import hashlib
     pw_hash = hashlib.md5(password.encode('utf-8')).hexdigest()
     auth_response = hashlib.md5((challenge + pw_hash).encode('utf-8')).hexdigest()
     
-    try:
-        r2 = session.post(challenge_url, data={
-            "mode": "sessiongenerate",
-            "user": username,
-            "auth_method": "challenge",
-            "auth_challenge": challenge,
-            "auth_response": auth_response,
-            "clientversion": "Python-Autopost"
-        }, timeout=15)
-        if r2.status_code != 200:
-            return None, f"Login failed with status {r2.status_code}"
-    except Exception as e:
-        return None, f"Failed to submit login: {e}"
+    ljsession = None
+    # Try up to 3 times to generate session
+    for attempt in range(3):
+        try:
+            r2 = session.post(challenge_url, data={
+                "mode": "sessiongenerate",
+                "user": username,
+                "auth_method": "challenge",
+                "auth_challenge": challenge,
+                "auth_response": auth_response,
+                "clientversion": "Python-Autopost"
+            }, timeout=30)
+            if r2.status_code == 200:
+                lines2 = [line.strip() for line in r2.text.split("\n") if line.strip()]
+                data2 = {}
+                for i in range(0, len(lines2) - 1, 2):
+                    data2[lines2[i]] = lines2[i+1]
+                
+                if data2.get("success") == "OK":
+                    ljsession = data2.get("ljsession")
+                    if ljsession:
+                        break
+                    else:
+                        last_err = "No ljsession token returned in response"
+                else:
+                    last_err = f"Authentication failed: {data2.get('errmsg', 'Unknown error')}"
+            else:
+                last_err = f"Login failed with status {r2.status_code}"
+        except Exception as e:
+            last_err = f"Failed to submit login: {e}"
+        time.sleep(2)
         
-    lines2 = [line.strip() for line in r2.text.split("\n") if line.strip()]
-    data2 = {}
-    for i in range(0, len(lines2) - 1, 2):
-        data2[lines2[i]] = lines2[i+1]
-        
-    if data2.get("success") != "OK":
-        err = data2.get("errmsg", "Unknown error")
-        return None, f"Authentication failed: {err}"
-        
-    ljsession = data2.get("ljsession")
     if not ljsession:
-        return None, "No ljsession token returned in response"
+        return None, last_err
         
     return ljsession, None
 
