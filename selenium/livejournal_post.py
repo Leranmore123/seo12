@@ -586,5 +586,11 @@ except Exception as e:
     log(f"LiveJournal: Error = {e}")
     result(False, error=str(e))
 finally:
+    try:
+        log("LiveJournal: Browser console logs:")
+        for entry in driver.get_log('browser'):
+            log(f"  [Browser Console] {entry.get('level')}: {entry.get('message')}")
+    except Exception as log_err:
+        pass
     try: driver.quit()
     except: pass
