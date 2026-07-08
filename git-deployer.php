@@ -226,7 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_config'])) {
         $db->prepare("UPDATE projects SET local_code_path=?, git_repo_url=?, github_user=?, github_token=? WHERE id=?")
            ->execute([$localPath, $repoUrl, $gitUser, $gitToken, $projectId]);
         
-        $success = 'પ્રોજેક્ટ ક્રેડેન્શિયલ્સ સેવ થઈ ગયા છે.';
+        $success = 'Project credentials have been saved.';
         $project['local_code_path'] = $localPath;
         $project['git_repo_url'] = $repoUrl;
         $project['github_user'] = $gitUser;
@@ -263,9 +263,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clone_repo'])) {
             $gitLog[] = "📁 git clone: " . trim($cloneOut);
             
             if (is_dir($localPath)) {
-                $success = "વેબસાઇટ કોડ સફળતાપૂર્વક ક્લોન થઈ ગયો છે!";
+                $success = "Website code cloned successfully!";
             } else {
-                $error = "ક્લોન કરવામાં મુશ્કેલી પડી. ફોલ્ડર પાથ અને ક્રેડેન્શિયલ્સ ચેક કરો.";
+                $error = "Failed to clone. Please check folder path and credentials.";
             }
         }
     }
@@ -356,14 +356,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['execute_git_push'])) 
             $gitLog[] = "🚀 git push origin {$branch}: " . trim($pushOut);
 
             if (stripos($pushOut, 'Everything up-to-date') !== false || stripos($pushOut, '->') !== false || stripos($pushOut, 'main') !== false || stripos($pushOut, 'master') !== false) {
-                $success = "કોડ ફેરફારો ગીટહબ પર સફળતાપૂર્વક ડિપ્લોય થઈ ગયા છે! 🎉";
+                $success = "Code changes deployed to GitHub successfully! 🎉";
                 // Rescan
                 $scanResults = scanProjectFilesForSEO($localPath, $savedMeta, $project['website_url'] ?? 'https://learnmoretech.in/');
             } else {
-                $error = "ગીટહબ પર પુશ કરવામાં એરર આવી છે. ક્રેડેન્શિયલ્સ ચેક કરો.";
+                $error = "Error pushing to GitHub. Check credentials.";
             }
         } else {
-            $error = "ઓછામાં ઓછું ૧ ચેન્જ સિલેક્ટ કરો અથવા ફોર્સ પુશ કરો.";
+            $error = "Select at least 1 change or force push.";
         }
     }
 }
@@ -412,7 +412,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['execute_git_push'])) 
     <div class="row align-items-center mb-4">
         <div class="col-md-6">
             <h3><i class="fab fa-github text-dark me-2"></i>AI Code Scanner & Git Deployer</h3>
-            <p class="text-muted mb-0">વેબસાઇટ રેપો સ્કેનિંગ અને ગીટહબ પુશ એપ્રૂવલ પેનલ</p>
+            <p class="text-muted mb-0">Website repo scanning and GitHub push approval panel</p>
         </div>
         <div class="col-md-6 text-md-end mt-3 mt-md-0">
             <form method="GET" action="git-deployer.php" class="d-inline-block">
@@ -445,7 +445,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['execute_git_push'])) 
                 <div class="mb-3">
                     <label class="form-label small fw-bold">Local Directory Path (on your Server)</label>
                     <input type="text" name="local_code_path" class="form-control form-control-sm" value="<?= htmlspecialchars($project['local_code_path'] ?? '') ?>" placeholder="e.g. C:\Users\ADMIN\Desktop\learnmore-website-1" required>
-                    <span class="text-muted small" style="font-size: 10px;">આ ફોલ્ડરની અંદર ગીટ ક્લોનિંગ, કમીટીંગ અને પુશ પ્રોસેસ થશે.</span>
+                    <span class="text-muted small" style="font-size: 10px;">Git cloning, committing, and push processes will take place inside this folder.</span>
                 </div>
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -482,9 +482,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['execute_git_push'])) 
             <!-- Setup Warning -->
             <div class="card p-5 text-center border-dashed">
                 <i class="fas fa-tools fa-3x mb-3 text-warning"></i>
-                <h5>પ્રોજેક્ટ રેપો અને ફોલ્ડર કનેક્ટ કરો</h5>
+                <h5>Connect Project Repo & Folder</h5>
                 <p class="text-muted max-width-600 mx-auto">
-                    તમારા ક્લાયન્ટની ગીટહબ રેપો લિંક (જેમ કે <code>https://github.com/learnmore-dev/learnmore-website-1.git</code>) અને સાઇટનો લોકલ ફોલ્ડર પાથ ઉપર આપેલા <strong>"Configure Path & Repo"</strong> બટનથી સેટ કરો.
+                    Set your client's GitHub repo link (like <code>https://github.com/learnmore-dev/learnmore-website-1.git</code>) and the local folder path of the site using the <strong>"Configure Path & Repo"</strong> button above.
                 </p>
             </div>
         <?php elseif (!is_dir($project['local_code_path'])): ?>
@@ -493,7 +493,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['execute_git_push'])) 
                 <i class="fas fa-cloud-download-alt fa-3x mb-3 text-primary"></i>
                 <h5>Local Website Directory not found</h5>
                 <p class="text-muted">
-                    પ્રોજેક્ટ માટેનો પાથ <code><?= htmlspecialchars($project['local_code_path']) ?></code> અસ્તિત્વમાં નથી. તેને કનેક્ટ કરેલ ગીટહબ રેપોમાંથી ડાયરેક્ટ ક્લોન કરો.
+                    The path for the project <code><?= htmlspecialchars($project['local_code_path']) ?></code> does not exist. Clone it directly from the connected GitHub repo.
                 </p>
                 <form method="POST">
                     <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
@@ -527,13 +527,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['execute_git_push'])) 
                             </div>
                             
                             <p class="text-muted small">
-                                AI એ તમારા કનેક્ટેડ પ્રોજેક્ટ ફોલ્ડર (<code><?= htmlspecialchars($project['local_code_path']) ?></code>) નો કોડ સ્કેન કર્યો છે:
+                                AI has scanned the code of your connected project folder (<code><?= htmlspecialchars($project['local_code_path']) ?></code>):
                             </p>
 
                             <?php if (empty($scanResults)): ?>
                                 <div class="alert alert-success py-4 text-center">
                                     <i class="fas fa-check-circle fa-2x mb-2"></i>
-                                    <h6>તમારો આખો કોડબેઝ એસઈઓ ફ્રેન્ડલી છે! કોઈ પણ ખામી જોવા નથી મળી.</h6>
+                                    <h6>Your entire codebase is SEO friendly! No issues were found.</h6>
                                 </div>
                             <?php else: ?>
                                 <div class="accordion" id="scannerAccordion">
@@ -550,7 +550,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['execute_git_push'])) 
                                                 <div class="accordion-body bg-light">
                                                     <!-- View Full File Code Button -->
                                                     <button class="btn btn-xs btn-outline-secondary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#fullCode_<?= $fIdx ?>" style="font-size: 11px;">
-                                                        <i class="fas fa-code me-1"></i>View Full File Code (આખી ફાઇલનો કોડ જુઓ)
+                                                        <i class="fas fa-code me-1"></i>View Full File Code
                                                     </button>
                                                     <div class="collapse mb-3" id="fullCode_<?= $fIdx ?>">
                                                         <pre class="bg-dark text-white p-3 rounded" style="max-height: 250px; overflow-y: auto; font-size: 11px;"><?= htmlspecialchars(file_get_contents($fileData['full_path'])) ?></pre>

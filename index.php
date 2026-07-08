@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     <div class="text-center mt-3">
     </div>
     <div class="text-center mt-2">
-      <a href="setup.php" class="text-muted small">System setup check</a>
+     
     </div>
   </div>
 </div>

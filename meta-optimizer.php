@@ -102,8 +102,8 @@ $severityColors = ['critical' => 'danger', 'high' => 'warning', 'medium' => 'inf
 
 <div class="alert alert-info border-0 mb-3">
   <i class="fas fa-info-circle me-2"></i>
-  <strong>મહત્વનું:</strong> આ સિસ્ટમ meta tags <strong>બનાવે છે</strong>. Google #1 માટે તમારી website ના <code>&lt;head&gt;</code> માં paste કરવું <strong>જરૂરી</strong> છે.
-  કોઈ tool 100% auto Google top નથી આપી શકતું — 2–8 અઠવાડિયા સમય લાગે છે.
+  <strong>Important:</strong> This system **generates** meta tags. It is **required** to paste them into the <code>&lt;head&gt;</code> of your website for Google #1 ranking.
+  No tool can guarantee 100% automatic top Google ranking — it takes 2-8 weeks.
 </div>
 
 <?php if (!empty($analysis['error'])): ?>
@@ -113,7 +113,7 @@ $severityColors = ['critical' => 'danger', 'high' => 'warning', 'medium' => 'inf
 <div class="row g-3 mb-4">
   <div class="col-md-6">
     <div class="card h-100 border-danger">
-      <div class="card-header bg-danger text-white"><h6 class="mb-0">🔴 હાલની website (Live)</h6></div>
+      <div class="card-header bg-danger text-white"><h6 class="mb-0">🔴 Live Website</h6></div>
       <div class="card-body small">
         <?php $c = $analysis['current']; ?>
         <p><strong>Title:</strong><br><?= $c['title'] ? clean(mb_substr($c['title'], 0, 80)) : '<span class="text-danger">Missing</span>' ?></p>
@@ -161,14 +161,14 @@ $severityColors = ['critical' => 'danger', 'high' => 'warning', 'medium' => 'inf
 <?php if ($savedMeta): ?>
 <div class="card border-primary shadow-sm mb-3">
   <div class="card-header bg-primary text-white d-flex justify-content-between">
-    <span><i class="fas fa-code me-2"></i>Complete &lt;head&gt; HTML — Website માં paste કરો</span>
+    <span><i class="fas fa-code me-2"></i>Complete &lt;head&gt; HTML — Paste into your Website</span>
     <button class="btn btn-sm btn-warning" onclick="copyMetaHtml()"><i class="fas fa-copy me-1"></i>Copy All</button>
   </div>
   <div class="card-body p-0">
     <textarea id="metaHeadHtml" class="form-control font-monospace border-0" rows="18" readonly><?= htmlspecialchars($savedMeta['full_head_html']) ?></textarea>
   </div>
   <div class="card-footer small text-muted">
-    <strong>ક્યાં paste કરવું:</strong> WordPress → Theme / Yoast SEO → HTML તમારી site ના <code>header.php</code> અથવા page builder માં Custom HTML in &lt;head&gt;
+    <strong>Where to paste:</strong> WordPress → Theme / Yoast SEO → HTML in your site's <code>header.php</code> or page builder Custom HTML in &lt;head&gt;
   </div>
 </div>
 <?php endif; ?>

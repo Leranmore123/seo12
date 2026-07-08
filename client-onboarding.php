@@ -33,7 +33,7 @@ if (!$project || getOnboardingToken($projectId, $project['website_url']) !== $to
         <div class='error-card'>
             <div class='text-danger mb-3'><i class='fas fa-exclamation-triangle fa-3x'></i></div>
             <h4 class='fw-bold text-dark'>Invalid Verification Link</h4>
-            <p class='text-muted small'>ધ્યાન આપો: આ લિંક અમાન્ય અથવા સમાપ્ત થઈ ગઈ છે. કૃપા કરીને તમારા એસઈઓ એડમિનિસ્ટ્રેટરનો સંપર્ક કરો.</p>
+            <p class='text-muted small'>Warning: This link is invalid or has expired. Please contact your SEO administrator.</p>
             <p class='text-muted small'>This onboarding link is invalid or expired. Please contact your SEO campaign administrator.</p>
         </div>
     </body>
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $admin_url, $admin_user, $admin_pass, $ga_access, $google_ads_id, $competitor_sites, $business_desc, $projectId
         ]);
         
-        $successMsg = "વિગતો સેવ થઈ ગઈ છે! Details submitted successfully!";
+        $successMsg = "Details submitted successfully!";
         if ($no_admin_access) {
             $manualMode = true;
         }
@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="hero-banner">
     <div class="container" style="max-width: 750px;">
         <h2 class="fw-bold mb-1"><i class="fas fa-rocket me-2"></i>SEO Campaign Setup Form</h2>
-        <p class="mb-0 opacity-75">Please fill in your website credentials & tracking IDs below / કૃપા કરીને નીચેની વિગતો ભરો</p>
+        <p class="mb-0 opacity-75">Please fill in your website credentials & tracking IDs below</p>
     </div>
 </div>
 
@@ -114,16 +114,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($successMsg): ?>
         <div class="card onboard-card border-0 bg-success text-white p-4 text-center mb-4 shadow">
             <div><i class="fas fa-check-circle fa-4x mb-3"></i></div>
-            <h3 class="fw-bold">આભાર! Thank You!</h3>
-            <p class="mb-0">તમારી વિગતો સેવ થઈ ગઈ છે. / Your onboarding details have been saved successfully.</p>
+            <h3 class="fw-bold">Thank You!</h3>
+            <p class="mb-0">Your onboarding details have been saved successfully.</p>
         </div>
 
         <?php if ($manualMode): ?>
             <!-- Manual Setup Codes -->
             <div class="card onboard-card mb-4 border-0 shadow-sm">
                 <div class="card-body p-4">
-                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-code text-danger me-2"></i>🛠️ Manual Code Setup Guide / કોડ સેટઅપ ગાઇડ</h5>
-                    <p class="small text-muted">Please copy the HTML codes below and paste them into the <code>&lt;head&gt;</code> section of your website manually, or email them to your developer: / આ કોડ કોપી કરીને તમારા ડેવલપરને ઈમેઈલ કરો:</p>
+                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-code text-danger me-2"></i>🛠️ Manual Code Setup Guide</h5>
+                    <p class="small text-muted">Please copy the HTML codes below and paste them into the <code>&lt;head&gt;</code> section of your website manually, or email them to your developer:</p>
                     
                     <?php if (!empty($project['ga_access'])): 
                         $gaId = clean($project['ga_access']);
@@ -198,16 +198,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="card onboard-card mb-4">
                 <div class="card-body p-4">
                     <h6 class="form-section-title text-primary fw-bold">
-                        <i class="fas fa-lock me-2"></i>1. WordPress Website Access / વેબસાઇટ લોગિન વિગતો
+                        <i class="fas fa-lock me-2"></i>1. WordPress Website Access
                     </h6>
                     <p class="small text-muted mb-3">
-                        <strong>Why we need this / શા માટે જરૂર છે:</strong> To automatically inject GSC, Analytics, conversion tags, and Schema markup code directly into the website header. / ગુગલ કોડ અને સ્કીમા સેટઅપ કરવા માટે.
+                        <strong>Why we need this:</strong> To automatically inject GSC, Analytics, conversion tags, and Schema markup code directly into the website header.
                     </p>
                     
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="no_admin_access" name="no_admin_access" value="1" onchange="toggleAdminRequired(this)">
                         <label class="form-check-label fw-bold text-danger" for="no_admin_access">
-                            I don't have WordPress / I will install codes manually (મેન્યુઅલ કોડ સેટઅપ ગાઇડ માટે ટિક કરો)
+                            I don't have WordPress / I will install codes manually (Tick for manual code setup guide)
                         </label>
                     </div>
                     
@@ -235,10 +235,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="card onboard-card mb-4">
                 <div class="card-body p-4">
                     <h6 class="form-section-title text-primary fw-bold">
-                        <i class="fab fa-google me-2"></i>2. Google Analytics & Ads IDs / ટ્રેકિંગ આઈડી
+                        <i class="fab fa-google me-2"></i>2. Google Analytics & Ads IDs
                     </h6>
                     <p class="small text-muted mb-3">
-                        તમારી વેબસાઇટનું ક્રાઉલિંગ અને મુલાકાતીઓ (Traffic) ચેક કરવા માટે નીચેના આઈડી આપો (જો બનાવેલ ન હોય તો ખાલી છોડી શકો છો).
+                        Provide the following IDs to track website traffic and crawling (leave blank if not created).
                     </p>
                     
                     <div class="mb-3">
@@ -258,7 +258,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="card onboard-card mb-4">
                 <div class="card-body p-4">
                     <h6 class="form-section-title text-primary fw-bold">
-                        <i class="fas fa-users me-2"></i>3. Competitors & Services / સ્પર્ધકો અને વ્યવસાય વિગતો
+                        <i class="fas fa-users me-2"></i>3. Competitors & Services
                     </h6>
                     
                     <div class="mb-3">
@@ -274,7 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="d-grid mb-4">
                 <button type="submit" class="btn btn-primary btn-lg fw-bold p-3 rounded shadow">
-                    <i class="fas fa-paper-plane me-2"></i>Submit Campaign Setup Details / સેટઅપ ફોર્મ સબમિટ કરો
+                    <i class="fas fa-paper-plane me-2"></i>Submit Campaign Setup Details
                 </button>
             </div>
         </form>

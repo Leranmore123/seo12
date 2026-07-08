@@ -181,7 +181,7 @@ if ($projectId > 0) {
     <div class="row align-items-center mb-4">
         <div class="col-md-6">
             <h3><i class="fas fa-route text-primary me-2"></i>AI SEO Platform Workflow</h3>
-            <p class="text-muted mb-0">સંપૂર્ણ SEO 80/20 સિસ્ટમનો એન્ડ-ટુ-એન્ડ રોડમેપ અને લાઇવ વર્કફ્લો</p>
+            <p class="text-muted mb-0">Complete SEO 80/20 System End-to-End Roadmap and Live Workflow</p>
         </div>
         <div class="col-md-6 text-md-end mt-3 mt-md-0">
             <form method="GET" action="workflow-dashboard.php" class="d-inline-block">
@@ -205,7 +205,7 @@ if ($projectId > 0) {
         <div class="alert alert-warning text-center py-5">
             <i class="fas fa-folder-open fa-3x mb-3 text-muted"></i>
             <h4>No Projects Found</h4>
-            <p class="text-muted">પ્રોજેક્ટ રોડમેપ જોવા માટે પહેલાં એક નવો પ્રોજેક્ટ ઉમેરો.</p>
+            <p class="text-muted">Please add a new project first to view the project roadmap.</p>
             <a href="add-project.php" class="btn btn-primary mt-2">Add New Project</a>
         </div>
     <?php else: ?>
@@ -374,17 +374,17 @@ if ($projectId > 0) {
                         </div>
                         <div>
                             <span class="badge bg-success" id="detailStatus">Setup Complete</span>
-                            <p class="text-muted small mb-0 mt-1" id="detailHeading">યુઝર રજીસ્ટ્રેશન અને લોગિન સિક્યોરિટી.</p>
+                            <p class="text-muted small mb-0 mt-1" id="detailHeading">User Registration and Login Security.</p>
                         </div>
                     </div>
                     <hr>
                     <div id="detailDescription" class="mt-3 text-dark">
-                        સિસ્ટમનો બેઝિક ઓથોરિટી ગેટવે જે યુઝર્સને ડેટા સેવ રાખવા માટે મંજૂરી આપે છે.
+                        The basic authority gateway of the system allowing users to keep their data secure.
                     </div>
                 </div>
                 <div class="mt-4">
                     <a href="#" class="btn btn-primary" id="detailActionBtn">
-                        <i class="fas fa-external-link-alt me-2"></i>મેનેજ કરો
+                        <i class="fas fa-external-link-alt me-2"></i>Manage
                     </a>
                 </div>
             </div>
@@ -402,189 +402,189 @@ const workflowSteps = {
         title: "Step 1: Sign Up / Login",
         icon: "fa-user-check",
         status: "Setup Complete",
-        heading: "યુઝર રજીસ્ટ્રેશન અને સિક્યોરિટી.",
-        desc: `સિસ્ટમ સુરક્ષા અને ઓથેન્ટિકેશન માટે તમારી લોગિન પ્રોફાઇલ ઓલરેડી સક્રિય છે. <br><br>
-               <strong>તમારી પ્રોફાઇલ માહિતી:</strong> <br>
+        heading: "User Registration and Security.",
+        desc: `Your login profile is already active for system security and authentication. <br><br>
+               <strong>Your Profile Information:</strong> <br>
                <ul>
-                 <li>યુઝરનેમ: <strong><?= clean($_SESSION['username'] ?? 'User') ?></strong></li>
-                 <li>સેશન સિક્યોરિટી: <strong>SSL / Protected</strong></li>
+                 <li>Username: <strong><?= clean($_SESSION['username'] ?? 'User') ?></strong></li>
+                 <li>Session Security: <strong>SSL / Protected</strong></li>
                </ul>`,
-        btnText: "પ્રોજેક્ટ ડેશબોર્ડ જુઓ",
+        btnText: "View Project Dashboard",
         btnLink: "dashboard.php"
     },
     2: {
         title: "Step 2: Add Website",
         icon: "fa-globe",
         status: "Setup Complete",
-        heading: "પ્રોજેક્ટ તરીકે સાઇટ લિંક ઉમેરવી.",
-        desc: `તમે સફળતાપૂર્વક તમારી વેબસાઇટ પ્રોજેક્ટ તરીકે સિસ્ટમમાં સેટઅપ કરેલી છે. <br><br>
-               <strong>સાઇટની માહિતી:</strong> <br>
+        heading: "Add Site Link as a Project.",
+        desc: `You have successfully set up your website as a project in the system. <br><br>
+               <strong>Site Information:</strong> <br>
                <ul>
-                 <li>વેબસાઇટ URL: <code><?= clean($project['website_url']) ?></code></li>
-                 <li>બિઝનેસ નામ: <strong><?= clean($project['business_name'] ?: 'Not Setup') ?></strong></li>
+                 <li>Website URL: <code><?= clean($project['website_url']) ?></code></li>
+                 <li>Business Name: <strong><?= clean($project['business_name'] ?: 'Not Setup') ?></strong></li>
                </ul>`,
-        btnText: "નવો પ્રોજેક્ટ ઉમેરો",
+        btnText: "Add New Project",
         btnLink: "add-project.php"
     },
     3: {
         title: "Step 3: Connect Tools",
         icon: "fa-link",
         status: "Setup Active",
-        heading: "ગુગલ ટૂલ્સ અને કસ્ટમ API કનેક્શન્સ.",
-        desc: `વેબસાઇટના એનાલિસિસ માટે PageSpeed Insights અને ChatGPT API કીઝ કનેક્ટ કરવામાં આવેલી છે. <br><br>
-               <strong>એક્ટિવ ટૂલ્સ:</strong> <br>
+        heading: "Google Tools & Custom API Connections.",
+        desc: `PageSpeed Insights and ChatGPT API keys are connected for website analysis. <br><br>
+               <strong>Active Tools:</strong> <br>
                <ul>
-                 <li>PageSpeed Insights API: <strong>કનેક્ટ થયેલ છે</strong></li>
-                 <li>ChatGPT API: <strong>એક્ટિવ</strong></li>
+                 <li>PageSpeed Insights API: <strong>Connected</strong></li>
+                 <li>ChatGPT API: <strong>Active</strong></li>
                </ul>`,
-        btnText: "API સેટઅપ મેનેજ કરો",
+        btnText: "Manage API Setup",
         btnLink: "api-setup.php"
     },
     4: {
         title: "Step 4: Initial Crawl",
         icon: "fa-spider",
         status: "Auto Checked",
-        heading: "વેબસાઇટના પેજીસની ક્રાઉલિંગ પ્રક્રિયા.",
-        desc: `સિસ્ટમ ઓટોમેશન દ્વારા સાઇટની ક્રાઉલિંગ પ્રોસેસ કરે છે જેથી ઓન-પેજ ઓડિટ રન થઈ શકે. <br><br>
-               <strong>ક્રાઉલિંગ વિગતો:</strong> <br>
+        heading: "Website Page Crawling Process.",
+        desc: `System performs crawling of the site automatically to run the on-page audit. <br><br>
+               <strong>Crawling Details:</strong> <br>
                <ul>
-                 <li>વેબસાઇટ લિંક: <code><?= clean($project['target_site'] ?: $project['website_url']) ?></code></li>
+                 <li>Website Link: <code><?= clean($project['target_site'] ?: $project['website_url']) ?></code></li>
                </ul>`,
-        btnText: "ઓન-પેજ રિપોર્ટ જુઓ",
+        btnText: "View On-page Report",
         btnLink: "seo-80-20.php?id=<?= $projectId ?>"
     },
     5: {
         title: "Step 5: SEO Audit & Scan",
         icon: "fa-check-double",
         status: "Completed",
-        heading: "૧૦૦૦+ એસઈઓ ચેક્સ રિયલ-ટાઇમ સ્કેનર.",
-        desc: `વેબસાઇટ પર ટેકનિકલ એરર્સ, મોબાઇલ કમ્પેટિબિલિટી, Robots.txt અને Sitemap ની ઓટોમેટિક ચકાસણી. <br><br>
-               <strong>તાજેતરનું ઓડિટ સ્ટેટસ:</strong> <br>
+        heading: "1000+ SEO Checks Real-time Scanner.",
+        desc: `Automatic checking of technical errors, mobile compatibility, Robots.txt, and Sitemap on the website. <br><br>
+               <strong>Recent Audit Status:</strong> <br>
                <ul>
-                 <li>પેજ સ્પીડ સ્કોર: <strong><?= $project['pagespeed_score'] ?: 'Not tested' ?>/100</strong></li>
-                 <li>ઓપન ટાસ્ક ઇસ્યુઝ: <strong class='text-danger'><?= $openIssuesCount ?> ખુલ્લા છે</strong></li>
+                 <li>PageSpeed Score: <strong><?= $project['pagespeed_score'] ?: 'Not tested' ?>/100</strong></li>
+                 <li>Open Task Issues: <strong class='text-danger'><?= $openIssuesCount ?> Open</strong></li>
                </ul>`,
-        btnText: "ઓન-પેજ એનાલાઈઝર રન કરો",
+        btnText: "Run On-page Analyzer",
         btnLink: "seo-80-20.php?id=<?= $projectId ?>"
     },
     6: {
         title: "Step 6: Competitor & Keyword Analysis",
         icon: "fa-search-dollar",
         status: "Live Tracked",
-        heading: "હરીફ વેબસાઇટ્સનું કીવર્ડ ગેપ ટ્રેકિંગ.",
-        desc: `તમારા મુખ્ય કીવર્ડ્સ માટે ગૂગલ સર્ચ એનાલિસિસ દ્વારા હરીફ સાઇટ્સ શોધવી. <br><br>
-               <strong>તમારા પ્રોજેક્ટની માહિતી:</strong> <br>
+        heading: "Competitor Websites Keyword Gap Tracking.",
+        desc: `Finding competitor sites using Google Search Analysis for your main keywords. <br><br>
+               <strong>Your Project Information:</strong> <br>
                <ul>
-                 <li>ટ્રેક કરેલા હરીફોની સંખ્યા: <strong><?= $competitorsCount ?></strong></li>
-                 <li>ટાર્ગેટ કીવર્ડ્સ: <strong><?= $keywordsCount ?></strong></li>
+                 <li>Number of Competitors Tracked: <strong><?= $competitorsCount ?></strong></li>
+                 <li>Target Keywords: <strong><?= $keywordsCount ?></strong></li>
                </ul>`,
-        btnText: "હરીફ એનાલિસિસ જુઓ",
+        btnText: "View Competitor Analysis",
         btnLink: "seo-80-20.php?id=<?= $projectId ?>"
     },
     7: {
         title: "Step 7: AI Suggestions",
         icon: "fa-brain",
         status: "AI Generated",
-        heading: "OpenAI ChatGPT દ્વારા શ્રેષ્ઠ Title & Description જનરેશન.",
-        desc: `વેબસાઇટ કન્ટેન્ટ અને કીવર્ડ ડેન્સિટીના આધારે આપમેળે ટાઇટલ અને ડિસ્ક્રિપ્શન સૂચનો. <br><br>
-               <strong>સ્ટેટસ:</strong> <br>
+        heading: "OpenAI ChatGPT optimized Title & Description generation.",
+        desc: `Automatic Title and Description suggestions based on website content and keyword density. <br><br>
+               <strong>Status:</strong> <br>
                <ul>
-                 <li>AI મેટા પ્રપોઝલ રેડી: <strong><?= $hasSavedMeta ? '✅ ઉપલબ્ધ છે' : '❌ રન કરવા માટે Run All SEO કરો' ?></strong></li>
+                 <li>AI Meta Proposal Ready: <strong><?= $hasSavedMeta ? '✅ Available' : '❌ Run "Run All SEO" to generate' ?></strong></li>
                </ul>`,
-        btnText: "મેટા ઓપ્ટિમાઇઝર ખોલો",
+        btnText: "Open Meta Optimizer",
         btnLink: "seo-80-20.php?id=<?= $projectId ?>"
     },
     8: {
         title: "Step 8: Review & Approve",
         icon: "fa-thumbs-up",
         status: "20% Manual required",
-        desc: `સિસ્ટમ દ્વારા સૂચવેલા ફેરફારોને ચેક કરીને લાઇવ કરવા માટે મંજૂરી (Approve) આપો. <br><br>
-               <strong>રિવ્યુ માહિતી:</strong> <br>
+        desc: `Approve suggested changes after reviewing them to make them live. <br><br>
+               <strong>Review Information:</strong> <br>
                <ul>
-                 <li>અપ્રૂવ કરવા લાયક ઓપન લિસ્ટ: <strong class='text-warning'><?= $openIssuesCount ?> ઇસ્યુઝ</strong></li>
+                 <li>Open Issues to Approve: <strong class='text-warning'><?= $openIssuesCount ?> Issues</strong></li>
                </ul>`,
-        btnText: "રિપોર્ટમાં ઇસ્યુઝ રિવ્યુ કરો",
+        btnText: "Review Issues in Report",
         btnLink: "seo-80-20.php?id=<?= $projectId ?>"
     },
     9: {
         title: "Step 9: Auto Execute",
         icon: "fa-code",
         status: "Ready to Execute",
-        desc: `જેવા તમે કોઈ ફિક્સ કન્ફર્મ કરો છો, એટલે આપણું ઓટોમેશન ટાસ્ક સક્રિય થઈ જાય છે.`,
-        btnText: "કાર્તિક પ્રોફાઇલ ક્રેડેન્શિયલ જુઓ",
+        desc: `As soon as you confirm a fix, our automation task goes active.`,
+        btnText: "View Client Credentials Profile",
         btnLink: "client-profile.php?id=<?= $projectId ?>"
     },
     10: {
         title: "Step 10: Deploy Website",
         icon: "fa-cloud-upload-alt",
         status: "Live Integration",
-        desc: `મંજૂર થયેલા ફેરફારો ઓટોમેટિકલી ક્રેડેન્શિયલ્સના માધ્યમથી ડાયરેક્ટ સાઇટ પર સેવ થઈ જાય છે.`,
-        btnText: "લાઇવ સાઇટ વિઝિટ કરો",
+        desc: `Approved changes are automatically saved directly on the site via credentials.`,
+        btnText: "Visit Live Site",
         btnLink: "<?= clean($project['website_url']) ?>"
     },
     11: {
         title: "Step 11: Index Request",
         icon: "fa-google",
         status: "Auto Requesting",
-        desc: `ગુગલ ક્રાઉલર તમારી સાઇટને જલ્દી ઇન્ડેક્સ કરે તે માટે ઇન્ડેક્સિંગ રિક્વેસ્ટ સબમિશન.`,
-        btnText: "પ્રોજેક્ટ કીવર્ડ્સ જુઓ",
+        desc: `Indexing request submission to help Google crawler index your site quickly.`,
+        btnText: "View Project Keywords",
         btnLink: "seo-80-20.php?id=<?= $projectId ?>"
     },
     12: {
         title: "Step 12: Rank Tracking",
         icon: "fa-chart-line",
         status: "100% Auto Tracked",
-        desc: `ગુગલ અને બિંગ સર્ચ એન્જિનમાં તમારા કીવર્ડ્સ કયા ક્રમે છે તેનું દરરોજ ઓટોમેટિક એનાલિસિસ. <br><br>
-               <strong>ટ્રેકિંગ માહિતી:</strong> <br>
+        desc: `Daily automatic analysis of your keyword rankings on Google and Bing search engines. <br><br>
+               <strong>Tracking Information:</strong> <br>
                <ul>
-                 <li>ટ્રેક કીવર્ડ્સ: <strong><?= $keywordsCount ?></strong></li>
+                 <li>Tracked Keywords: <strong><?= $keywordsCount ?></strong></li>
                </ul>`,
-        btnText: "રેન્ક ટ્રેકર જુઓ",
+        btnText: "View Rank Tracker",
         btnLink: "seo-80-20.php?id=<?= $projectId ?>"
     },
     13: {
         title: "Step 13: Traffic & Analytics",
         icon: "fa-chart-area",
         status: "Monitoring Active",
-        desc: `વેબસાઇટ પર કયા પેજ પરથી ટ્રાફિક અને કન્વર્ઝન રેટ આવે છે તેનું મોનિટરિંગ કરવું.`,
-        btnText: "ડેશબોર્ડ ખોલો",
+        desc: `Monitoring which pages drive website traffic and conversion rates.`,
+        btnText: "Open Dashboard",
         btnLink: "dashboard.php"
     },
     14: {
         title: "Step 14: Backlink Process",
         icon: "fa-link",
         status: "80% Auto Posting",
-        heading: "આપમેળે હાઈ-ક્વોલિટી બેકલીંક્સ બિલ્ડિંગ.",
-        desc: `Instapaper, Wakelet, Tumblr, Minds જેવી સાઇટ્સ પર ડાયનેમિક સિંગલ ટાર્ગેટ લિંક્સ ઓટો-પોસ્ટ થાય છે. <br><br>
-               <strong>તમારા પ્રોજેક્ટનું સ્ટેટસ:</strong> <br>
+        heading: "Automated High-Quality Backlink Building.",
+        desc: `Dynamic single target links are auto-posted to sites like Instapaper, Wakelet, Tumblr, and Minds. <br><br>
+               <strong>Your Project Status:</strong> <br>
                <ul>
-                 <li>બનેલી કુલ બેકલીંક્સ: <strong><?= $backlinksCount ?></strong></li>
+                 <li>Total Backlinks Created: <strong><?= $backlinksCount ?></strong></li>
                </ul>`,
-        btnText: "બેકલીંક સબમિશન મેનેજ કરો",
+        btnText: "Manage Backlink Submissions",
         btnLink: "submission-manager.php"
     },
     15: {
         title: "Step 15: Reports",
         icon: "fa-file-pdf",
         status: "White-Label Ready",
-        desc: `ક્લાયન્ટ શેરિંગ માટે એસઈઓ પ્રોગ્રેસનો સુંદર રીપોર્ટ એક્સપોર્ટ કરવાનો ઓપ્શન.`,
-        btnText: "Excel માં રિપોર્ટ એક્સપોર્ટ કરો",
+        desc: `Option to export a beautiful SEO progress report for client sharing.`,
+        btnText: "Export Report to Excel",
         btnLink: "export-excel.php?id=<?= $projectId ?>"
     },
     16: {
         title: "Step 16: Alerts & Notification",
         icon: "fa-bell",
         status: "Active Monitoring",
-        desc: `વેબસાઇટ ડાઉન થાય કે રેન્ક ડ્રોપ થાય ત્યારે WhatsApp અને ઈમેલ પર ઓટોમેટિક અલર્ટ સબમિશન.`,
-        btnText: "ઓટો-શેડ્યૂલર જુઓ",
+        desc: `Automatic alert submissions via WhatsApp and email if the website goes down or rank drops.`,
+        btnText: "View Auto-Scheduler",
         btnLink: "schedule-setup.php"
     },
     17: {
         title: "Step 17: Continuous Improvement",
         icon: "fa-redo-alt",
         status: "Active Cycle",
-        desc: `એસઈઓ સ્કોર સુધારવા માટે દર અઠવાડિયે કન્ટીન્યુઅસ ઓટોમેટિક ઓડિટ રન કરતું સાયકલ.`,
-        btnText: "વર્કફ્લો હોમ જુઓ",
+        desc: `Cycle running continuous automatic audits every week to improve SEO score.`,
+        btnText: "View Workflow Home",
         btnLink: "workflow-dashboard.php?id=<?= $projectId ?>"
     }
 };
@@ -604,7 +604,7 @@ function selectStep(stepNum) {
     if (step) {
         document.getElementById('detailTitle').textContent = step.title;
         document.getElementById('detailStatus').textContent = step.status;
-        document.getElementById('detailHeading').textContent = step.heading || "પ્રક્રિયાની વિગતો અને એનાલિસિસ.";
+        document.getElementById('detailHeading').textContent = step.heading || "Process details and analysis.";
         document.getElementById('detailDescription').innerHTML = step.desc;
         
         // Icon update

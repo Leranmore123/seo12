@@ -28,11 +28,11 @@ requireMenuPermission('how-to-use');
 <div class="container py-4" style="max-width: 960px;">
 
   <div class="text-center mb-5">
-    <h2 class="fw-bold text-primary"><i class="fas fa-graduation-cap me-2"></i>SEO 80/20 System — સંપૂર્ણ ગાઇડ (Easy Guide)</h2>
-    <p class="text-muted">નાના બાળકને પણ આવડી જાય તેવું સરળ અને વિગતવાર માર્ગદર્શન (Detailed Step-by-Step Tutorial)</p>
+    <h2 class="fw-bold text-primary"><i class="fas fa-graduation-cap me-2"></i>SEO 80/20 System — Complete Guide</h2>
+    <p class="text-muted">Simple and detailed step-by-step guidance</p>
     <div class="d-flex justify-content-center gap-2 mt-2">
-      <span class="badge bg-primary px-3 py-2"><i class="fas fa-robot me-1"></i> ૮૦% ઓટોમેટિક</span>
-      <span class="badge bg-success px-3 py-2"><i class="fas fa-user me-1"></i> ૨૦% મેન્યુઅલ</span>
+      <span class="badge bg-primary px-3 py-2"><i class="fas fa-robot me-1"></i> 80% Automatic</span>
+      <span class="badge bg-success px-3 py-2"><i class="fas fa-user me-1"></i> 20% Manual</span>
       <span class="badge bg-dark px-3 py-2"><i class="fas fa-brain me-1"></i> ChatGPT Powered</span>
     </div>
   </div>
@@ -40,14 +40,14 @@ requireMenuPermission('how-to-use');
   <!-- SECTION 1: Client Profile Details Overview -->
   <div class="guide-section">
     <div class="guide-header bg-primary">
-      <i class="fas fa-user-circle fa-lg me-2"></i> ૧. ક્લાયન્ટ પ્રોફાઇલ અને સામાન્ય વિગતો (Client Profile Details)
+      <i class="fas fa-user-circle fa-lg me-2"></i> 1. Client Profile and General Details
     </div>
     <div class="guide-body gu-text">
-      <p>જ્યારે નવો ક્લાયન્ટ આવે ત્યારે તેના પ્રોજેક્ટના <strong>Client Profile</strong> માં નીચેની વિગતો સાચી ભરવી:</p>
+      <p>When a new client arrives, fill in the following details correctly in the <strong>Client Profile</strong> of their project:</p>
       <ul>
-        <li><strong>Business Name:</strong> દુકાન કે કંપનીનું સાચું નામ (દા.ત. <code>Learnmore Technologies</code>).</li>
-        <li><strong>Contact Name:</strong> ક્લાયન્ટના માલિક અથવા સંપર્ક વ્યક્તિનું નામ.</li>
-        <li><strong>Phone Number &amp; Email:</strong> ક્લાયન્ટનો ફોન નંબર અને ઈમેઈલ આઈડી. આ માહિતી લોકલ સર્ચ સ્કીમા અને કોન્ટેક્ટ પેજ માટે જરૂરી છે.</li>
+        <li><strong>Business Name:</strong> True name of shop or company (e.g. <code>Learnmore Technologies</code>).</li>
+        <li><strong>Contact Name:</strong> Name of the owner or contact person.</li>
+        <li><strong>Phone Number &amp; Email:</strong> Client's phone number and email ID. This information is required for local search schema and contact page.</li>
       </ul>
     </div>
   </div>
@@ -55,20 +55,20 @@ requireMenuPermission('how-to-use');
   <!-- SECTION 3: Google Services Access Details -->
   <div class="guide-section">
     <div class="guide-header bg-dark">
-      <i class="fab fa-google fa-lg me-2"></i> ૨. ગુગલ સર્વિસીઝ એક્સેસ વિગતો (Google Services Access Details)
+      <i class="fab fa-google fa-lg me-2"></i> 2. Google Services Access Details
     </div>
     <div class="guide-body gu-text">
       
       <!-- Google Search Console -->
       <div class="mb-4">
         <h5 class="text-primary fw-bold"><i class="fas fa-search me-2"></i>Google Search Console (GSC) Access</h5>
-        <p><strong>આ શું છે?</strong> તમારી વેબસાઇટ ગૂગલ પર ઇન્ડેક્સ થઈ છે કે નહીં તે આનાથી ચેક થાય છે.</p>
+        <p><strong>What is this?</strong> This checks whether your website is indexed on Google.</p>
         <div class="highlight-box">
-          <strong>સરળ ભાષામાં કેવી રીતે મેળવવું:</strong><br>
-          ૧. <a href="https://search.google.com/search-console" target="_blank">Google Search Console</a> માં લોગીન કરો.<br>
-          ૨. નવું ડોમેન ઉમેરો (દા.ત. <code>https://example.com</code>).<br>
-          ૩. એજન્સીના ઈમેઈલ આઈડી (દા.ત. <code>your-agency@gmail.com</code>) ને <strong>Delegated Owner</strong> અથવા <strong>Full Access User</strong> તરીકે એડ કરો.<br>
-          ૪. પ્રોફાઈલમાં આ ઈમેઈલ નાખી <strong>"Auto-Verify GSC"</strong> બટન દબાવો. સેલેનિયમ આપોઆપ વેરિફિકેશન ટૅગ વર્ડપ્રેસ સાઇટ પર મૂકી દેશે!
+          <strong>How to get in simple steps:</strong><br>
+          1. Login to <a href="https://search.google.com/search-console" target="_blank">Google Search Console</a>.<br>
+          2. Add new domain (e.g. <code>https://example.com</code>).<br>
+          3. Add agency email ID (e.g. <code>your-agency@gmail.com</code>) as a <strong>Delegated Owner</strong> or <strong>Full Access User</strong>.<br>
+          4. Enter this email in the profile and press the <strong>"Auto-Verify GSC"</strong> button. Selenium will automatically place the verification tag on the WordPress site!
         </div>
       </div>
 
@@ -77,14 +77,14 @@ requireMenuPermission('how-to-use');
       <!-- Google Analytics -->
       <div class="mb-4">
         <h5 class="text-success fw-bold"><i class="fas fa-chart-line me-2"></i>Google Analytics (GA4) Property ID</h5>
-        <p><strong>આ શું છે?</strong> તમારી સાઇટ પર રોજ કેટલા લોકો ક્યાંથી આવે છે તેનું ટ્રેકિંગ આનાથી થાય છે.</p>
+        <p><strong>What is this?</strong> This tracks how many visitors come to your site daily and from where.</p>
         <div class="highlight-box">
-          <strong>સરળ ભાષામાં કોડ ક્યાંથી મેળવવો:</strong><br>
-          ૧. <a href="https://analytics.google.com" target="_blank">Google Analytics</a> માં લોગીન કરો.<br>
-          ૨. **Admin** (સેટિંગ આઈકોન) પર ક્લિક કરો.<br>
-          ૩. **Data Streams** પર જાઓ અને તમારી વેબસાઇટ પર ક્લિક કરો.<br>
-          ૪. ત્યાં તમને જમણી બાજુ ઉપર **Measurement ID** જોવા મળશે (જે `G-XXXXXXXXXX` ફોર્મેટમાં હશે).<br>
-          ૫. આ આઈડી કોપી કરીને અહીં નાખો અને **"Auto-Install GA"** બટન દબાવો. સેલેનિયમ આપોઆપ ટ્રેકિંગ કોડ સાઇટના હેડરમાં સેટ કરી દેશે!
+          <strong>How to get the code in simple steps:</strong><br>
+          1. Login to <a href="https://analytics.google.com" target="_blank">Google Analytics</a>.<br>
+          2. Click on **Admin** (Settings icon).<br>
+          3. Go to **Data Streams** and click on your website.<br>
+          4. There you will see the **Measurement ID** in the top right (in `G-XXXXXXXXXX` format).<br>
+          5. Copy this ID, paste it here, and click the **"Auto-Install GA"** button. Selenium will automatically set the tracking code in the header of the site!
         </div>
       </div>
 
@@ -93,14 +93,14 @@ requireMenuPermission('how-to-use');
       <!-- Google Ads -->
       <div>
         <h5 class="text-warning fw-bold"><i class="fas fa-ad me-2"></i>Google Ads Conversion ID</h5>
-        <p><strong>આ શું છે?</strong> ગૂગલ પર જાહેરાતો રન કરવા માટે અને સાઇટ પરથી કેટલા કોલ અથવા લીડ્સ મળ્યા તે ટ્રેક કરવા આ ટેગ જરૂરી છે.</p>
+        <p><strong>What is this?</strong> This tag is required to run ads on Google and track how many calls or leads were received from the site.</p>
         <div class="highlight-box">
-          <strong>સરળ ભાષામાં આઈડી કેવી રીતે મેળવવો:</strong><br>
-          ૧. <a href="https://ads.google.com" target="_blank">Google Ads Account</a> ઓપન કરો.<br>
-          ૨. **Tools and Settings** -> **Measurement** -> **Conversions** પર ક્લિક કરો.<br>
-          ૩. નવી કન્વર્ઝન એક્શન સેટ કરો. છેલ્લે **Tag Setup** સેક્શનમાં જાઓ.<br>
-          ૪. ત્યાં તમને **Conversion ID** જોવા મળશે (જે `AW-XXXXXXXXXX` ફોર્મેટમાં હશે).<br>
-          ૫. આ કોપી કરી પ્રોફાઇલમાં પેસ્ટ કરો અને **"Auto-Install Ads Tag"** બટન દબાવો. સેલેનિયમ આપોઆપ આ ટ્રેકિંગ કોડ પણ વેબસાઈટના કોડમાં સેટ કરી દેશે!
+          <strong>How to get the ID in simple steps:</strong><br>
+          1. Open <a href="https://ads.google.com" target="_blank">Google Ads Account</a>.<br>
+          2. Click on **Tools and Settings** -> **Measurement** -> **Conversions**.<br>
+          3. Set up new conversion action. Finally, go to the **Tag Setup** section.<br>
+          4. There you will see the **Conversion ID** (in `AW-XXXXXXXXXX` format).<br>
+          5. Copy and paste this into the profile and press the **"Auto-Install Ads Tag"** button. Selenium will automatically set this tracking code in the website's code!
         </div>
       </div>
 
@@ -110,17 +110,17 @@ requireMenuPermission('how-to-use');
   <!-- SECTION 4: CMS Admin Login Credentials -->
   <div class="guide-section">
     <div class="guide-header bg-danger">
-      <i class="fas fa-lock fa-lg me-2"></i> ૩. વેબસાઇટ એડમિન લોગીન વિગતો (CMS Admin Login Credentials)
+      <i class="fas fa-lock fa-lg me-2"></i> 3. Website Admin Login Credentials
     </div>
     <div class="guide-body gu-text">
-      <p>આપણી સિસ્ટમ ઓટોમેટિક ઓન-પેજ ફિક્સિસ, ગૂગલ વેરિફિકેશન, એનાલિટિક્સ અને સ્કીમા સેટ કરવા માટે ક્લાયન્ટની સાઇટના બેકએન્ડમાં લોગીન થાય છે. તેના માટે આ વિગતો ભરો:</p>
+      <p>Our system logs into the backend of the client's site to automatically perform on-page fixes, Google verification, Analytics, and Schema setups. Fill in these details for that:</p>
       <ul>
-        <li><strong>Admin Login URL:</strong> ક્લાયન્ટની વર્ડપ્રેસ સાઇટનો લોગીન પાથ (દા.ત. <code>https://example.com/wp-admin</code>).</li>
-        <li><strong>Admin Username / Email:</strong> વર્ડપ્રેસના એડમિન અકાઉન્ટનું યુઝરનેમ (દા.ત. <code>admin</code>).</li>
-        <li><strong>Admin Password:</strong> તે અકાઉન્ટનો પાસવર્ડ. (આ વિગતો ડેટાબેઝમાં એન્ક્રિપ્ટેડ ફોર્મેટમાં સુરક્ષિત રીતે સચવાય છે).</li>
+        <li><strong>Admin Login URL:</strong> The login path of the client's WordPress site (e.g. <code>https://example.com/wp-admin</code>).</li>
+        <li><strong>Admin Username / Email:</strong> Username of the WordPress admin account (e.g. <code>admin</code>).</li>
+        <li><strong>Admin Password:</strong> Password of that account. (These details are securely saved in encrypted format in the database).</li>
       </ul>
       <div class="alert alert-warning small">
-        <i class="fas fa-exclamation-triangle me-1"></i> <strong>નોંધ:</strong> જો તમે આ વિગતો નહીં ભરો, તો સેલેનિયમ ઓટો-સેટઅપ કરી શકશે નહીં અને તમારે કોડ જાતે કોપી-પેસ્ટ કરવો પડશે.
+        <i class="fas fa-exclamation-triangle me-1"></i> <strong>Note:</strong> If you do not fill in these details, Selenium will not be able to auto-setup and you will have to copy-paste the code manually.
       </div>
     </div>
   </div>
@@ -128,17 +128,17 @@ requireMenuPermission('how-to-use');
   <!-- SECTION 5: Competitor Websites -->
   <div class="guide-section">
     <div class="guide-header bg-success">
-      <i class="fas fa-users fa-lg me-2"></i> ૪. હરીફ વેબસાઇટ્સ (Competitor Websites)
+      <i class="fas fa-users fa-lg me-2"></i> 4. Competitor Websites
     </div>
     <div class="guide-body gu-text">
-      <p><strong>આ શું છે?</strong> તમારા ક્લાયન્ટના ક્ષેત્રમાં અન્ય જે પણ લોકો ગૂગલમાં આગળ છે તેમની સાઇટનો અભ્યાસ કરવા માટે આ ખાનું છે.</p>
+      <p><strong>What is this?</strong> This field is for studying other sites in your client's industry that are ranking high on Google.</p>
       <div class="highlight-box">
-        <strong>કેવી રીતે ઉપયોગ કરવો:</strong><br>
-        ૧. ગૂગલમાં તમારો કીવર્ડ સર્ચ કરો.<br>
-        ૨. પ્રથમ પેજ પર આવતી ટોચની ૨-૩ વેબસાઇટ્સના ડોમેન નામ જુઓ.<br>
-        ૩. તે સાઇટના નામ અલ્પવિરામ (comma `,`) થી જોડીને અહીં લખો.<br>
-        * દાખલા તરીકે: <code>competitor1.com, competitor2.in, competitor3.org</code><br>
-        ૪. પ્રોફાઇલ સેવ કરો. આપણી સિસ્ટમ આપોઆપ તેમના કીવર્ડ્સ, રેન્ક અને લોડિંગ સ્પીડની સરખામણી કરીને ડેટા આપશે!
+        <strong>How to use:</strong><br>
+        1. Search your keyword on Google.<br>
+        2. Look at the domain names of the top 2-3 websites appearing on the first page.<br>
+        3. Write those site names separated by a comma (`,`) here.<br>
+        * For example: <code>competitor1.com, competitor2.in, competitor3.org</code><br>
+        4. Save the profile. Our system will automatically compare their keywords, rankings, and page speeds and present the data!
       </div>
     </div>
   </div>
@@ -146,18 +146,18 @@ requireMenuPermission('how-to-use');
   <!-- SECTION 6: Local Business Schema -->
   <div class="guide-section">
     <div class="guide-header bg-warning text-dark">
-      <i class="fas fa-map-marker-alt fa-lg me-2"></i> ૫. લોકલ એસઈઓ સ્કીમા વન-ક્લિક સેટઅપ (Local Business Schema)
+      <i class="fas fa-map-marker-alt fa-lg me-2"></i> 5. Local SEO Schema One-Click Setup
     </div>
     <div class="guide-body gu-text">
-      <p><strong>આ શું છે?</strong> ગૂગલ મેપ્સ અને ગૂગલ સર્ચમાં તમારા સ્થાનિક વિસ્તાર (દા.ત. રાજકોટ, અમદાવાદ) ના કસ્ટમર્સ માટે પ્રથમ પેજ પર લાવવા માટે આ લોકલ બિઝનેસ ડેટા (JSON-LD) જરૂરી છે.</p>
+      <p><strong>What is this?</strong> This local business data (JSON-LD) is required to rank on the first page for local area customers (e.g., Rajkot, Ahmedabad) in Google Maps and Google Search.</p>
       <div class="highlight-box">
-        <strong>સેટઅપ કઈ રીતે કરવું:</strong><br>
-        ૧. સેક્શન ૨ માં ક્લાયન્ટની દુકાનનું સચોટ સરનામું (Business Address) અને સમય (Operating Hours) ભરો.<br>
-        * સરનામાનું ઉદાહરણ: <code>101, Business Hub, Kalawad Road, Rajkot, Gujarat 360005</code><br>
-        * સમયનું ઉદાહરણ: <code>Mo-Sa 09:00-19:00</code> (સોમવાર થી શનિવાર સવારે ૯ થી સાંજે ૭ સુધી)<br>
-        ૨. પેજ સેવ કરો.<br>
-        ૩. સેક્શન ૬ માં જઈને **"Auto-Install Local Business Schema"** બટન પર સિંગલ ક્લિક કરો.<br>
-        ૪. સેલેનિયમ આપોઆપ તમારા ક્લાયન્ટનો લોકેશન સ્કીમા જનરેટ કરી વર્ડપ્રેસના કોડમાં ઇન્સ્ટોલ કરી દેશે!
+        <strong>How to setup:</strong><br>
+        1. In Section 2, fill in the exact shop/business address and operating hours.<br>
+        * Address example: <code>101, Business Hub, Kalawad Road, Rajkot, Gujarat 360005</code><br>
+        * Hours example: <code>Mo-Sa 09:00-19:00</code> (Monday to Saturday 9 AM to 7 PM)<br>
+        2. Save the page.<br>
+        3. Go to Section 6 and click the **"Auto-Install Local Business Schema"** button.<br>
+        4. Selenium will automatically generate the location schema of your client and install it into the WordPress code!
       </div>
     </div>
   </div>
@@ -165,21 +165,21 @@ requireMenuPermission('how-to-use');
   <!-- SOCIAL ACCOUNTS MANAGEMENT -->
   <div class="guide-section">
     <div class="guide-header bg-info text-dark">
-      <i class="fas fa-users-cog fa-lg me-2"></i> ૬. સોશિયલ મીડિયા એકાઉન્ટ્સ કેવી રીતે લિંક કરવા (Manage Social Accounts)
+      <i class="fas fa-users-cog fa-lg me-2"></i> 6. How to link Social Media Accounts
     </div>
     <div class="guide-body gu-text">
-      <p>જ્યાં સોશિયલ મીડિયા પર આપણી ડેઇલી બેકલિન્ક્સ પોસ્ટ થાય છે તે એકાઉન્ટ્સ સેટઅપ કરવાની રીત:</p>
+      <p>How to set up accounts where our daily backlinks will be posted:</p>
       
       <!-- Single Platform Multiple Accounts -->
       <div class="mb-3">
-        <h6 class="fw-bold text-primary"><i class="fas fa-plus-circle me-1"></i>૧ પ્લેટફોર્મ માટે ૫ થી વધુ અકાઉન્ટ્સ ઉમેરવાની રીત:</h6>
-        <p>જો તમારે એક જ ક્લાયન્ટ માટે ૫ અલગ Pinterest કે WordPress એકાઉન્ટ ઉમેરવા હોય તો:</p>
+        <h6 class="fw-bold text-primary"><i class="fas fa-plus-circle me-1"></i>How to add more than 5 accounts for 1 platform:</h6>
+        <p>If you want to add 5 different Pinterest or WordPress accounts for the same client:</p>
         <ol>
-          <li>મેનુમાંથી **Submissions** પેજ પર જાઓ.</li>
-          <li>જે પણ પ્લેટફોર્મ (દા.ત. Pinterest) પર જવું હોય ત્યાં **"Add Credentials"** અથવા **"Add More Account"** પર ક્લિક કરો.</li>
-          <li>પ્રથમ એકાઉન્ટનું યુઝરનેમ અને પાસવર્ડ ભરી સેવ કરો.</li>
-          <li>ફરીથી **"Add More Account"** પર ક્લિક કરો અને બીજા એકાઉન્ટનું યુઝરનેમ-પાસવર્ડ લખી સેવ કરો.</li>
-          <li>આ રીતે તમે અગણિત અકાઉન્ટ્સ કન્ફિગર કરી શકો છો. સિસ્ટમ આપોઆપ બધા અકાઉન્ટ્સને વારાફરતી યુઝ કરીને રોજ પોસ્ટ કરશે!</li>
+          <li>Go to the **Submissions** page from the menu.</li>
+          <li>Click **"Add Credentials"** or **"Add More Account"** on the desired platform (e.g. Pinterest).</li>
+          <li>Enter the username and password for the first account and save.</li>
+          <li>Click **"Add More Account"** again, write the second account credentials, and save.</li>
+          <li>This way you can configure unlimited accounts. The system will automatically rotate through all accounts to post daily!</li>
         </ol>
       </div>
 
@@ -187,17 +187,17 @@ requireMenuPermission('how-to-use');
 
       <!-- Bulk Upload -->
       <div>
-        <h6 class="fw-bold text-success"><i class="fas fa-file-import me-1"></i>બધા અકાઉન્ટ્સ એકસાથે સેવ કરવા (Bulk Add):</h6>
-        <p>જો બધી જ વિગતો ફોર્મ ભર્યા વિના એકસાથે એડ કરવી હોય તો:</p>
+        <h6 class="fw-bold text-success"><i class="fas fa-file-import me-1"></i>Add all accounts at once (Bulk Add):</h6>
+        <p>If you want to add all details at once without filling individual forms:</p>
         <ol>
-          <li>**Submissions** પેજ પર જઈને **"Bulk Add Accounts"** બટન પર ક્લિક કરો.</li>
-          <li>નીચે આપેલા ફોર્મેટમાં ટેક્સ્ટ બોક્સમાં એકાઉન્ટ્સ લખો:<br>
-          <code>પ્લેટફોર્મ,યુઝરનેમ,પાસવર્ડ</code></li>
-          <li>ઉદાહરણ:<br>
+          <li>Go to **Submissions** page and click on **"Bulk Add Accounts"** button.</li>
+          <li>Write the accounts in the text box in the following format:<br>
+          <code>platform,username,password</code></li>
+          <li>Example:<br>
           <pre class="bg-light p-2 rounded small">bluesky,user1.bsky.social,app-password-here
 pinterest,email1@gmail.com,password123
 pinterest,email2@gmail.com,password456</pre></li>
-          <li>**"Add All Accounts"** દબાવો. બધા જ પ્લેટફોર્મના એકાઉન્ટ્સ એક સેકન્ડમાં સેવ થઈ જશે!</li>
+          <li>Press **"Add All Accounts"**. Accounts for all platforms will be saved in a second!</li>
         </ol>
       </div>
 
@@ -207,19 +207,19 @@ pinterest,email2@gmail.com,password456</pre></li>
   <!-- HOW TO RUN SCHEDULER DAILY -->
   <div class="guide-section">
     <div class="guide-header bg-success">
-      <i class="fas fa-clock fa-lg me-2"></i> ૭. ડેઇલી શિડ્યુલર કેવી રીતે ચલાવવું (How to Run Daily Scheduler)
+      <i class="fas fa-clock fa-lg me-2"></i> 7. How to run the Daily Scheduler
     </div>
     <div class="guide-body gu-text">
-      <p>રોજ ઓટો-આર્ટિકલ લખીને સાઇટ્સ પર ઓટોમેટિક સબમિટ કરવા માટે નીચેની પદ્ધતિ વાપરો:</p>
+      <p>Use the following method to write auto-articles daily and submit them to sites automatically:</p>
       <ul>
-        <li><strong>રીત ૧ (મેન્યુઅલ રન):</strong> રોજ સવારે તમારા કમ્પ્યુટરમાં પ્રોજેક્ટ ફોલ્ડરમાં રહેલી **`run-scheduler.bat`** ફાઈલ પર ડબલ ક્લિક કરો. તે બધી સાઇટ પર પોસ્ટ કરવાનું ચાલુ કરી દેશે.</li>
-        <li><strong>રીત ૨ (૧૦૦% ઓટોમેટિક વિન્ડોઝ સેટઅપ):</strong>
+        <li><strong>Method 1 (Manual Run):</strong> Double-click the **`run-scheduler.bat`** file inside the project folder on your computer every morning. It will start posting to all sites.</li>
+        <li><strong>Method 2 (100% Automatic Windows Setup):</strong>
           <ol>
-            <li>વિન્ડોઝમાં **Task Scheduler** ઓપન કરો.</li>
-            <li>**Create Basic Task** પર ક્લિક કરો અને નામ આપો: <code>SEO Poster</code>.</li>
-            <li>ટેસ્ક ટ્રિગરમાં **Daily** સિલેક્ટ કરીને રોજ સવારનો સમય સેટ કરો.</li>
-            <li>એક્શનમાં **Start a program** પર ક્લિક કરીને **`run-auto-schedule.bat`** ફાઈલ સિલેક્ટ કરો.</li>
-            <li>તે સક્સેસફુલી સેવ કરી લો. હવે તમારું કમ્પ્યુટર ચાલુ હશે ત્યારે તે રોજ સવારે બેકગ્રાઉન્ડમાં આપોઆપ રન થઈ જશે!</li>
+            <li>Open **Task Scheduler** in Windows.</li>
+            <li>Click on **Create Basic Task** and name it: <code>SEO Poster</code>.</li>
+            <li>Select **Daily** in task trigger and set the morning time.</li>
+            <li>In Action, click **Start a program** and select the **`run-auto-schedule.bat`** file.</li>
+            <li>Save it successfully. Now, as long as your computer is on, it will run automatically in the background every morning!</li>
           </ol>
         </li>
       </ul>
@@ -228,10 +228,10 @@ pinterest,email2@gmail.com,password456</pre></li>
 
   <div class="text-center mt-4 mb-5">
     <a href="dashboard.php" class="btn btn-primary btn-lg me-3">
-      <i class="fas fa-tachometer-alt me-2"></i>ગો ટુ ડેશબોર્ડ (Dashboard)
+      <i class="fas fa-tachometer-alt me-2"></i>Go to Dashboard
     </a>
     <a href="add-project.php" class="btn btn-success btn-lg">
-      <i class="fas fa-plus me-2"></i>નવો પ્રોજેક્ટ ઉમેરો (Add Project)
+      <i class="fas fa-plus me-2"></i>Add New Project
     </a>
   </div>
 

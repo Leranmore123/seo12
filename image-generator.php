@@ -215,7 +215,7 @@ function generateGDFallback($keyword, $targetSite, $phone, $email, $outputPath) 
  * Main: AWS/Ahmedabad style poster — keyword + phone + email + city background
  */
 function generateMarketingImage(string $keyword, string $targetSite, string $phone, string $email, string $outputPath) {
-    // 1) Professional poster (screenshot જેવી — exact phone/email)
+    // 1) Professional poster (screenshot-like — exact phone/email)
     $poster = buildLearnmoreStylePoster($keyword, $phone, $email, $targetSite, $outputPath);
     if (!empty($poster['success'])) {
         return $poster;

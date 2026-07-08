@@ -115,7 +115,7 @@ if ($projectId > 0) {
         <div class="alert alert-warning text-center py-5">
             <i class="fas fa-folder-open fa-3x mb-3 text-muted"></i>
             <h4>No Active Projects</h4>
-            <p class="text-muted">પ્રોજેક્ટ સેટ કરવા માટે ડેશબોર્ડ પર જાઓ.</p>
+            <p class="text-muted">Go to the dashboard to set up the project.</p>
         </div>
     <?php else: ?>
         
@@ -125,10 +125,10 @@ if ($projectId > 0) {
                 <i class="fab fa-google fa-3x text-muted mb-3"></i>
                 <h5 class="fw-bold">Google Search Console & Analytics GA4 Integration</h5>
                 <p class="text-muted mx-auto" style="max-width: 650px;">
-                    ગૂગલ સર્ચ કન્સોલ અને એનાલિટિક્સ ઇન્ટિગ્રેશન હજુ સુધી કનેક્ટ કરવામાં આવ્યું નથી. લાઇવ ઓર્ગેનિક ક્લિક્સ, ઇમ્પ્રેશન્સ, કીવર્ડ ટ્રેન્ડ્સ અને રીઅલ-ટાઇમ ટ્રાફિક ડેટા મેળવવા માટે Google Developer Console દ્વારા OAuth સેટ કરવું જરૂરી છે.
+                    Google Search Console and Analytics integration has not been connected yet. Setting up OAuth via Google Developer Console is required to get live organic clicks, impressions, keyword trends, and real-time traffic data.
                 </p>
                 <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#settingsModal">
-                    <i class="fab fa-google me-2"></i>ગૂગલ OAuth લિંક કરો
+                    <i class="fab fa-google me-2"></i>Link Google OAuth
                 </button>
             </div>
         </div>
@@ -190,7 +190,7 @@ if ($projectId > 0) {
                     </div>
                     <div class="modal-body">
                         <div class="alert alert-info py-2 small">
-                            <i class="fas fa-info-circle me-1"></i> Google Search Console અને GA4 નો લાઇવ ડેટા મેળવવા માટે OAuth ક્રેડેન્શિયલ્સ કનેક્ટ કરો.
+                            <i class="fas fa-info-circle me-1"></i> Connect OAuth credentials to get live data from Google Search Console and GA4.
                         </div>
                         <form method="POST">
                             <div class="mb-3">

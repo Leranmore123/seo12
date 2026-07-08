@@ -142,14 +142,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csv_file'])) {
                     }
                     $importedCount++;
                 }
-                $success = "ગૂગલ કીવર્ડ પ્લાનર CSV માંથી {$importedCount} કીવર્ડ્સ ઈમ્પોર્ટ થઈ ગયા છે! 📊";
+                $success = "{$importedCount} keywords have been imported from Google Keyword Planner CSV! 📊";
             } else {
-                $error = "CSV હેડર મળ્યો નથી. ખાતરી કરો કે તેમાં 'Keyword' કોલમ છે.";
+                $error = "CSV header not found. Make sure it contains a 'Keyword' column.";
             }
             fclose($handle);
         }
     } else {
-        $error = "ફાઇલ અપલોડ કરવામાં કઈક ભૂલ થઈ છે.";
+        $error = "Something went wrong while uploading the file.";
     }
 }
 
@@ -179,9 +179,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_manual_keyword'])
                 $db->prepare("INSERT INTO keywords (project_id, keyword, search_volume, cpc, competition, seo_difficulty, score, status) VALUES (?,?,?,?,?,?,?,?)")
                    ->execute([$projectId, $kw, $volume, $cpc, $comp, $sd, $score, $status]);
             }
-            $success = "નવો કીવર્ડ સફળતાપૂર્વક ઉમેરાયો!";
+            $success = "New keyword added successfully!";
         } else {
-            $error = "કીવર્ડ નામ ખાલી ન હોવું જોઈએ.";
+            $error = "Keyword name cannot be empty.";
         }
     }
 }
