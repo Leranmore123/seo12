@@ -129,7 +129,11 @@ def get_driver():
     driver  = webdriver.Chrome(service=service, options=opts)
     try:
         driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-            "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+            "source": """
+                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+                Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
+                Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+            """
         })
     except Exception as e:
         pass
@@ -251,6 +255,20 @@ try:
                         break
                 except:
                     pass
+            if not err_msg:
+                for xpath_sel in [
+                    "//*[contains(@class, 'error') or contains(@class, 'Error')]",
+                    "//*[contains(text(), 'Incorrect') or contains(text(), 'incorrect') or contains(text(), 'Username not found') or contains(text(), 'password')]"
+                ]:
+                    try:
+                        err_el = driver.find_element(By.XPATH, xpath_sel)
+                        if err_el.is_displayed() and err_el.text:
+                            txt = err_el.text.strip()
+                            if 2 < len(txt) < 150:
+                                err_msg = txt
+                                break
+                    except:
+                        pass
             
             # Check for CAPTCHA
             captcha_detected = False
