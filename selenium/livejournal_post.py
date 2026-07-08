@@ -281,8 +281,19 @@ try:
         try:
             el = WebDriverWait(driver,8).until(EC.presence_of_element_located((By.CSS_SELECTOR,sel)))
             if el.is_displayed():
-                driver.execute_script("arguments[0].click(); arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', { bubbles: true }));", el, title_text)
-                log(f"LiveJournal: Title typed via JS [{sel}]"); break
+                el.click()
+                el.clear()
+                time.sleep(0.3)
+                el.send_keys(title_text)
+                time.sleep(0.3)
+                # Dispatch events as fallback
+                driver.execute_script("""
+                    var el = arguments[0];
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                """, el)
+                log(f"LiveJournal: Title typed via Selenium send_keys [{sel}]")
+                break
         except: continue
 
     # ── Step 4: Fill Post Content ─────────────────────────────
@@ -344,7 +355,9 @@ try:
         try:
             el = WebDriverWait(driver,8).until(EC.presence_of_element_located((By.CSS_SELECTOR,sel)))
             if el.is_displayed():
-                driver.execute_script("arguments[0].click();", el)
+                # Focus the editor natively
+                el.click()
+                driver.execute_script("arguments[0].focus();", el)
                 time.sleep(0.5)
                 tag = el.tag_name.lower()
 
@@ -373,12 +386,19 @@ try:
                         el.dispatchEvent(event);
                     """, el, content_text)
                     log(f"LiveJournal: Rich HTML pasted via ClipboardEvent ({len(content_text)} chars)")
+                    
+                    # CRITICAL: Send a space and backspace keypress natively to force React / Draft.js state sync
+                    time.sleep(0.5)
+                    el.send_keys(" ")
+                    time.sleep(0.2)
+                    el.send_keys(_Keys.BACKSPACE)
+                    time.sleep(0.5)
                 break
         except Exception as e:
             log(f"LiveJournal: content type error [{sel}]: {e}")
             continue
 
-    time.sleep(2)
+    time.sleep(4)
 
     # ── Step 5: Publish ───────────────────────────────────────
     # Click "Tune in and publish" button
