@@ -132,11 +132,19 @@ foreach ($savedAccounts as $acc) {
     $posted = $db->prepare("SELECT backlink_url FROM backlinks WHERE project_id=? AND platform=? AND status='created' AND (keyword=? OR (keyword IS NULL AND (post_title LIKE ? OR backlink_url LIKE ?)))");
     $posted->execute([$projectId, $acc['platform'], $currentKeyword, '%' . $currentKeyword . '%', '%' . $currentKeyword . '%']);
     $postedUrl = $posted->fetchColumn();
+    
+    // Fetch queue entry
+    $queueStmt = $db->prepare("SELECT status, error_message FROM backlink_queue WHERE project_id=? AND platform=? AND social_account_id=? ORDER BY id DESC LIMIT 1");
+    $queueStmt->execute([$projectId, $acc['platform'], $acc['id']]);
+    $qItem = $queueStmt->fetch(PDO::FETCH_ASSOC);
+    
     $autoPlatforms[] = [
-        'id'      => $acc['platform'],
-        'name'    => ucfirst($acc['platform']),
-        'posted'  => (bool) $postedUrl,
-        'url'     => $postedUrl ?: '',
+        'id'           => $acc['platform'],
+        'name'         => ucfirst($acc['platform']),
+        'posted'       => (bool) $postedUrl,
+        'url'          => $postedUrl ?: '',
+        'queue_status' => $qItem['status'] ?? null,
+        'queue_error'  => $qItem['error_message'] ?? null,
     ];
 }
 
@@ -167,7 +175,7 @@ foreach ($backlinkSites as $s) { $siteMap[$s['platform']] = $s; }
     </div>
     <?php elseif (empty($autoPlatforms)): ?>
     <p class="mb-2 text-muted">
-      <i class="fas fa-key me-1"></i> પહેલા credentials add કરો — પછી system automatic post કરશે.
+      <i class="fas fa-key me-1"></i> Add credentials first — then the system will post automatically.
     </p>
     <a href="submission-manager.php?project_id=<?= $projectId ?>" class="btn btn-primary">
       <i class="fas fa-cog me-2"></i>Submissions → Add Credentials
@@ -210,11 +218,18 @@ foreach ($backlinkSites as $s) { $siteMap[$s['platform']] = $s; }
           <?php elseif ($ap['posted']): ?>
             <br><span class="badge bg-success mt-1">✅ Posted</span>
             <br><a href="<?= clean($ap['url']) ?>" target="_blank" class="small text-decoration-none">View link</a>
+          <?php elseif ($ap['queue_status'] === 'pending'): ?>
+            <br><span class="badge bg-warning text-dark mt-1"><i class="fas fa-clock me-1"></i>⏳ Queued</span>
+          <?php elseif ($ap['queue_status'] === 'processing'): ?>
+            <br><span class="badge bg-info mt-1"><i class="fas fa-spinner fa-spin me-1"></i>⚙️ Posting...</span>
           <?php else: ?>
             <br><button type="button" class="btn btn-sm btn-success mt-1 w-100"
                         onclick="autoPostOne('<?= clean($ap['id']) ?>', '<?= clean($ap['name']) ?>', this)">
               <i class="fas fa-paper-plane"></i> Auto Post
             </button>
+            <?php if ($ap['queue_status'] === 'failed'): ?>
+              <br><span class="badge bg-danger mt-1 text-white" style="cursor:help;" title="<?= htmlspecialchars($ap['queue_error'] ?? 'Unknown Error') ?>"><i class="fas fa-exclamation-triangle me-1"></i>❌ Failed</span>
+            <?php endif; ?>
           <?php endif; ?>
         </div>
       </div>
@@ -246,7 +261,7 @@ foreach ($backlinkSites as $s) { $siteMap[$s['platform']] = $s; }
       <div class="card-body">
         <h6 class="text-info"><i class="fas fa-info-circle me-2"></i>How it works (80/20)</h6>
         <p class="small mb-0">
-          <strong>Auto:</strong> Green box ઉપર — credentials સાથે API post.<br>
+          <strong>Auto:</strong> Green box above — API post with credentials.<br>
           <strong>Manual:</strong> <?= count($backlinks) ?> sites — Open → paste content → Mark Done
         </p>
       </div>
@@ -374,7 +389,7 @@ function autoPostOne(platformId, platformName, btn) {
   }
   const kwSelect = document.getElementById('backlinkKeywordSelect');
   const kw = kwSelect ? encodeURIComponent(kwSelect.value) : '';
-  fetch('auto-poster.php?id=' + BL_PROJECT_ID + '&platform=' + platformId + '&all_accounts=1&keyword=' + kw, {
+  fetch('auto-post-all.php?id=' + BL_PROJECT_ID + '&platform=' + platformId + '&keyword=' + kw, {
     credentials: 'same-origin',
     signal: AbortSignal.timeout(120000),
     headers: {
@@ -392,15 +407,12 @@ function autoPostOne(platformId, platformName, btn) {
       }
     })
     .then(data => {
-      if (data.success) {
-        alert('✅ ' + platformName + ' posted!\n' + (data.url || ''));
+      if (data.queued) {
+        alert('✅ ' + platformName + ' task added to queue!\nProcessing in background.');
         if (typeof loadTab === 'function') loadTab('backlinks');
         else location.reload();
-      } else if (data.manual) {
-        alert(platformName + ': Copy content manually from Submissions page.');
-        window.open('submission-manager.php?project_id=' + BL_PROJECT_ID, '_blank');
       } else {
-        alert('⚠️ ' + platformName + ': ' + (data.error || 'Failed'));
+        alert('⚠️ ' + platformName + ': ' + (data.error || 'Failed to queue task'));
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Auto Post'; }
       }
     })
@@ -445,21 +457,16 @@ function autoPostAllBacklinks() {
         return;
       }
 
-      let html = '<div><strong>✅ ' + (data.message || 'Done') + '</strong></div>';
+      let html = '<div><strong>⏳ ' + (data.message || 'Done') + '</strong></div>';
       (data.results || []).forEach(r => {
-        const icon = r.status === 'success'  ? '✅'
-                   : r.status === 'skipped'  ? '⏭️'
-                   : r.status === 'manual'   ? '📋'
-                   : '❌';
+        const icon = '⏳';
         const label = r.name || (r.platform + (r.handle ? ' (' + r.handle + ')' : ''));
-        const detail = r.url
-          ? '<a href="' + r.url + '" target="_blank" style="color:#0f0">' + r.url + '</a>'
-          : (r.message || '');
+        const detail = r.message || 'Queued in background';
         html += '<div>' + icon + ' ' + label + ': ' + detail + '</div>';
       });
       if (log) log.innerHTML = html;
 
-      const summary = '✅ Done!\n\nPosted: ' + (data.posted || 0) + '\nManual/Skipped: ' + (data.skipped || 0) + '\nFailed: ' + (data.failed || 0);
+      const summary = '✅ Done!\n\nQueued: ' + (data.queued || 0) + ' tasks added to background queue.';
       alert(summary);
       if (typeof loadTab === 'function') loadTab('backlinks');
       else location.reload();
