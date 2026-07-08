@@ -759,23 +759,28 @@ $secondBoxList = array_slice($orderedSitesList, 13);
   <div class="alert alert-success mb-4">
     <div class="row align-items-center">
       <div class="col-md-7">
-        <strong><i class="fas fa-info-circle me-2"></i>Project:</strong>
-        <span class="badge bg-dark me-2">Keyword: <?= clean($project['target_keyword']) ?></span>
-        <span class="badge bg-dark me-2">Site: <?= clean($project['target_site'] ?: $project['website_url']) ?></span>
+        <strong><i class="fas fa-info-circle me-2"></i>Project Details:</strong>
+        <div class="mt-1 small">
+          <div class="mb-1"><strong>Keywords:</strong> <code class="text-dark bg-white border px-2 py-0.5 rounded" style="word-break: break-all; white-space: normal; display: inline-block; max-width: 100%;"><?= clean($project['target_keyword']) ?></code></div>
+          <div><strong>Target Site:</strong> <code class="text-dark bg-white border px-2 py-0.5 rounded" style="word-break: break-all; white-space: normal; display: inline-block; max-width: 100%;"><?= clean($project['target_site'] ?: $project['website_url']) ?></code></div>
+        </div>
       </div>
-      <div class="col-md-5 text-end">
-        <a href="export-excel.php?id=<?= $selectedProjectId ?>" class="btn btn-success btn-sm me-2">
-          <i class="fas fa-file-excel me-1"></i>Download Excel
-        </a>
-        <button class="btn btn-primary btn-sm" onclick="runAllSubmissions()">
-          <i class="fas fa-rocket me-1"></i>Run All
-        </button>
-        <button class="btn btn-info btn-sm" onclick="bulkBlueskyPost(<?= $selectedProjectId ?>)">
-          <i class="fas fa-paper-plane me-1"></i>Bulk Post All Accounts
-        </button>
-        <button class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#bulkAddPanel">
-          <i class="fas fa-users-cog me-1"></i>Bulk Add Accounts
-        </button>
+      <div class="col-md-5 text-md-end text-start mt-3 mt-md-0">
+        <div class="d-flex flex-wrap gap-2 justify-content-start justify-content-md-end">
+          <a href="export-excel.php?id=<?= $selectedProjectId ?>" class="btn btn-success btn-sm">
+            <i class="fas fa-file-excel me-1"></i>Download Excel
+          </a>
+          <button class="btn btn-primary btn-sm" onclick="runAllSubmissions()">
+            <i class="fas fa-rocket me-1"></i>Run All
+          </button>
+          <button class="btn btn-info btn-sm" onclick="bulkBlueskyPost(<?= $selectedProjectId ?>)">
+            <i class="fas fa-paper-plane me-1"></i>Bulk Post All
+          </button>
+          <button class="btn btn-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#bulkAddPanel">
+            <i class="fas fa-users-cog me-1"></i>Bulk Add
+          </button>
+        </div>
+      </div>
 
         <!-- Universal Bulk Add Accounts Panel -->
         <div class="collapse mt-3" id="bulkAddPanel">
