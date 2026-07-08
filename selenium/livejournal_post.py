@@ -409,25 +409,33 @@ try:
             published = True
             time.sleep(3)  # Wait for popup to appear
 
-            # Click the confirm Publish button inside the popup, checking if it is disabled
+            # Click the confirm Publish button inside the popup natively
             confirm_clicked = False
             for attempt in range(8):
-                status = driver.execute_script("""
-                    var submitBtn = document.querySelector('.js--submit-post');
-                    if (submitBtn) {
-                        var isD = submitBtn.disabled || submitBtn.classList.contains('rootDisabled') || submitBtn.className.indexOf('Disabled') !== -1;
-                        if (isD) {
-                            return 'disabled';
-                        }
-                        submitBtn.click();
-                        return 'clicked';
-                    }
-                    return 'not_found';
-                """)
-                log(f"LiveJournal: Popup Publish button status = {status} (attempt {attempt+1})")
-                if status == 'clicked':
-                    confirm_clicked = True
-                    break
+                # Save screenshots of the popup state for direct browser verification
+                try:
+                    os.makedirs("/var/www/html/scratch", exist_ok=True)
+                    driver.save_screenshot(f"/var/www/html/scratch/lj_popup_attempt_{attempt+1}.png")
+                except:
+                    pass
+                
+                try:
+                    confirm_btn = driver.find_element(By.CSS_SELECTOR, '.js--submit-post')
+                    cl = confirm_btn.get_attribute("class") or ""
+                    is_disabled = confirm_btn.get_attribute("disabled") or "Disabled" in cl or "rootDisabled" in cl
+                    
+                    if is_disabled:
+                        log(f"LiveJournal: Popup Publish button is disabled (attempt {attempt+1}) - Class: {cl}")
+                    else:
+                        # Focus and click natively
+                        driver.execute_script("arguments[0].focus();", confirm_btn)
+                        confirm_btn.click()
+                        log(f"LiveJournal: Popup confirm Publish button clicked natively successfully (attempt {attempt+1})")
+                        confirm_clicked = True
+                        break
+                except Exception as click_err:
+                    log(f"LiveJournal: Popup confirm Publish button click attempt {attempt+1} error: {click_err}")
+                
                 time.sleep(1.5)
 
             if confirm_clicked:
