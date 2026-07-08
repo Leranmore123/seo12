@@ -541,19 +541,24 @@ try:
             final = rss_link
             log(f"LiveJournal: Found post URL via RSS = {final}")
         else:
-            log(f"LiveJournal: Navigating to profile to find latest post: {profile_url}")
+            log(f"LiveJournal: Fetching profile page via HTTP request to find latest post: {profile_url}")
             try:
-                driver.get(profile_url)
-                time.sleep(5)
-                valid_link = find_post_link(driver, post_pattern)
-                if valid_link:
-                    final = valid_link
-                    log(f"LiveJournal: Found latest post URL on profile page = {final}")
+                r_prof = requests.get(profile_url, headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                }, timeout=15)
+                if r_prof.status_code == 200:
+                    import re as _re
+                    hrefs = _re.findall(r'href=["\'](https://[a-zA-Z0-9_-]+\.livejournal\.com/\d+\.html)["\']', r_prof.text)
+                    if hrefs:
+                        final = hrefs[0]
+                        log(f"LiveJournal: Found latest post URL on profile HTML = {final}")
+                    else:
+                        final = profile_url
+                        log(f"LiveJournal: Fallback to profile URL = {final}")
                 else:
                     final = profile_url
-                    log(f"LiveJournal: Fallback to profile URL = {final}")
             except Exception as pe:
-                log(f"LiveJournal: Profile page navigation failed/crashed: {pe}. Falling back to profile URL.")
+                log(f"LiveJournal: Profile HTML fetch failed: {pe}. Falling back to profile URL.")
                 final = profile_url
 
     if "livejournal.com" in final and "/post/" not in final and "login" not in final and "/photo" not in final:
