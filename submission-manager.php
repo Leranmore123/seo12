@@ -1831,24 +1831,20 @@ function bulkBlueskyPost(projectId) {
     catch(e) { throw new Error('Server error: ' + text.replace(/<[^>]*>/g,' ').trim().slice(0,300)); }
   })
   .then(data => {
-    const success = data.posted  || 0;
-    const failed  = data.failed  || 0;
-    const skipped = data.skipped || 0;
+    const queued = data.queued || 0;
     document.getElementById('postingStatus').innerHTML =
-      `✅ Bulk Complete! <span class="badge bg-success">${success} posted</span> ` +
-      `<span class="badge bg-warning text-dark">${skipped} skipped</span> ` +
-      `<span class="badge bg-danger">${failed} failed</span>`;
+      `✅ Tasks Queued! <span class="badge bg-warning text-dark">${queued} tasks added</span>`;
 
     // Build results table
-    let table = '<div style="max-height:200px;overflow-y:auto"><table class="table table-sm table-bordered mt-2 mb-0"><thead><tr><th>Account</th><th>Status</th><th>URL</th></tr></thead><tbody>';
+    let table = '<div style="max-height:200px;overflow-y:auto"><table class="table table-sm table-bordered mt-2 mb-0"><thead><tr><th>Account</th><th>Status</th><th>Detail</th></tr></thead><tbody>';
     (data.results || []).forEach(r => {
-      const badge = r.status === 'success' ? 'bg-success' : r.status === 'skipped' ? 'bg-warning text-dark' : 'bg-danger';
-      const link  = r.url ? `<a href="${r.url}" target="_blank">View</a>` : (r.message || '-');
-      table += `<tr><td class="small">${r.handle||r.platform}</td><td><span class="badge ${badge}">${r.status}</span></td><td class="small">${link}</td></tr>`;
+      const badge = 'bg-warning text-dark';
+      const detail = r.message || 'Queued in background';
+      table += `<tr><td class="small">${r.handle||r.platform}</td><td><span class="badge ${badge}">pending</span></td><td class="small">${detail}</td></tr>`;
     });
     table += '</tbody></table></div>';
     document.getElementById('postingDetail').innerHTML = table;
-    setTimeout(() => { modal.hide(); location.reload(); }, 6000);
+    setTimeout(() => { modal.hide(); location.reload(); }, 4000);
   })
   .catch(err => {
     document.getElementById('postingStatus').textContent = '⚠️ Error: ' + (err.message || 'Connection failed');
