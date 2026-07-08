@@ -176,7 +176,8 @@ try:
     log(f"LiveJournal: Post page = {driver.current_url}")
 
     if "login" in driver.current_url.lower():
-        result(False, error="LiveJournal: Redirected to login. Check credentials.")
+        driver.save_screenshot(os.path.join(SCRIPT_DIR, 'livejournal_login_error.png'))
+        result(False, error="LiveJournal: Redirected to login. Check credentials. Screenshot saved.")
         driver.quit(); sys.exit(1)
 
     # ── Step 3: Fill Subject/Title ────────────────────────────
