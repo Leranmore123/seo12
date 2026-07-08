@@ -448,10 +448,14 @@ foreach ($savedAccounts as $acc) {
     $savedMapAll[$acc['platform']][] = $acc;
 }
 
-function checkPlatformCooldown($db, $projectId, $platform, $keyword, $targetUrl) {
+function checkPlatformCooldown($db, $projectId, $platform, $keyword, $targetUrl, $activeAccountsCount = 1) {
+    if ($activeAccountsCount < 1) {
+        $activeAccountsCount = 1;
+    }
     // Cooldown is 12 hours = 43200 seconds
     $cooldownPeriod = 43200; 
 
+    // Retrieve all posts created for this platform & project in the last 12 hours
     $blCheck = $db->prepare("
         SELECT created_at FROM backlinks 
         WHERE project_id = ? 
@@ -459,7 +463,8 @@ function checkPlatformCooldown($db, $projectId, $platform, $keyword, $targetUrl)
           AND status = 'created' 
           AND (keyword = ? OR (keyword IS NULL AND (post_title LIKE ? OR backlink_url LIKE ?)))
           AND (target_url = ? OR target_url IS NULL)
-        ORDER BY created_at DESC LIMIT 1
+          AND created_at >= DATE_SUB(NOW(), INTERVAL 12 HOUR)
+        ORDER BY created_at DESC
     ");
     $blCheck->execute([
         $projectId, 
@@ -469,10 +474,13 @@ function checkPlatformCooldown($db, $projectId, $platform, $keyword, $targetUrl)
         '%' . $keyword . '%', 
         $targetUrl
     ]);
-    $lastPost = $blCheck->fetch();
+    $recentPosts = $blCheck->fetchAll(PDO::FETCH_ASSOC);
 
-    if ($lastPost) {
-        $lastPostTime = strtotime($lastPost['created_at']);
+    // If the number of recent posts meets or exceeds the active accounts count, cooldown is active.
+    if (count($recentPosts) >= $activeAccountsCount) {
+        // Cooldown expires when the oldest of the N recent posts expires (is older than 12h)
+        $oldestRecentPost = end($recentPosts);
+        $lastPostTime = strtotime($oldestRecentPost['created_at']);
         $elapsed = time() - $lastPostTime;
         if ($elapsed < $cooldownPeriod) {
             $remaining = $cooldownPeriod - $elapsed;
@@ -851,7 +859,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
           $pAllAccounts = $savedMapAll[$pSite['id']] ?? [];
           
           // Cooldown check
-          $pCooldown = checkPlatformCooldown($db, $selectedProjectId, $pSite['id'], $currentKeyword, $currentTargetSite);
+          $pCooldown = checkPlatformCooldown($db, $selectedProjectId, $pSite['id'], $currentKeyword, $currentTargetSite, count($pAllAccounts));
           ?>
           <div class="col-6 col-sm-4 col-md-3 col-lg-2">
             <div class="card h-100 border text-center p-2 bg-white shadow-none" style="transition: all 0.2s ease-in-out; border-radius: 8px;"
@@ -1204,7 +1212,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
               </td>
               <td>
                 <?php
-                $cooldown = checkPlatformCooldown($db, $selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite);
+                $cooldown = checkPlatformCooldown($db, $selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite, count($allAccounts));
                 
                 // Fetch the latest background queue task for this platform
                 $queueStmt = $db->prepare("SELECT status, error_message FROM backlink_queue WHERE project_id=? AND platform=? ORDER BY id DESC LIMIT 1");
@@ -1339,7 +1347,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
               </td>
               <td>
                 <?php
-                $cooldown = checkPlatformCooldown($db, $selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite);
+                $cooldown = checkPlatformCooldown($db, $selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite, count($allAccounts));
                 
                 // Fetch the latest background queue task for this platform
                 $queueStmt = $db->prepare("SELECT status, error_message FROM backlink_queue WHERE project_id=? AND platform=? ORDER BY id DESC LIMIT 1");
