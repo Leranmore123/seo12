@@ -513,6 +513,24 @@ Platform: {$platform}. Post variation #{$postCount}. Random seed: {$randomSeed}.
                 break;
         }
     }
+
+    if ($content) {
+        $content = preg_replace('/^```html\s*/i', '', $content);
+        $content = preg_replace('/^```\s*/i', '', $content);
+        $content = preg_replace('/```\s*$/i', '', $content);
+        $content = trim($content);
+        
+        if (stripos($content, '<body') !== false) {
+            if (preg_match('/<body[^>]*>(.*?)<\/body>/is', $content, $matches)) {
+                $content = trim($matches[1]);
+            }
+        }
+        $content = preg_replace('/<\/?html[^>]*>/is', '', $content);
+        $content = preg_replace('/<head[^>]*>.*?<\/head>/is', '', $content);
+        $content = preg_replace('/<\/?body[^>]*>/is', '', $content);
+        $content = trim($content);
+    }
+
     if ($source === 'Template') {
         $content = spinText($content);
     }
