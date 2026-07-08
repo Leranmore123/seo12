@@ -455,6 +455,28 @@ try:
     import re
     post_pattern = re.escape(subdomain) + r'\.livejournal\.com/[0-9]+\.html'
 
+    def get_latest_post_from_rss(uname):
+        sub = uname.lower().replace("_", "-")
+        rss_url = f"https://{sub}.livejournal.com/data/rss"
+        try:
+            import urllib.request
+            import xml.etree.ElementTree as ET
+            req = urllib.request.Request(
+                rss_url,
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                xml_data = response.read()
+            root = ET.fromstring(xml_data)
+            item = root.find('.//item')
+            if item is not None:
+                link = item.find('link')
+                if link is not None and link.text:
+                    return link.text.strip()
+        except Exception as re_err:
+            log(f"LiveJournal: RSS parsing failed: {re_err}")
+        return None
+
     def find_post_link(driver, pattern):
         try:
             links = driver.find_elements(By.TAG_NAME, "a")
@@ -472,20 +494,26 @@ try:
         final = valid_link
         log(f"LiveJournal: Found post URL on current page = {final}")
     else:
-        log(f"LiveJournal: Navigating to profile to find latest post: {profile_url}")
-        try:
-            driver.get(profile_url)
-            time.sleep(5)
-            valid_link = find_post_link(driver, post_pattern)
-            if valid_link:
-                final = valid_link
-                log(f"LiveJournal: Found latest post URL on profile page = {final}")
-            else:
+        # Try fetching from RSS feed (super lightweight, avoids tab crashes)
+        rss_link = get_latest_post_from_rss(username)
+        if rss_link:
+            final = rss_link
+            log(f"LiveJournal: Found post URL via RSS = {final}")
+        else:
+            log(f"LiveJournal: Navigating to profile to find latest post: {profile_url}")
+            try:
+                driver.get(profile_url)
+                time.sleep(5)
+                valid_link = find_post_link(driver, post_pattern)
+                if valid_link:
+                    final = valid_link
+                    log(f"LiveJournal: Found latest post URL on profile page = {final}")
+                else:
+                    final = profile_url
+                    log(f"LiveJournal: Fallback to profile URL = {final}")
+            except Exception as pe:
+                log(f"LiveJournal: Profile page navigation failed/crashed: {pe}. Falling back to profile URL.")
                 final = profile_url
-                log(f"LiveJournal: Fallback to profile URL = {final}")
-        except Exception as pe:
-            log(f"LiveJournal: Profile page navigation failed/crashed: {pe}. Falling back to profile URL.")
-            final = profile_url
 
     if "livejournal.com" in final and "/post/" not in final and "login" not in final and "/photo" not in final:
         result(True, url=final)
