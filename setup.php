@@ -39,7 +39,7 @@ try {
     $dbOk = true;
     $dbMsg = 'Connected to ' . DB_NAME;
 
-    $tables = ['users', 'projects', 'social_accounts', 'project_meta', 'backlinks', 'keywords', 'seo_reports'];
+    $tables = ['users', 'projects', 'social_accounts', 'project_meta', 'backlinks', 'keywords', 'seo_reports', 'backlink_queue'];
     foreach ($tables as $t) {
         $db->query("SELECT 1 FROM `$t` LIMIT 1");
         $checks[] = ["Table: $t", 'OK', true];
@@ -89,9 +89,9 @@ $siteUrl = SITE_URL;
       <div class="alert alert-danger">
         <h6>Database fix:</h6>
         <ol class="mb-0 small">
-          <li>XAMPP/WAMP માં Apache + MySQL start કરો</li>
+          <li>Start Apache + MySQL in XAMPP/WAMP</li>
           <li>phpMyAdmin → Import → <code>database.sql</code></li>
-          <li><code>config.php</code> માં DB_HOST (જેમ કે 127.0.0.1:3307), DB_USER, DB_PASS સાચા કરો</li>
+          <li>Correct DB_HOST (e.g. 127.0.0.1:3307), DB_USER, DB_PASS in config.php</li>
         </ol>
       </div>
       <?php endif; ?>
@@ -107,9 +107,9 @@ $siteUrl = SITE_URL;
       </div>
 
       <hr>
-      <h6>XAMPP માં project ચલાવવા:</h6>
+      <h6>To run project in XAMPP:</h6>
       <ol class="small text-muted">
-        <li>Folder copy કરો: <code>C:\xampp\htdocs\seo-system\</code> (અથવા htdocs માં shortcut)</li>
+        <li>Copy Folder: <code>C:\xampp\htdocs\seo-system\</code> (or create shortcut in htdocs)</li>
         <li>Browser: <code>http://localhost/seo-system/setup.php</code></li>
         <li>Register → API Keys → Add Project → Run SEO</li>
       </ol>
