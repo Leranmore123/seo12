@@ -87,8 +87,13 @@ function runSeleniumScript(string $script, array $args, int $timeout = 120): arr
         $line = trim($line);
         if (!$line) continue;
         $decoded = json_decode($line, true);
-        if ($decoded !== null && isset($decoded['success'])) {
-            $lastResult = $decoded;
+        if ($decoded !== null) {
+            if (isset($decoded['log'])) {
+                echo "[Python Log] " . $decoded['log'] . "\n";
+            }
+            if (isset($decoded['success'])) {
+                $lastResult = $decoded;
+            }
         }
     }
 
