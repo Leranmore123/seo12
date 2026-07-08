@@ -181,21 +181,8 @@ def get_driver():
     opts.add_argument('--window-size=1400,900')
     opts.add_argument(f'--user-data-dir={PROFILE_DIR}')  # Persistent profile
     
-    # Memory reduction tweaks
+    # Disabling extensions for clean profile runs
     opts.add_argument('--disable-extensions')
-    opts.add_argument('--disable-background-networking')
-    opts.add_argument('--disable-sync')
-    opts.add_argument('--disable-translate')
-    opts.add_argument('--js-flags=--max-old-space-size=256')
-    
-    # Disable images and plugins to save memory and CPU
-    prefs = {
-        'profile.default_content_setting_values.images': 2,
-        'profile.default_content_setting_values.plugins': 2,
-        'profile.default_content_setting_values.popups': 2,
-        'profile.default_content_setting_values.geolocation': 2,
-    }
-    opts.add_experimental_option('prefs', prefs)
 
     service = Service(ChromeDriverManager().install())
     driver  = webdriver.Chrome(service=service, options=opts)
