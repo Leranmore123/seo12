@@ -21,6 +21,45 @@ def log(msg):
 def result(success, url='', error=''):
     print(json.dumps({"success": success, "url": url, "error": error}), flush=True)
 
+def type_stealth(driver, el, text):
+    try:
+        driver.execute_script("arguments[0].focus();", el)
+        el.click()
+        el.clear()
+        time.sleep(0.2)
+    except:
+        pass
+    for char in text:
+        try:
+            el.send_keys(char)
+            time.sleep(0.05)
+        except:
+            pass
+    driver.execute_script("""
+        var el = arguments[0];
+        var val = arguments[1];
+        el.value = val;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        if (window.angular) {
+            try {
+                var ngEl = window.angular.element(el);
+                var model = ngEl.controller('ngModel');
+                if (model) {
+                    model.$setViewValue(val);
+                    model.$render();
+                }
+                var scope = ngEl.scope();
+                if (scope) {
+                    scope.$apply();
+                }
+            } catch(e) {
+                console.error('AngularJS binding update failed:', e);
+            }
+        }
+    """, el, text)
+    time.sleep(0.2)
+
 username   = sys.argv[1] if len(sys.argv) > 1 else "LMT_12"
 import hashlib
 email_hash = hashlib.md5(username.lower().encode('utf-8')).hexdigest() if username else "default"
@@ -134,9 +173,7 @@ try:
             try:
                 el = WebDriverWait(driver,6).until(EC.element_to_be_clickable((By.CSS_SELECTOR,sel)))
                 if el.is_displayed():
-                    el.click(); el.clear(); time.sleep(0.3)
-                    el.send_keys(username)
-                    driver.execute_script("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', { bubbles: true })); arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", el, username)
+                    type_stealth(driver, el, username)
                     username_el = el
                     log(f"LiveJournal: Username typed [{sel}]"); break
             except: continue
@@ -147,9 +184,7 @@ try:
             try:
                 el = WebDriverWait(driver,6).until(EC.element_to_be_clickable((By.CSS_SELECTOR,sel)))
                 if el.is_displayed():
-                    el.click(); el.clear(); time.sleep(0.3)
-                    el.send_keys(password)
-                    driver.execute_script("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', { bubbles: true })); arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", el, password)
+                    type_stealth(driver, el, password)
                     password_el = el
                     log("LiveJournal: Password typed"); break
             except: continue
@@ -162,10 +197,22 @@ try:
                 by = By.XPATH if sel.startswith('//') else By.CSS_SELECTOR
                 btn = WebDriverWait(driver,6).until(EC.element_to_be_clickable((by,sel)))
                 if btn.is_displayed():
-                    driver.execute_script("arguments[0].removeAttribute('disabled');", btn)
-                    time.sleep(0.2)
-                    driver.execute_script("arguments[0].click();",btn)
-                    log(f"LiveJournal: Login submitted via click on button [{sel}]")
+                    # Wait/check disabled class
+                    classes = btn.get_attribute("class") or ""
+                    if "b-loginform-btn--disabled" in classes:
+                        log("LiveJournal: Submit button has disabled class, triggering digest...")
+                        driver.execute_script("if(window.angular){try{window.angular.element(arguments[0]).scope().$apply();}catch(e){}}", btn)
+                        time.sleep(0.5)
+                        classes = btn.get_attribute("class") or ""
+                    
+                    if "b-loginform-btn--disabled" not in classes:
+                        btn.click()
+                        log(f"LiveJournal: Login submitted via standard click on button [{sel}]")
+                    else:
+                        log(f"LiveJournal: Force clicking disabled button [{sel}] via JS")
+                        driver.execute_script("arguments[0].removeAttribute('disabled');", btn)
+                        driver.execute_script("arguments[0].click();", btn)
+                    
                     submitted = True
                     break
             except: continue
@@ -176,14 +223,44 @@ try:
             submitted = True
 
         time.sleep(3)
-        # Wait for URL to change from login page (LiveJournal can be slow to respond)
+        # Wait for URL to change from login page or logged-in indicators in page source (LiveJournal can be slow to respond)
         try:
-            WebDriverWait(driver, 40).until(lambda d: "login" not in d.current_url.lower())
+            WebDriverWait(driver, 40).until(lambda d: "login" not in d.current_url.lower() or "you are logged in" in d.page_source.lower() or "log out" in d.page_source.lower() or "logout" in d.page_source.lower())
             log("LiveJournal: Logged in!")
         except:
             log(f"LiveJournal: URL after wait is still {driver.current_url}")
+            
+            # Check for specific error message on the page
+            err_msg = ""
+            for err_sel in [".b-loginform-field__errorMsg", ".b-loginform-field__error-message", ".b-loginform-error"]:
+                try:
+                    err_el = driver.find_element(By.CSS_SELECTOR, err_sel)
+                    if err_el.is_displayed() and err_el.text:
+                        err_msg = err_el.text.strip()
+                        break
+                except:
+                    pass
+            
+            # Check for CAPTCHA
+            captcha_detected = False
+            for cap_sel in ["iframe[src*='recaptcha']", ".g-recaptcha", "div[class*='captcha']", "[id*='captcha']"]:
+                try:
+                    cap_el = driver.find_element(By.CSS_SELECTOR, cap_sel)
+                    if cap_el.is_displayed():
+                        captcha_detected = True
+                        break
+                except:
+                    pass
+            
+            if err_msg:
+                error_detail = f"LiveJournal: Login failed. Error: {err_msg}."
+            elif captcha_detected:
+                error_detail = "LiveJournal: Login failed. CAPTCHA challenge detected."
+            else:
+                error_detail = "LiveJournal: Login failed. Check username/password."
+                
             driver.save_screenshot(os.path.join(SCRIPT_DIR, 'livejournal_login_error.png'))
-            result(False, error="LiveJournal: Login failed. Check username/password. Screenshot saved.")
+            result(False, error=f"{error_detail} Screenshot saved.")
             driver.quit(); sys.exit(1)
     else:
         log("LiveJournal: Already logged in via saved profile!")
