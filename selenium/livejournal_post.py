@@ -202,6 +202,8 @@ def get_driver():
     
     # Disabling extensions for clean profile runs
     opts.add_argument('--disable-extensions')
+    opts.add_argument('--disable-features=site-per-process')
+    opts.add_argument('--js-flags=--max-old-space-size=512')
 
     service = Service(ChromeDriverManager().install())
     driver  = webdriver.Chrome(service=service, options=opts)
@@ -263,8 +265,8 @@ try:
 
     # ── Step 2: Go to new post page ───────────────────────────
     log("LiveJournal: Opening new post page...")
-    if "update.bml" not in driver.current_url:
-        driver.get("https://www.livejournal.com/update.bml")
+    if "/post" not in driver.current_url:
+        driver.get("https://www.livejournal.com/post/")
         time.sleep(6)
     log(f"LiveJournal: Post page = {driver.current_url}")
 
