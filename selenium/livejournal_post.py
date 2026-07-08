@@ -125,6 +125,7 @@ def get_driver():
     opts.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36')
     opts.add_argument('--window-size=1400,900')
     opts.add_argument(f'--user-data-dir={PROFILE_DIR}')  # Persistent profile
+    opts.set_capability('goog:loggingPrefs', {'browser': 'ALL'})
     service = Service(ChromeDriverManager().install())
     driver  = webdriver.Chrome(service=service, options=opts)
     try:
@@ -269,6 +270,13 @@ try:
                 error_detail = "LiveJournal: Login failed. CAPTCHA challenge detected."
             else:
                 error_detail = "LiveJournal: Login failed. Check username/password."
+            
+            # Print console logs for debugging
+            try:
+                for entry in driver.get_log('browser'):
+                    log(f"Browser Console: {entry['level']} - {entry['message']}")
+            except Exception as le:
+                log(f"LiveJournal: Could not retrieve console logs: {le}")
                 
             driver.save_screenshot(os.path.join(SCRIPT_DIR, 'livejournal_login_error.png'))
             result(False, error=f"{error_detail} Screenshot saved.")
