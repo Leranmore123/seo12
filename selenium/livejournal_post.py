@@ -129,40 +129,61 @@ try:
         time.sleep(5)
 
         # Fill username
+        username_el = None
         for sel in ["input[id='user']","input[name='user']","input[id='lj_loginwidget_user']"]:
             try:
                 el = WebDriverWait(driver,6).until(EC.element_to_be_clickable((By.CSS_SELECTOR,sel)))
                 if el.is_displayed():
-                    el.click(); el.clear(); time.sleep(0.3); el.send_keys(username)
+                    el.click(); el.clear(); time.sleep(0.3)
+                    el.send_keys(username)
+                    driver.execute_script("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', { bubbles: true })); arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", el, username)
+                    username_el = el
                     log(f"LiveJournal: Username typed [{sel}]"); break
             except: continue
 
         # Fill password
-        for sel in ["input[type='password']","input[id='password']","input[name='password']"]:
+        password_el = None
+        for sel in ["input[type='password']","input[id='password']","input[name='password']","input[id='lj_loginwidget_password']"]:
             try:
                 el = WebDriverWait(driver,6).until(EC.element_to_be_clickable((By.CSS_SELECTOR,sel)))
                 if el.is_displayed():
-                    el.click(); el.clear(); time.sleep(0.3); el.send_keys(password)
+                    el.click(); el.clear(); time.sleep(0.3)
+                    el.send_keys(password)
+                    driver.execute_script("arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input', { bubbles: true })); arguments[0].dispatchEvent(new Event('change', { bubbles: true }));", el, password)
+                    password_el = el
                     log("LiveJournal: Password typed"); break
             except: continue
 
         # Submit
-        for sel in ["input[type='submit']","button[type='submit']",
+        submitted = False
+        for sel in ["button.b-loginform-btn--login", "input[type='submit']","button[type='submit']",
                     "//input[@value='Log in']","//button[contains(text(),'Log in')]"]:
             try:
                 by = By.XPATH if sel.startswith('//') else By.CSS_SELECTOR
                 btn = WebDriverWait(driver,6).until(EC.element_to_be_clickable((by,sel)))
                 if btn.is_displayed():
+                    driver.execute_script("arguments[0].removeAttribute('disabled');", btn)
+                    time.sleep(0.2)
                     driver.execute_script("arguments[0].click();",btn)
-                    log("LiveJournal: Login submitted"); break
+                    log(f"LiveJournal: Login submitted via click on button [{sel}]")
+                    submitted = True
+                    break
             except: continue
 
-        time.sleep(8)
-        log(f"LiveJournal: Post-login = {driver.current_url}")
+        if not submitted and password_el:
+            log("LiveJournal: Button click submit failed or not found, trying Keys.ENTER on password field...")
+            password_el.send_keys(Keys.ENTER)
+            submitted = True
 
-        src2 = driver.page_source.lower()
-        if "login" in driver.current_url.lower() and "logout" not in src2:
-            result(False, error="LiveJournal: Login failed. Check username/password.")
+        time.sleep(3)
+        # Wait for URL to change from login page
+        try:
+            WebDriverWait(driver, 10).until(lambda d: "login" not in d.current_url.lower())
+            log("LiveJournal: Logged in!")
+        except:
+            log(f"LiveJournal: URL after wait is still {driver.current_url}")
+            driver.save_screenshot(os.path.join(SCRIPT_DIR, 'livejournal_login_error.png'))
+            result(False, error="LiveJournal: Login failed. Check username/password. Screenshot saved.")
             driver.quit(); sys.exit(1)
         log("LiveJournal: Logged in!")
     else:
