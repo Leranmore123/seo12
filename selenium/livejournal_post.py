@@ -494,7 +494,16 @@ try:
                 if title_el is not None and link_el is not None and link_el.text:
                     rss_title = (title_el.text or "").strip().lower()
                     exp_title = expected_title.strip().lower()
-                    if exp_title in rss_title or rss_title in exp_title:
+                    # Safe check: if the title is short, enforce exact match to avoid matching single letters like 'a'
+                    matched = False
+                    if len(rss_title) > 3:
+                        if exp_title in rss_title or rss_title in exp_title:
+                            matched = True
+                    else:
+                        if exp_title == rss_title:
+                            matched = True
+
+                    if matched:
                         return link_el.text.strip()
                     else:
                         log(f"LiveJournal: RSS latest post title '{rss_title}' does not match expected '{exp_title}'")
