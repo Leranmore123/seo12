@@ -297,7 +297,7 @@ function runAllSEO() {
     { msg: '🏆 Analyzing competitors...', url: 'competitor-analysis.php?id=' + PROJECT_ID + '&run=1' },
     { msg: '📊 Checking Google rank...', url: 'rank-tracker.php?id=' + PROJECT_ID + '&run=1' },
     { msg: '✍️ Generating SEO content...', url: 'content-generator.php?id=' + PROJECT_ID + '&run=1' },
-    { msg: '🔗 Auto-posting backlinks (API platforms)...', url: 'auto-post-all.php?id=' + PROJECT_ID, json: false },
+    { msg: '🔗 Auto-posting backlinks (API platforms)...', url: 'auto-post-all.php?id=' + PROJECT_ID },
   ];
 
   function runStep() {
