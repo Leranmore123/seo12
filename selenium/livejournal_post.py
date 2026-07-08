@@ -4,7 +4,7 @@ LiveJournal Auto-Post via Selenium — Profile-based (like Pinterest)
 Profile saved in chrome_profile_livejournal folder
 Usage: python livejournal_post.py <username> <password> <keyword> <target_url>
 """
-import sys, json, time, os
+import sys, json, time, os, requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -20,6 +20,61 @@ def log(msg):
 
 def result(success, url='', error=''):
     print(json.dumps({"success": success, "url": url, "error": error}), flush=True)
+
+def api_login(username, password):
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+    })
+    try:
+        challenge_url = "https://www.livejournal.com/interface/flat"
+        r = session.post(challenge_url, data={"mode": "getchallenge"}, timeout=15)
+        if r.status_code != 200:
+            return None, f"Get challenge failed with status {r.status_code}"
+    except Exception as e:
+        return None, f"Failed to get challenge: {e}"
+        
+    lines = [line.strip() for line in r.text.split("\n") if line.strip()]
+    data = {}
+    for i in range(0, len(lines) - 1, 2):
+        data[lines[i]] = lines[i+1]
+        
+    challenge = data.get("challenge")
+    if not challenge:
+        return None, "No challenge string found in response"
+        
+    import hashlib
+    pw_hash = hashlib.md5(password.encode('utf-8')).hexdigest()
+    auth_response = hashlib.md5((challenge + pw_hash).encode('utf-8')).hexdigest()
+    
+    try:
+        r2 = session.post(challenge_url, data={
+            "mode": "sessiongenerate",
+            "user": username,
+            "auth_method": "challenge",
+            "auth_challenge": challenge,
+            "auth_response": auth_response,
+            "clientversion": "Python-Autopost"
+        }, timeout=15)
+        if r2.status_code != 200:
+            return None, f"Login failed with status {r2.status_code}"
+    except Exception as e:
+        return None, f"Failed to submit login: {e}"
+        
+    lines2 = [line.strip() for line in r2.text.split("\n") if line.strip()]
+    data2 = {}
+    for i in range(0, len(lines2) - 1, 2):
+        data2[lines2[i]] = lines2[i+1]
+        
+    if data2.get("success") != "OK":
+        err = data2.get("errmsg", "Unknown error")
+        return None, f"Authentication failed: {err}"
+        
+    ljsession = data2.get("ljsession")
+    if not ljsession:
+        return None, "No ljsession token returned in response"
+        
+    return ljsession, None
 
 def type_stealth(driver, el, text):
     try:
@@ -144,155 +199,44 @@ try:
     wait   = WebDriverWait(driver, 20)
     log("LiveJournal: Browser ready")
 
-    # ── Step 1: Check login status ────────────────────────────
+    # ── Step 1: Check login status and authenticate via API ──
     log("LiveJournal: Checking login...")
     driver.get("https://www.livejournal.com/")
-    time.sleep(5)
-    log(f"LiveJournal: URL = {driver.current_url}")
+    time.sleep(3)
 
-    src = driver.page_source.lower()
-    already_logged = ("log out" in src or "logout" in src or
-                      "sign out" in src or "post to journal" in src)
+    # Check if already logged in via saved cookies
+    cookies = {c['name']: c['value'] for c in driver.get_cookies()}
+    already_logged = 'ljsession' in cookies
 
-    # Double-check: try going to update page — if redirects to login, need to login
-    driver.get("https://www.livejournal.com/update.bml")
-    time.sleep(4)
-    if "login" in driver.current_url.lower():
-        already_logged = False
-        log("LiveJournal: Not logged in (update.bml redirected to login)")
-        driver.get("https://www.livejournal.com/")
+    # Double-check: try going to update page
+    if already_logged:
+        driver.get("https://www.livejournal.com/update.bml")
         time.sleep(3)
-    else:
-        log("LiveJournal: Already logged in — update.bml accessible!")
-        already_logged = True
+        if "login" in driver.current_url.lower():
+            already_logged = False
+            log("LiveJournal: Not logged in (update.bml redirected to login)")
+        else:
+            log("LiveJournal: Already logged in — update.bml accessible!")
 
     if not already_logged:
-        log("LiveJournal: Logging in...")
-        driver.get("https://www.livejournal.com/login.bml")
-        time.sleep(5)
-
-        # Fill username
-        username_el = None
-        for sel in ["input[id='user']","input[name='user']","input[id='lj_loginwidget_user']"]:
-            try:
-                el = WebDriverWait(driver,6).until(EC.element_to_be_clickable((By.CSS_SELECTOR,sel)))
-                if el.is_displayed():
-                    type_stealth(driver, el, username)
-                    username_el = el
-                    log(f"LiveJournal: Username typed [{sel}]"); break
-            except: continue
-
-        # Fill password
-        password_el = None
-        for sel in ["input[type='password']","input[id='password']","input[name='password']","input[id='lj_loginwidget_password']"]:
-            try:
-                el = WebDriverWait(driver,6).until(EC.element_to_be_clickable((By.CSS_SELECTOR,sel)))
-                if el.is_displayed():
-                    type_stealth(driver, el, password)
-                    password_el = el
-                    log("LiveJournal: Password typed"); break
-            except: continue
-
-        # Submit
-        submitted = False
-        for sel in ["button.b-loginform-btn--login", "input[type='submit']","button[type='submit']",
-                    "//input[@value='Log in']","//button[contains(text(),'Log in')]"]:
-            try:
-                by = By.XPATH if sel.startswith('//') else By.CSS_SELECTOR
-                btn = WebDriverWait(driver,6).until(EC.element_to_be_clickable((by,sel)))
-                if btn.is_displayed():
-                    # Wait/check disabled class
-                    classes = btn.get_attribute("class") or ""
-                    if "b-loginform-btn--disabled" in classes:
-                        log("LiveJournal: Submit button has disabled class, triggering digest...")
-                        driver.execute_script("if(window.angular){try{window.angular.element(arguments[0]).scope().$apply();}catch(e){}}", btn)
-                        time.sleep(0.5)
-                        classes = btn.get_attribute("class") or ""
-                    
-                    if "b-loginform-btn--disabled" not in classes:
-                        btn.click()
-                        log(f"LiveJournal: Login submitted via standard click on button [{sel}]")
-                    else:
-                        log(f"LiveJournal: Force clicking disabled button [{sel}] via JS")
-                        driver.execute_script("arguments[0].removeAttribute('disabled');", btn)
-                        driver.execute_script("arguments[0].click();", btn)
-                    
-                    submitted = True
-                    break
-            except: continue
-
-        if not submitted and password_el:
-            log("LiveJournal: Button click submit failed or not found, trying Keys.ENTER on password field...")
-            password_el.send_keys(Keys.ENTER)
-            submitted = True
-
-        time.sleep(3)
-        # Wait for URL to change or the login username field to disappear (indicating successful redirection/login)
-        try:
-            def login_check(d):
-                if "login" not in d.current_url.lower():
-                    return True
-                try:
-                    user_el = d.find_element(By.CSS_SELECTOR, "input[id='user'], input[name='user']")
-                    if not user_el.is_displayed():
-                        return True
-                except:
-                    return True
-                return False
-
-            WebDriverWait(driver, 40).until(login_check)
-            log("LiveJournal: Logged in!")
-        except:
-            log(f"LiveJournal: URL after wait is still {driver.current_url}")
-            
-            # Check for specific error message on the page
-            err_msg = ""
-            for err_sel in [".b-loginform-field__errorMsg", ".b-loginform-field__error-message", ".b-loginform-error"]:
-                try:
-                    err_el = driver.find_element(By.CSS_SELECTOR, err_sel)
-                    if err_el.is_displayed() and err_el.text:
-                        err_msg = err_el.text.strip()
-                        break
-                except:
-                    pass
-            if not err_msg:
-                for xpath_sel in [
-                    "//*[contains(@class, 'error') or contains(@class, 'Error')]",
-                    "//*[contains(text(), 'Incorrect') or contains(text(), 'incorrect') or contains(text(), 'Username not found') or contains(text(), 'password')]"
-                ]:
-                    try:
-                        err_el = driver.find_element(By.XPATH, xpath_sel)
-                        if err_el.is_displayed() and err_el.text:
-                            txt = err_el.text.strip()
-                            if 2 < len(txt) < 150:
-                                err_msg = txt
-                                break
-                    except:
-                        pass
-            
-            # Check for CAPTCHA
-            captcha_detected = False
-            for cap_sel in ["iframe[src*='recaptcha']", ".g-recaptcha", "div[class*='captcha']", "[id*='captcha']"]:
-                try:
-                    cap_el = driver.find_element(By.CSS_SELECTOR, cap_sel)
-                    if cap_el.is_displayed():
-                        captcha_detected = True
-                        break
-                except:
-                    pass
-            
-            if err_msg:
-                error_detail = f"LiveJournal: Login failed. Error: {err_msg}."
-            elif captcha_detected:
-                error_detail = "LiveJournal: Login failed. CAPTCHA challenge detected."
-            else:
-                error_detail = "LiveJournal: Login failed. Check username/password."
-                
+        log("LiveJournal: Logging in via API challenge-response...")
+        ljsession_val, err = api_login(username, password)
+        if err:
+            log(f"LiveJournal: API authentication failed: {err}")
             driver.save_screenshot(os.path.join(SCRIPT_DIR, 'livejournal_login_error.png'))
-            result(False, error=f"{error_detail} Screenshot saved.")
+            result(False, error=f"LiveJournal: Login failed. {err}")
             driver.quit(); sys.exit(1)
-    else:
-        log("LiveJournal: Already logged in via saved profile!")
+            
+        # Inject cookie
+        driver.add_cookie({
+            "name": "ljsession",
+            "value": ljsession_val,
+            "domain": ".livejournal.com",
+            "path": "/"
+        })
+        log("LiveJournal: Session token injected. Reloading homepage...")
+        driver.get("https://www.livejournal.com/")
+        time.sleep(3)
 
     # ── Step 2: Go to new post page ───────────────────────────
     log("LiveJournal: Opening new post page...")
