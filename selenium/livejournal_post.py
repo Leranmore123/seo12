@@ -223,9 +223,20 @@ try:
             submitted = True
 
         time.sleep(3)
-        # Wait for URL to change from login page or logged-in indicators in page source (LiveJournal can be slow to respond)
+        # Wait for URL to change or the login username field to disappear (indicating successful redirection/login)
         try:
-            WebDriverWait(driver, 40).until(lambda d: "login" not in d.current_url.lower() or "you are logged in" in d.page_source.lower() or "log out" in d.page_source.lower() or "logout" in d.page_source.lower())
+            def login_check(d):
+                if "login" not in d.current_url.lower():
+                    return True
+                try:
+                    user_el = d.find_element(By.CSS_SELECTOR, "input[id='user'], input[name='user']")
+                    if not user_el.is_displayed():
+                        return True
+                except:
+                    return True
+                return False
+
+            WebDriverWait(driver, 40).until(login_check)
             log("LiveJournal: Logged in!")
         except:
             log(f"LiveJournal: URL after wait is still {driver.current_url}")
