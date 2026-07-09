@@ -1,4 +1,5 @@
 <?php
+set_time_limit(90); // Prevent PHP execution timeout on slow PageSpeed + AI requests
 require_once 'config.php';
 requireLogin();
 
