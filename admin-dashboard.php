@@ -610,6 +610,18 @@ $flash = getFlash();
           <i class="fas fa-exclamation-triangle fa-2x text-white-50"></i>
         </div>
       </div>
+  </div>
+
+  <!-- Quick Actions / Pitch Generator Callout -->
+  <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); border-radius: 16px;">
+    <div class="card-body p-4 text-white d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <h5 class="fw-bold mb-1"><i class="fas fa-file-invoice me-2"></i>Client Pitch PDF Report Generator</h5>
+        <p class="mb-0 text-white-50 small">Scan a lead's website, identify SEO issues in real-time, and download a beautiful white-label PDF proposal to close new clients.</p>
+      </div>
+      <a href="client-pitch.php" class="btn btn-light text-primary fw-bold px-4 py-2.5 rounded-pill shadow-sm">
+        <i class="fas fa-magic me-2"></i>Generate Pitch Report Now
+      </a>
     </div>
   </div>
 
