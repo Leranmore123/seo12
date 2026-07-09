@@ -1,5 +1,5 @@
 <?php
-set_time_limit(90); // Prevent PHP execution timeout on slow PageSpeed + AI requests
+set_time_limit(120); // Prevent PHP execution timeout on slow PageSpeed + AI requests
 require_once 'config.php';
 requireLogin();
 
@@ -318,7 +318,7 @@ function getPageSpeedScoreLive($url) {
     curl_setopt_array($ch, [
         CURLOPT_URL            => $apiUrl,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 55, // Increase timeout to match test script
+        CURLOPT_TIMEOUT        => 90, // Increase timeout to 90s for slow sites
         CURLOPT_SSL_VERIFYPEER => false,
     ]);
     $response = curl_exec($ch);
