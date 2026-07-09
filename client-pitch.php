@@ -318,19 +318,37 @@ function getPageSpeedScoreLive($url) {
     curl_setopt_array($ch, [
         CURLOPT_URL            => $apiUrl,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 45, // Increase timeout since PageSpeed scans slower sites
+        CURLOPT_TIMEOUT        => 55, // Increase timeout to match test script
         CURLOPT_SSL_VERIFYPEER => false,
     ]);
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlErr = curl_error($ch);
     curl_close($ch);
     
+    $score = null;
     if ($httpCode === 200 && $response) {
         $data = json_decode($response, true);
         $score = $data['lighthouseResult']['categories']['performance']['score'] ?? null;
-        if ($score !== null) {
-            return round($score * 100);
+    }
+    
+    // Log the API call result for debugging
+    $logMsg = date('Y-m-d H:i:s') . " | URL: $url | Key: " . (empty($apiKey) ? "NO" : "YES") . " | HTTP Code: $httpCode";
+    if ($curlErr) {
+        $logMsg .= " | cURL Error: $curlErr";
+    }
+    if ($score !== null) {
+        $logMsg .= " | Score: " . round($score * 100);
+    } else {
+        $logMsg .= " | Score: NULL";
+        if ($httpCode !== 200) {
+            $logMsg .= " | Resp: " . substr($response, 0, 150);
         }
+    }
+    @file_put_contents(dirname(__FILE__) . '/logs/pagespeed_debug.log', $logMsg . "\n", FILE_APPEND);
+    
+    if ($score !== null) {
+        return round($score * 100);
     }
     return null;
 }
