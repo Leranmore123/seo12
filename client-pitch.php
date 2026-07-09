@@ -31,6 +31,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_audit'])) {
     $agencyPhone = trim($_POST['agency_phone'] ?? '');
     $agencyCta = trim($_POST['agency_cta'] ?? '');
 
+    // Handle file upload for agency logo
+    if (isset($_FILES['agency_logo_file']) && $_FILES['agency_logo_file']['error'] === UPLOAD_ERR_OK) {
+        $tmpName = $_FILES['agency_logo_file']['tmp_name'];
+        $originalName = $_FILES['agency_logo_file']['name'];
+        $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        if (in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'])) {
+            $newName = 'pitch_logo_' . time() . '.' . $ext;
+            $dest = __DIR__ . '/uploads/' . $newName;
+            if (move_uploaded_file($tmpName, $dest)) {
+                $agencyLogo = 'uploads/' . $newName;
+            }
+        }
+    }
+
     // Set branding cookies for persistence
     setcookie('pitch_agency_name', $agencyName, time() + 31536000, '/');
     setcookie('pitch_agency_logo', $agencyLogo, time() + 31536000, '/');
@@ -468,7 +482,7 @@ function getPageSpeedScoreLive($url) {
 
         <!-- Audit Form Card -->
         <div class="card shadow-sm border-0 p-4 mb-4 no-print" style="border-radius: 20px;">
-            <form id="auditForm" method="POST" action="">
+            <form id="auditForm" method="POST" action="" enctype="multipart/form-data">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label fw-bold">Client Website URL</label>
@@ -509,8 +523,16 @@ function getPageSpeedScoreLive($url) {
                                         <input type="text" name="agency_name" class="form-control" value="<?= htmlspecialchars($agencyName) ?>" required>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Agency Logo Image URL</label>
-                                        <input type="text" name="agency_logo" class="form-control" placeholder="https://yoursite.com/logo.png" value="<?= htmlspecialchars($agencyLogo) ?>">
+                                        <label class="form-label fw-bold">Agency Logo (Upload File)</label>
+                                        <input type="file" name="agency_logo_file" class="form-control" accept="image/*">
+                                        <input type="hidden" name="agency_logo" value="<?= htmlspecialchars($agencyLogo) ?>">
+                                        <?php if (!empty($agencyLogo)): ?>
+                                            <div class="form-text text-success mt-1">
+                                                <i class="fas fa-check-circle"></i> Current Logo: <code><?= htmlspecialchars(basename($agencyLogo)) ?></code>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="form-text">Choose a local image file to upload.</div>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Contact Email</label>
@@ -549,7 +571,13 @@ function getPageSpeedScoreLive($url) {
                 <div class="print-header-layout">
                     <div>
                         <?php if (!empty($agencyLogo)): ?>
-                            <img src="<?= htmlspecialchars($agencyLogo) ?>" alt="Agency Logo" style="max-height: 50px; margin-bottom: 8px;">
+                            <?php 
+                            $logoSrc = $agencyLogo;
+                            if (strpos($logoSrc, 'http') !== 0) {
+                                $logoSrc = SITE_URL . '/' . $logoSrc;
+                            }
+                            ?>
+                            <img src="<?= htmlspecialchars($logoSrc) ?>" alt="Agency Logo" style="max-height: 50px; margin-bottom: 8px;">
                         <?php endif; ?>
                         <h3 class="fw-bold m-0" style="color: #4f46e5;"><?= htmlspecialchars($agencyName) ?></h3>
                         <small class="text-muted"><?= htmlspecialchars($agencyEmail) ?> | <?= htmlspecialchars($agencyPhone) ?></small>
