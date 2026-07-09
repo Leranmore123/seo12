@@ -1,13 +1,28 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+require_once dirname(__DIR__) . '/config.php';
+require_once dirname(__DIR__) . '/submission-manager.php'; // Will load functions
+
 header('Content-Type: text/plain');
 
-$targetFile = dirname(__DIR__) . '/config.php';
-echo "Checking config.php:\n";
-
-$output = [];
-$return_var = 0;
-exec('php -l ' . escapeshellarg($targetFile) . ' 2>&1', $output, $return_var);
-
-echo "Lint Exit Code: $return_var\n";
-echo "Output:\n";
-echo implode("\n", $output);
+echo "=== TESTING checkPlatformCooldown FOR DEVTO ===\n";
+try {
+    $db = getDB();
+    $projectId = 211;
+    $platform = 'devto';
+    $keyword = 'AI powered SEO agency';
+    $targetUrl = 'https://skyranksolution-bice.vercel.app/services';
+    $activeAccountsCount = 1;
+    
+    $cooldown = checkPlatformCooldown($db, $projectId, $platform, $keyword, $targetUrl, $activeAccountsCount);
+    echo "Cooldown Result:\n";
+    print_r($cooldown);
+    echo "\n=== checkPlatformCooldown RAN SUCCESSFULLY ===\n";
+} catch (Exception $e) {
+    echo "Caught Exception: " . $e->getMessage() . "\n";
+} catch (Throwable $t) {
+    echo "Caught Fatal Error: " . $t->getMessage() . "\n";
+}
