@@ -451,3 +451,9 @@ body {
         padding: 12px !important;
     }
 }
+
+@media (max-width: 991px) {
+    .table-responsive .table {
+        min-width: 850px !important;
+    }
+}

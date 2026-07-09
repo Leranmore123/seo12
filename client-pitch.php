@@ -653,51 +653,53 @@ function getPageSpeedScoreLive($url) {
 
                 <!-- Audit Checks Table -->
                 <div class="card shadow-sm border-0 overflow-hidden mb-4" style="border-radius: 20px;">
-                    <table class="table table-hover align-middle m-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width: 20%;">SEO Element</th>
-                                <th style="width: 25%;">Detected Status</th>
-                                <th style="width: 15%;" class="text-center">Severity</th>
-                                <th style="width: 40%;">How to Fix / Proposed Code</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($auditResult['issues'])): ?>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle m-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <td colspan="4" class="text-center py-4 text-success fw-bold">
-                                        <i class="fas fa-check-circle fa-2x mb-2 d-block"></i> No SEO Issues Found! Website is perfectly optimized.
-                                    </td>
+                                    <th style="width: 20%;">SEO Element</th>
+                                    <th style="width: 25%;">Detected Status</th>
+                                    <th style="width: 15%;" class="text-center">Severity</th>
+                                    <th style="width: 40%;">How to Fix / Proposed Code</th>
                                 </tr>
-                            <?php else: ?>
-                                <?php foreach ($auditResult['issues'] as $issue): ?>
-                                    <tr class="keep-together">
-                                        <td>
-                                            <span class="fw-bold text-dark"><?= htmlspecialchars($issue['element']) ?></span>
-                                        </td>
-                                        <td>
-                                            <span class="text-danger fw-semibold d-block"><i class="fas fa-times-circle me-1"></i> <?= htmlspecialchars($issue['status']) ?></span>
-                                            <small class="text-muted d-block mt-1"><?= htmlspecialchars($issue['impact']) ?></small>
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="badge py-1.5 px-3 rounded-pill <?php
-                                                if ($issue['severity'] === 'critical') echo 'bg-danger';
-                                                elseif ($issue['severity'] === 'high') echo 'bg-warning text-dark';
-                                                elseif ($issue['severity'] === 'medium') echo 'bg-info text-dark';
-                                                else echo 'bg-secondary';
-                                            ?>"><?= ucfirst($issue['severity']) ?></span>
-                                        </td>
-                                        <td>
-                                            <div class="small fw-semibold"><?= htmlspecialchars($issue['fix']) ?></div>
-                                            <?php if (!empty($issue['code'])): ?>
-                                                <div class="fix-code-block"><?= htmlspecialchars($issue['code']) ?></div>
-                                            <?php endif; ?>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($auditResult['issues'])): ?>
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-success fw-bold">
+                                            <i class="fas fa-check-circle fa-2x mb-2 d-block"></i> No SEO Issues Found! Website is perfectly optimized.
                                         </td>
                                     </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+                                <?php else: ?>
+                                    <?php foreach ($auditResult['issues'] as $issue): ?>
+                                        <tr class="keep-together">
+                                            <td>
+                                                <span class="fw-bold text-dark"><?= htmlspecialchars($issue['element']) ?></span>
+                                            </td>
+                                            <td>
+                                                <span class="text-danger fw-semibold d-block"><i class="fas fa-times-circle me-1"></i> <?= htmlspecialchars($issue['status']) ?></span>
+                                                <small class="text-muted d-block mt-1"><?= htmlspecialchars($issue['impact']) ?></small>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge py-1.5 px-3 rounded-pill <?php
+                                                    if ($issue['severity'] === 'critical') echo 'bg-danger';
+                                                    elseif ($issue['severity'] === 'high') echo 'bg-warning text-dark';
+                                                    elseif ($issue['severity'] === 'medium') echo 'bg-info text-dark';
+                                                    else echo 'bg-secondary';
+                                                ?>"><?= ucfirst($issue['severity']) ?></span>
+                                            </td>
+                                            <td>
+                                                <div class="small fw-semibold"><?= htmlspecialchars($issue['fix']) ?></div>
+                                                <?php if (!empty($issue['code'])): ?>
+                                                    <div class="fix-code-block"><?= htmlspecialchars($issue['code']) ?></div>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- Page Break CTA Box -->
