@@ -161,89 +161,93 @@ Rules:
     return trim(implode('', $out));
 }
 
-function generateWithOpenAI(string $prompt, ?string $apiKey = null): ?string {
-    $apiKey = $apiKey ?? OPENAI_API_KEY;
-    if (empty($apiKey) || strpos($apiKey, 'your-') === 0 || strpos($apiKey, 'sk-') !== 0) {
-        return null;
-    }
+if (!function_exists('generateWithOpenAI')) {
+    function generateWithOpenAI(string $prompt, ?string $apiKey = null): ?string {
+        $apiKey = $apiKey ?? OPENAI_API_KEY;
+        if (empty($apiKey) || strpos($apiKey, 'your-') === 0 || strpos($apiKey, 'sk-') !== 0) {
+            return null;
+        }
 
-    $model = defined('OPENAI_MODEL') ? OPENAI_MODEL : 'gpt-4o-mini';
+        $model = defined('OPENAI_MODEL') ? OPENAI_MODEL : 'gpt-4o-mini';
 
-    // Add random seed to ensure unique content every time
-    $randomSeed = rand(100000, 999999);
-    $uniquePrompt = $prompt . "\n\nGenerate completely unique content. Random seed: {$randomSeed}. Current timestamp: " . time() . ". Do not repeat any previous content.";
+        // Add random seed to ensure unique content every time
+        $randomSeed = rand(100000, 999999);
+        $uniquePrompt = $prompt . "\n\nGenerate completely unique content. Random seed: {$randomSeed}. Current timestamp: " . time() . ". Do not repeat any previous content.";
 
-    $ch = curl_init('https://api.openai.com/v1/chat/completions');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => json_encode([
-            'model'       => $model,
-            'messages'    => [
-                ['role' => 'system', 'content' => 'You are an expert SEO content writer. Write unique, engaging content every time. Never repeat the same content twice. Use HTML when asked. Each request must produce completely different content.'],
-                ['role' => 'user',   'content' => $uniquePrompt],
-            ],
-            'temperature' => 1.0, // Maximum randomness
-            'top_p' => 0.9,
-            'max_tokens'  => 4000,
-        ]),
-        CURLOPT_HTTPHEADER => [
-            'Authorization: Bearer ' . $apiKey,
-            'Content-Type: application/json',
-        ],
-        CURLOPT_TIMEOUT        => 60,
-        CURLOPT_SSL_VERIFYPEER => false,
-    ]);
-    $response = json_decode(curl_exec($ch), true);
-    $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($httpCode !== 200) {
-        return null;
-    }
-
-    return $response['choices'][0]['message']['content'] ?? null;
-}
-
-function generateWithGemini(string $prompt, ?string $apiKey = null): ?string {
-    $apiKey = $apiKey ?? GEMINI_API_KEY;
-    if (empty($apiKey) || strpos($apiKey, 'your-') === 0) {
-        return null;
-    }
-
-    $maxRetries = 3;
-    $retryDelay = 2; // seconds
-
-    for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
-        $ch = curl_init("https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" . $apiKey);
-        $payload = json_encode([
-            'contents' => [['parts' => [['text' => $prompt]]]]
-        ]);
+        $ch = curl_init('https://api.openai.com/v1/chat/completions');
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => $payload,
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-            CURLOPT_TIMEOUT        => 30,
-            CURLOPT_SSL_VERIFYPEER => false
+            CURLOPT_POSTFIELDS     => json_encode([
+                'model'       => $model,
+                'messages'    => [
+                    ['role' => 'system', 'content' => 'You are an expert SEO content writer. Write unique, engaging content every time. Never repeat the same content twice. Use HTML when asked. Each request must produce completely different content.'],
+                    ['role' => 'user',   'content' => $uniquePrompt],
+                ],
+                'temperature' => 1.0, // Maximum randomness
+                'top_p' => 0.9,
+                'max_tokens'  => 4000,
+            ]),
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $apiKey,
+                'Content-Type: application/json',
+            ],
+            CURLOPT_TIMEOUT        => 60,
+            CURLOPT_SSL_VERIFYPEER => false,
         ]);
-        
-        $res = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $response = json_decode(curl_exec($ch), true);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        
-        if ($httpCode === 200) {
-            $json = json_decode($res, true);
-            return $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
+
+        if ($httpCode !== 200) {
+            return null;
         }
 
-        if ($httpCode === 429 && $attempt < $maxRetries) {
-            sleep($retryDelay * $attempt);
-            continue;
-        }
-        break;
+        return $response['choices'][0]['message']['content'] ?? null;
     }
-    return null;
+}
+
+if (!function_exists('generateWithGemini')) {
+    function generateWithGemini(string $prompt, ?string $apiKey = null): ?string {
+        $apiKey = $apiKey ?? GEMINI_API_KEY;
+        if (empty($apiKey) || strpos($apiKey, 'your-') === 0) {
+            return null;
+        }
+
+        $maxRetries = 3;
+        $retryDelay = 2; // seconds
+
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            $ch = curl_init("https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" . $apiKey);
+            $payload = json_encode([
+                'contents' => [['parts' => [['text' => $prompt]]]]
+            ]);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => $payload,
+                CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+                CURLOPT_TIMEOUT        => 30,
+                CURLOPT_SSL_VERIFYPEER => false
+            ]);
+            
+            $res = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if ($httpCode === 200) {
+                $json = json_decode($res, true);
+                return $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
+            }
+
+            if ($httpCode === 429 && $attempt < $maxRetries) {
+                sleep($retryDelay * $attempt);
+                continue;
+            }
+            break;
+        }
+        return null;
+    }
 }
 
 /** Primary AI: ChatGPT only, returns [text, source] */
