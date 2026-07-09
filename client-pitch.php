@@ -293,17 +293,24 @@ function analyzeWebsitePitch($url, $keyword) {
 }
 
 function getPageSpeedScoreLive($url) {
+    $apiKey = defined('GOOGLE_API_KEY') ? GOOGLE_API_KEY : '';
     $apiUrl = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=" . urlencode($url) . "&category=performance&strategy=mobile";
+    if (!empty($apiKey)) {
+        $apiUrl .= "&key=" . urlencode($apiKey);
+    }
+    
     $ch = curl_init();
     curl_setopt_array($ch, [
         CURLOPT_URL            => $apiUrl,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 25,
+        CURLOPT_TIMEOUT        => 45, // Increase timeout since PageSpeed scans slower sites
         CURLOPT_SSL_VERIFYPEER => false,
     ]);
     $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    if ($response) {
+    
+    if ($httpCode === 200 && $response) {
         $data = json_decode($response, true);
         $score = $data['lighthouseResult']['categories']['performance']['score'] ?? null;
         if ($score !== null) {
