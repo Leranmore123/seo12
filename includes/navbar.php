@@ -71,6 +71,14 @@ function isNavAllowed($menuCode, $allowedMenus) {
         </li>
         <?php endif; ?>
 
+        <?php if (isNavAllowed('client-pitch', $allowedMenus)): ?>
+        <li class="nav-item">
+          <a class="nav-link <?= $currentPage === 'client-pitch.php' ? 'active fw-bold' : '' ?>" href="client-pitch.php">
+            <i class="fas fa-file-invoice me-1"></i>Client Pitch
+          </a>
+        </li>
+        <?php endif; ?>
+
         <?php if (isNavAllowed('submissions', $allowedMenus)): ?>
         <li class="nav-item">
           <a class="nav-link <?= $currentPage === 'submission-manager.php' ? 'active fw-bold' : '' ?>" href="submission-manager.php">
