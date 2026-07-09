@@ -409,10 +409,15 @@ function getPageSpeedScoreLive($url) {
         }
 
         @media print {
+            @page {
+                size: auto;
+                margin: 0mm; /* Hides default browser print header (date/title) and footer (URL) */
+            }
             body {
                 background: #fff !important;
                 color: #000 !important;
                 font-size: 11pt;
+                margin: 1.6cm !important; /* Re-applies safe print margins to the content */
             }
             .navbar, .no-print, .btn, form, .accordion, #loadingOverlay, hr.no-print {
                 display: none !important;
@@ -569,7 +574,7 @@ function getPageSpeedScoreLive($url) {
                 
                 <!-- PRINT HEADER ONLY -->
                 <div class="print-header-layout">
-                    <div>
+                    <div class="d-flex align-items-center">
                         <?php if (!empty($agencyLogo)): ?>
                             <?php 
                             $logoSrc = $agencyLogo;
@@ -577,10 +582,12 @@ function getPageSpeedScoreLive($url) {
                                 $logoSrc = SITE_URL . '/' . $logoSrc;
                             }
                             ?>
-                            <img src="<?= htmlspecialchars($logoSrc) ?>" alt="Agency Logo" style="max-height: 50px; margin-bottom: 8px;">
+                            <img src="<?= htmlspecialchars($logoSrc) ?>" alt="Agency Logo" style="max-height: 55px; margin-right: 15px; margin-bottom: 0;">
                         <?php endif; ?>
-                        <h3 class="fw-bold m-0" style="color: #4f46e5;"><?= htmlspecialchars($agencyName) ?></h3>
-                        <small class="text-muted"><?= htmlspecialchars($agencyEmail) ?> | <?= htmlspecialchars($agencyPhone) ?></small>
+                        <div>
+                            <h3 class="fw-bold m-0 text-dark"><?= htmlspecialchars($agencyName) ?></h3>
+                            <small class="text-muted d-block"><?= htmlspecialchars($agencyEmail) ?> <?php if(!empty($agencyPhone)) echo " | " . htmlspecialchars($agencyPhone); ?></small>
+                        </div>
                     </div>
                     <div class="text-end">
                         <h4 class="fw-bold m-0 text-dark">SEO Performance Pitch Audit</h4>
