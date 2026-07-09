@@ -433,6 +433,84 @@ foreach ($projects as $p) {
     if ($p['id'] == $selectedProjectId) { $project = $p; break; }
 }
 
+// Self-healing migration for schema column
+try {
+    $db->exec("ALTER TABLE projects ADD COLUMN seo_schema_markup TEXT DEFAULT NULL");
+} catch (PDOException $e) {}
+
+// Handle AJAX indexing status checking
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'check_indexing') {
+    header('Content-Type: application/json');
+    $backlinkId = (int)($_POST['backlink_id'] ?? 0);
+    
+    // Check ownership
+    $stmt = $db->prepare("SELECT b.* FROM backlinks b JOIN projects p ON b.project_id = p.id WHERE b.id = ? AND (p.user_id = ? OR ? = 'admin')");
+    $stmt->execute([$backlinkId, $userId, $_SESSION['role']]);
+    $backlink = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$backlink) {
+        echo json_encode(['success' => false, 'error' => 'Backlink not found.']);
+        exit;
+    }
+    
+    $status = checkUrlGoogleIndexing($backlink['backlink_url']);
+    
+    $update = $db->prepare("UPDATE backlinks SET indexing_status = ?, last_index_checked_at = NOW() WHERE id = ?");
+    $update->execute([$status, $backlinkId]);
+    
+    echo json_encode(['success' => true, 'status' => $status]);
+    exit;
+}
+
+// Handle AI Schema Generation
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_schema'])) {
+    if ($project) {
+        $pName = !empty($project['business_name']) ? $project['business_name'] : parse_url($project['website_url'], PHP_URL_HOST);
+        $pDesc = !empty($project['business_desc']) ? $project['business_desc'] : 'Professional service provider';
+        $pUrl  = $project['website_url'];
+        $pKw   = $project['target_keyword'];
+        
+        $schemaPrompt = "Generate a perfect, valid HTML <script type=\"application/ld+json\"> schema markup for a LocalBusiness or Organization.
+        Business Name: {$pName}
+        Website URL: {$pUrl}
+        Keywords/Services: {$pKw}
+        Description: {$pDesc}
+        
+        STRICT REQUIREMENTS:
+        - Return ONLY the script tag containing the JSON-LD, like this: <script type=\"application/ld+json\">...</script>
+        - Do NOT include any markdown backticks (such as ```html or ```json) or explanations. Just return the raw script tag code.
+        - Ensure all double quotes are properly escaped and the JSON format is valid.";
+        
+        $generatedCode = '';
+        if (hasChatGPT()) {
+            $generatedCode = generateWithOpenAI($schemaPrompt, OPENAI_API_KEY);
+        } elseif (hasGemini()) {
+            $generatedCode = generateWithGemini($schemaPrompt, GEMINI_API_KEY);
+        }
+        
+        if (!empty($generatedCode)) {
+            $generatedCode = trim($generatedCode);
+            $generatedCode = preg_replace('/^```[a-z]*\s*/i', '', $generatedCode);
+            $generatedCode = preg_replace('/\s*```$/i', '', $generatedCode);
+            $generatedCode = trim($generatedCode);
+            
+            // Save to database
+            $upd = $db->prepare("UPDATE projects SET seo_schema_markup = ? WHERE id = ?");
+            $upd->execute([$generatedCode, $selectedProjectId]);
+            
+            // Update local $project copy so it displays immediately without reload
+            $project['seo_schema_markup'] = $generatedCode;
+            
+            setFlash('success', 'AI JSON-LD SEO Schema Markup generated successfully!');
+        } else {
+            setFlash('danger', 'Failed to generate schema: AI keys missing or API error.');
+        }
+    }
+    
+    header("Location: submission-manager.php?project_id=" . $selectedProjectId);
+    exit;
+}
+
 // Fetch saved credentials
 $savedAccounts = $db->prepare("SELECT * FROM social_accounts WHERE project_id=?");
 $savedAccounts->execute([$selectedProjectId]);
@@ -850,6 +928,47 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
   }
   ?>
 
+  <!-- AI SEO Schema Markup Card -->
+  <div class="card mb-4 border-info shadow-sm">
+    <div class="card-header bg-info text-white py-2 d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-bold"><i class="fas fa-code me-2"></i>AI JSON-LD Schema Markup Generator</h6>
+      <span class="badge bg-light text-info small fw-bold">SEO Booster</span>
+    </div>
+    <div class="card-body">
+      <p class="small text-muted mb-3">
+        Schema Markup (JSON-LD) translates your business details into structured data that search engines understand instantly. Copy and paste this code inside the <code>&lt;head&gt;</code> tags of your main website to boost ranking and rich snippet visibility!
+      </p>
+      
+      <?php if (!empty($project['seo_schema_markup'])): ?>
+        <div class="position-relative">
+          <textarea id="schemaMarkupText" class="form-control bg-dark text-success p-3 rounded font-monospace" style="font-size:13px; height: 200px; line-height: 1.4;" readonly><?= htmlspecialchars($project['seo_schema_markup']) ?></textarea>
+          <button class="btn btn-sm btn-light position-absolute" style="top: 10px; right: 10px; opacity: 0.9;" 
+                  onclick="navigator.clipboard.writeText(document.getElementById('schemaMarkupText').value).then(()=>alert('Schema Code Copied to Clipboard!'))">
+            <i class="fas fa-copy me-1"></i>Copy Code
+          </button>
+        </div>
+        <form method="post" action="submission-manager.php?project_id=<?= $selectedProjectId ?>" class="mt-3">
+          <input type="hidden" name="generate_schema" value="1">
+          <button type="submit" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-sync-alt me-1"></i>Regenerate Schema Code
+          </button>
+        </form>
+      <?php else: ?>
+        <div class="bg-light p-4 rounded text-center border">
+          <i class="fas fa-code fa-3x text-info mb-3"></i>
+          <h5>No Schema Markup Generated</h5>
+          <p class="small text-muted mb-3">Click below to let AI automatically build search-engine-ready JSON-LD schema based on your project keywords and company description.</p>
+          <form method="post" action="submission-manager.php?project_id=<?= $selectedProjectId ?>">
+            <input type="hidden" name="generate_schema" value="1">
+            <button type="submit" class="btn btn-info text-white btn-sm px-4">
+              <i class="fas fa-magic me-2"></i>Generate Schema Code Now
+            </button>
+          </form>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+
   <!-- Primary Platforms Status Widget -->
   <div class="card mb-4 border-primary shadow-sm">
     <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
@@ -1075,6 +1194,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
               <th>Backlink URL</th>
               <th>Date Created</th>
               <th>Link Status</th>
+              <th>Google Index</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -1109,6 +1229,21 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
                 }
                 ?>
               </td>
+              <td class="indexing-status-cell">
+                <?php
+                $iStatus = $bl['indexing_status'] ?? 'unchecked';
+                if ($iStatus === 'indexed') {
+                    echo '<span class="badge bg-success"><i class="fas fa-search me-1"></i>Indexed</span>';
+                } elseif ($iStatus === 'not_indexed') {
+                    echo '<span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Not Indexed</span>';
+                } else {
+                    echo '<span class="badge bg-secondary"><i class="fas fa-question-circle me-1"></i>Unchecked</span>';
+                }
+                if (!empty($bl['last_index_checked_at'])) {
+                    echo '<br><small class="text-muted" style="font-size: 10px;">Checked: ' . date('d M, H:i', strtotime($bl['last_index_checked_at'])) . '</small>';
+                }
+                ?>
+              </td>
               <td>
                 <div class="btn-group btn-group-sm">
                   <button class="btn btn-outline-secondary"
@@ -1118,6 +1253,10 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
                   <button class="btn btn-outline-primary"
                           onclick="verifySingleLink(<?= $bl['id'] ?>, this)" title="Verify Live Link Now">
                     <i class="fas fa-sync-alt"></i>
+                  </button>
+                  <button class="btn btn-outline-info"
+                          onclick="checkLinkIndexing(<?= $bl['id'] ?>, this)" title="Check Google Indexing">
+                    <i class="fas fa-search"></i>
                   </button>
                 </div>
               </td>
@@ -2085,6 +2224,52 @@ function verifySingleLink(blId, btn) {
       btn.disabled = false;
       btn.innerHTML = originalHtml;
       alert('Network error verifying link: ' + err.message);
+    });
+}
+
+function checkLinkIndexing(blId, btn) {
+  const originalHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  
+  const row = document.getElementById('bl-row-' + blId);
+  const indexCell = row ? row.querySelector('.indexing-status-cell') : null;
+  
+  const formData = new FormData();
+  formData.append('action', 'check_indexing');
+  formData.append('backlink_id', blId);
+  
+  fetch('submission-manager.php', {
+    method: 'POST',
+    body: formData,
+    credentials: 'same-origin'
+  })
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      
+      if (data.success) {
+        if (indexCell) {
+          let badge = '';
+          if (data.status === 'indexed') {
+            badge = '<span class="badge bg-success"><i class="fas fa-search me-1"></i>Indexed</span>';
+          } else if (data.status === 'not_indexed') {
+            badge = '<span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Not Indexed</span>';
+          } else {
+            badge = '<span class="badge bg-secondary"><i class="fas fa-question-circle me-1"></i>Unchecked</span>';
+          }
+          const checkDate = new Date().toLocaleDateString('en-GB', {day: 'numeric', month: 'short'}) + ', ' + new Date().toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'});
+          indexCell.innerHTML = badge + '<br><small class="text-muted" style="font-size: 10px;">Checked: ' + checkDate + '</small>';
+        }
+      } else {
+        alert('Indexing check failed: ' + (data.error || 'Unknown error'));
+      }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      alert('Network error checking indexing: ' + err.message);
     });
 }
 

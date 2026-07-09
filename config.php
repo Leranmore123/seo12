@@ -493,3 +493,52 @@ function getDiverseAnchorTexts(string $keyword, string $businessName, string $we
     ];
 }
 
+/**
+ * Verifies if a given backlink URL is indexed by Google using Custom Search Engine API.
+ * Returns: 'indexed', 'not_indexed', or 'unchecked' (on API limits/errors).
+ */
+function checkUrlGoogleIndexing(string $url): string {
+    $apiKey = defined('GOOGLE_API_KEY') ? GOOGLE_API_KEY : '';
+    $cseCx  = defined('GOOGLE_CSE_CX') ? GOOGLE_CSE_CX : '';
+    
+    if (empty($apiKey) || empty($cseCx)) {
+        return 'unchecked';
+    }
+    
+    // We search for the exact URL in quotes
+    $query = '"' . $url . '"';
+    $apiUrl = 'https://www.googleapis.com/customsearch/v1?key=' . urlencode($apiKey) . '&cx=' . urlencode($cseCx) . '&q=' . urlencode($query);
+    
+    $ch = curl_init($apiUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 10,
+        CURLOPT_SSL_VERIFYPEER => false,
+    ]);
+    
+    $resp = curl_exec($ch);
+    $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    if ($httpCode !== 200) {
+        // Quota exceeded, invalid key, or network issue
+        return 'unchecked';
+    }
+    
+    $data = json_decode($resp, true);
+    if (!empty($data['items'])) {
+        // Double check if any item URL matches the backlink URL (ignoring http vs https vs trailing slash)
+        $normalizedTarget = preg_replace('/^https?:\/\/(www\.)?/', '', rtrim($url, '/'));
+        
+        foreach ($data['items'] as $item) {
+            $normalizedItemLink = preg_replace('/^https?:\/\/(www\.)?/', '', rtrim($item['link'] ?? '', '/'));
+            if (strcasecmp($normalizedTarget, $normalizedItemLink) === 0) {
+                return 'indexed';
+            }
+        }
+    }
+    
+    return 'not_indexed';
+}
+
+
