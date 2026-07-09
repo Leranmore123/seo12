@@ -3792,7 +3792,55 @@ function savePostedBacklink(PDO $db, int $projectId, string $platform, array $re
     } catch (Exception $e) {
         // Ignore ping exceptions
     }
+
+    // Trigger Tier 2 backlink pyramid auto-posting
+    $tier1Platforms = ['wordpress', 'blogger', 'livejournal', 'medium', 'devto', 'github'];
+    if (in_array(strtolower($platform), $tier1Platforms)) {
+        try {
+            enqueueTier2Backlinks($db, $projectId, $url, $keyword ?: '');
+        } catch (Exception $e) {
+            // Ignore Tier 2 queue exceptions to prevent breaking the main flow
+        }
+    }
 }
+
+/**
+ * Automatically enqueues Tier 2 backlinks pointing to a newly published Tier 1 URL
+ */
+function enqueueTier2Backlinks(PDO $db, int $projectId, string $tier1Url, string $keyword): void {
+    // We create Tier 2 links on social sharing/microblog platforms
+    $tier2Platforms = ['tumblr', 'bluesky', 'plurk', 'symbaloo', 'pearltrees', 'diigo'];
+    
+    // Find active social accounts for this project on these platforms
+    $placeholders = implode(',', array_fill(0, count($tier2Platforms), '?'));
+    $sql = "SELECT * FROM social_accounts WHERE project_id = ? AND status = 'active' AND platform IN ($placeholders)";
+    $stmt = $db->prepare($sql);
+    $params = array_merge([$projectId], $tier2Platforms);
+    $stmt->execute($params);
+    $accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    if (empty($accounts)) {
+        return;
+    }
+    
+    $insertStmt = $db->prepare('INSERT INTO backlink_queue (project_id, social_account_id, platform, keyword, target_url, status) VALUES (?, ?, ?, ?, ?, "pending")');
+    $checkStmt  = $db->prepare('SELECT COUNT(*) FROM backlink_queue WHERE project_id = ? AND social_account_id = ? AND platform = ? AND target_url = ? AND status IN ("pending", "processing")');
+    
+    foreach ($accounts as $creds) {
+        // Prevent duplicate queue tasks for the same Tier 1 URL on the same account
+        $checkStmt->execute([$projectId, $creds['id'], $creds['platform'], $tier1Url]);
+        $exists = (int)$checkStmt->fetchColumn();
+        
+        if ($exists > 0) {
+            continue;
+        }
+        
+        // Generate a random anchor text for the Tier 2 link pointing to the Tier 1 blog URL
+        $anchorText = getRandomAnchorText($keyword, '', $tier1Url);
+        $insertStmt->execute([$projectId, $creds['id'], $creds['platform'], $anchorText, $tier1Url]);
+    }
+}
+
 
 /**
  * Get how many times this project has been posted to a platform.

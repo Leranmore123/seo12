@@ -422,3 +422,74 @@ function checkGoogleRank($keyword, $targetSite) {
 
     return 0;
 }
+
+/**
+ * Generate a random anchor text for a given keyword and business name to ensure Anchor Text Diversity.
+ */
+function getRandomAnchorText(string $keyword, string $businessName, string $websiteUrl = ''): string {
+    $keyword = trim($keyword);
+    $cleanUrl = '';
+    if (!empty($websiteUrl)) {
+        $cleanUrl = preg_replace('/^https?:\/\/(www\.)?/', '', rtrim($websiteUrl, '/'));
+    }
+    $branding = !empty($businessName) ? $businessName : (!empty($cleanUrl) ? $cleanUrl : 'our website');
+    
+    // Weighted selection of anchor types:
+    // 20% Exact Match, 30% Branding, 25% Generic, 25% LSI / Partial Match
+    $rand = rand(1, 100);
+    
+    if ($rand <= 20) {
+        return ucwords($keyword);
+    } elseif ($rand <= 50) {
+        return $branding;
+    } elseif ($rand <= 75) {
+        $genericOptions = ["Click Here", "Visit Website", "Learn More", "Read More", "Official Website", "Check this resource"];
+        return $genericOptions[array_rand($genericOptions)];
+    } else {
+        $lsiOptions = [
+            "Best " . ucwords($keyword) . " Guide",
+            "Professional " . ucwords($keyword),
+            "Expert " . ucwords($keyword) . " Services",
+            "About " . ucwords($keyword),
+            "Find out more about " . ucwords($keyword)
+        ];
+        return $lsiOptions[array_rand($lsiOptions)];
+    }
+}
+
+/**
+ * Generate three diverse anchor texts (intro, mid, outro) for a single article.
+ */
+function getDiverseAnchorTexts(string $keyword, string $businessName, string $websiteUrl = ''): array {
+    $cleanUrl = '';
+    if (!empty($websiteUrl)) {
+        $cleanUrl = preg_replace('/^https?:\/\/(www\.)?/', '', rtrim($websiteUrl, '/'));
+    }
+    $branding = !empty($businessName) ? $businessName : (!empty($cleanUrl) ? $cleanUrl : 'our website');
+    
+    // Intro: Exact Match
+    $intro = ucwords($keyword);
+    
+    // Mid: LSI / Partial Match
+    $lsiOptions = [
+        "Best " . ucwords($keyword) . " Guide",
+        "Professional " . ucwords($keyword),
+        "Expert " . ucwords($keyword) . " Services",
+        "About " . ucwords($keyword)
+    ];
+    $mid = $lsiOptions[array_rand($lsiOptions)];
+    
+    // Outro: Generic / Branding / URL
+    $genericOptions = ["Click Here", "Visit Website", "Learn More", "Read More", $branding];
+    if (!empty($websiteUrl)) {
+        $genericOptions[] = $websiteUrl;
+    }
+    $outro = $genericOptions[array_rand($genericOptions)];
+    
+    return [
+        'intro' => $intro,
+        'mid'   => $mid,
+        'outro' => $outro
+    ];
+}
+

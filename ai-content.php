@@ -299,6 +299,12 @@ function generateAIContent($keyword, $targetSite, $platform, $contentType, $gemi
     // ── Generate a UNIQUE title via ChatGPT (unlimited, never repeats) ──────────
     $generatedTitle = generateUniqueTitle($keyword, $postCount, $usedTitles, $openaiKey);
 
+    // Generate diverse anchor texts for Anchor Text Diversity
+    $anchors = getDiverseAnchorTexts($keyword, $businessName, $targetSite);
+    $introAnchor = $anchors['intro'];
+    $midAnchor = $anchors['mid'];
+    $outroAnchor = $anchors['outro'];
+
     if ($platform === 'pinterest') {
         $titlePrompt = "Generate ONE unique, compelling, SEO-optimized Pinterest Pin Title for the keyword: \"{$keyword}\".\nRules:\n- Must contain the keyword \"{$keyword}\"\n- Length must be strictly between 40 and 60 characters\n- Return ONLY the title, no quotes, nothing else.";
         $pinterestTitle = null;
@@ -344,7 +350,10 @@ STRICT REQUIREMENTS:
 - Minimum 1200-1500 words — a thorough, extensive resource ranks much better on Google. Use comprehensive paragraphs and details.
 - Write this article from a completely fresh perspective. Do NOT reuse paragraph layouts, phrases, or sentence structures from previous posts. Every single sentence must be 100% unique.
 - Use the keyword '{$keyword}' naturally at least 6-8 times throughout the body
-- Include the target URL <a href='{$targetSite}'>{$targetSite}</a> at least 3 times — once in intro, once mid-article, once in conclusion CTA
+- Include the following 3 backlink anchors naturally in the text:
+  1. Once in the introduction: <a href='{$targetSite}'>{$introAnchor}</a>
+  2. Once in the middle of the article: <a href='{$targetSite}'>{$midAnchor}</a>
+  3. Once in the conclusion CTA: <a href='{$targetSite}'>{$outroAnchor}</a>
 - 5-6 H2 subheadings covering different aspects
 - Include a bullet list of at least 6 benefits or key points
 - Add a FAQ section (3 questions) near the end with keyword in questions
@@ -360,11 +369,13 @@ REQUIREMENTS:
 - Title/heading must be: \"{$generatedTitle}\"
 - Use keyword '{$keyword}' at least 3-4 times naturally
 - Write with 100% unique phrasing. Never repeat sentence structures or paragraph flows from previous posts.
-- Include the URL <a href='{$targetSite}'>{$targetSite}</a> twice — once mid-post, once at end
+- Include the following 2 backlink anchors naturally:
+  1. Once in the middle of the post: <a href='{$targetSite}'>{$midAnchor}</a>
+  2. Once at the end CTA: <a href='{$targetSite}'>{$outroAnchor}</a>
 - Start with an attention-grabbing opening line
 - Include 4-5 key benefits as bullet points
 - Add one real-world example or use case
-- End with strong CTA: 'Enroll now at <a href=\"{$targetSite}\">{$targetSite}</a>'
+- End with strong CTA linking to {$targetSite}
 - Use HTML: <p>, <strong>, <ul>, <li>, <a href> tags
 Platform: {$platform}. Post variation #{$postCount}. Random seed: {$randomSeed}. Timestamp: {$timestamp}. UNIQUE content only.",
 
@@ -426,7 +437,10 @@ STRICT STRUCTURE:
 - <h2> Conclusion with strong CTA linking to {$targetSite}
 KEYWORD RULES:
 - Use '{$keyword}' at least 6-8 times naturally
-- Include <a href='{$targetSite}'>{$targetSite}</a> at least 4 times
+- Include the following 3 backlink anchors naturally in the text:
+  1. Once in the introduction: <a href='{$targetSite}'>{$introAnchor}</a>
+  2. Once in the middle section: <a href='{$targetSite}'>{$midAnchor}</a>
+  3. Once in the conclusion CTA: <a href='{$targetSite}'>{$outroAnchor}</a>
 - Use HTML tags throughout: <h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <a>
 Platform: {$platform}. Post variation #{$postCount}. Random seed: {$randomSeed}. Timestamp: {$timestamp}. UNIQUE content only.",
     ];

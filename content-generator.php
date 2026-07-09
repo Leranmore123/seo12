@@ -17,6 +17,9 @@ $site    = $project['target_site'] ?: $project['website_url'];
 
 // 80% AUTO: Generate 5 unique articles via ChatGPT
 function generateAllArticles($keyword, $site) {
+    global $project;
+    $businessName = $project['business_name'] ?? '';
+    
     $prompts = [
         [
             'title_hint' => 'Complete Guide',
@@ -28,7 +31,7 @@ Structure with HTML tags:
 - <h2> Why Learn " . ucwords($keyword) . " in 2024?
 - <h2> Career Opportunities
 - <h2> Best Training Institute
-- <p> conclusion with link to <a href='{$site}'>{$site}</a>
+- <p> conclusion with link to {$link_placeholder}
 Use keyword naturally 3-4 times. Make it unique and valuable.",
         ],
         [
@@ -40,7 +43,7 @@ Use HTML tags. Include:
 - <h2> Step by Step Process
 - <h2> Tools You Need
 - <h2> Where to Learn
-- Mention <a href='{$site}'>{$site}</a> as the best resource
+- Mention {$link_placeholder} as the best resource
 Make it conversational and encouraging.",
         ],
         [
@@ -52,7 +55,7 @@ HTML format:
 - <h2> Average Salary in India
 - <h2> Top Companies Hiring
 - <h2> How to Get Certified
-- <h2> Best Institute: link to <a href='{$site}'>{$site}</a>
+- <h2> Best Institute: link to {$link_placeholder}
 Include realistic salary figures and job titles.",
         ],
         [
@@ -62,7 +65,7 @@ HTML format:
 - <h1> 'Top 10 Tips for {$keyword}' style title
 - <p> introduction
 - 10 numbered tips as <h3> headings with <p> explanations
-- <p> conclusion mentioning <a href='{$site}'>{$site}</a>
+- <p> conclusion mentioning {$link_placeholder}
 Make tips practical and actionable.",
         ],
         [
@@ -73,14 +76,20 @@ HTML format:
 - <p> introduction
 - 8 questions as <h2> tags
 - <p> detailed answers
-- Last answer should mention <a href='{$site}'>{$site}</a>
+- Last answer should mention {$link_placeholder}
 Questions should be what people actually search on Google.",
         ],
     ];
 
     $articles = [];
     foreach ($prompts as $p) {
-        $prompt = str_replace(['{$keyword}', '{$site}'], [$keyword, $site], $p['prompt']);
+        // Generate a random anchor text for this specific article
+        $anchorText = getRandomAnchorText($keyword, $businessName, $site);
+        $linkHTML = "<a href='{$site}'>{$anchorText}</a>";
+        
+        $promptText = str_replace('{$link_placeholder}', $linkHTML, $p['prompt']);
+        $prompt = str_replace(['{$keyword}', '{$site}'], [$keyword, $site], $promptText);
+        
         $ai     = generateWithAI($prompt);
         $content = $ai['text'] ?: generateAIContent($keyword, $site, 'blog', 'article', '', OPENAI_API_KEY)['content'];
         $source  = $ai['text'] ? $ai['source'] : 'Template';
