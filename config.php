@@ -1,4 +1,8 @@
 <?php
+// Enable local PHP error logging in the logs folder
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/logs/php_errors.log');
+
 // ============================================================
 // config.php - SEO 80/20 System Configuration
 // ============================================================
