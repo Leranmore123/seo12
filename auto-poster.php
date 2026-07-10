@@ -601,8 +601,19 @@ function postToBluesky($username, $appPassword, $keyword, $targetSite, $openaiKe
     }
 
     // Step 4: Create post with clickable link facet
+    $cleanSite = preg_replace('/^https?:\/\/(www\.)?/', '', $targetSite);
+    
     $linkStart = mb_strpos($text, $targetSite, 0, 'UTF-8');
-    $linkEnd   = $linkStart + mb_strlen($targetSite, 'UTF-8');
+    $matchedUrl = $targetSite;
+    if ($linkStart === false) {
+        $linkStart = mb_strpos($text, $cleanSite, 0, 'UTF-8');
+        $matchedUrl = $cleanSite;
+    }
+    if ($linkStart === false) {
+        $wwwSite = 'www.' . $cleanSite;
+        $linkStart = mb_strpos($text, $wwwSite, 0, 'UTF-8');
+        $matchedUrl = $wwwSite;
+    }
 
     $record = [
         '$type'     => 'app.bsky.feed.post',
@@ -613,6 +624,7 @@ function postToBluesky($username, $appPassword, $keyword, $targetSite, $openaiKe
 
     // Add clickable link facet
     if ($linkStart !== false) {
+        $linkEnd = $linkStart + mb_strlen($matchedUrl, 'UTF-8');
         $record['facets'] = [[
             'index' => [
                 'byteStart' => strlen(mb_substr($text, 0, $linkStart, 'UTF-8')),
@@ -620,7 +632,7 @@ function postToBluesky($username, $appPassword, $keyword, $targetSite, $openaiKe
             ],
             'features' => [[
                 '$type' => 'app.bsky.richtext.facet#link',
-                'uri'   => $targetSite,
+                'uri'   => $targetSite, // The actual redirect URL (with https://)
             ]],
         ]];
     }
