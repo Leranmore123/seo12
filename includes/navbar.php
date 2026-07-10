@@ -101,6 +101,11 @@ function isNavAllowed($menuCode, $allowedMenus) {
             <i class="fas fa-user-shield me-1"></i>Admin Panel
           </a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link" href="admin-dashboard.php#user-accounts">
+            <i class="fas fa-user-plus me-1"></i>Create Login Account
+          </a>
+        </li>
         <?php endif; ?>
 
         <?php if (isNavAllowed('cost-ranking', $allowedMenus)): ?>

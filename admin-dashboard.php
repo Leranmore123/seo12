@@ -772,7 +772,7 @@ $flash = getFlash();
   <!-- User Access Management Section -->
   <div class="row g-4 mt-2">
     <div class="col-12">
-      <div class="card border-0 bg-light shadow-sm">
+      <div class="card border-0 bg-light shadow-sm" id="user-accounts">
         <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
           <span><i class="fas fa-users-cog me-2"></i>User Access & Client Accounts Management</span>
           <span class="badge bg-light text-primary fw-bold"><?= count($allUsers) ?> Accounts</span>
