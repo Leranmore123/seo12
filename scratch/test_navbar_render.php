@@ -21,5 +21,10 @@ $stmt = $db->prepare("SELECT allowed_menus FROM users WHERE id = 24");
 $stmt->execute();
 var_dump($stmt->fetchColumn());
 
+echo "Allowed Menus after include: ";
+var_dump($allowedMenus);
+echo "isNavAllowed check: ";
+var_dump(isNavAllowed('create-login-account', $allowedMenus));
+
 echo "\n--- RENDERED HTML ---\n";
 echo $html;
