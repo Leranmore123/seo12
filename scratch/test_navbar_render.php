@@ -26,5 +26,11 @@ var_dump($allowedMenus);
 echo "isNavAllowed check: ";
 var_dump(isNavAllowed('create-login-account', $allowedMenus));
 
+echo "\n--- RAW LINES 100-115 OF navbar.php ---\n";
+$lines = file(dirname(__DIR__) . '/includes/navbar.php');
+for ($i = 99; $i < 115 && $i < count($lines); $i++) {
+    echo ($i + 1) . ": " . $lines[$i];
+}
+
 echo "\n--- RENDERED HTML ---\n";
 echo $html;
