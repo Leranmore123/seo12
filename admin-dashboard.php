@@ -802,11 +802,9 @@ $flash = getFlash();
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label fw-bold">Role <span class="text-danger">*</span></label>
-                  <select name="role" class="form-select" required>
-                    <option value="client" selected>Client / Client Profile Access</option>
-                    <option value="admin">Admin / System Manager Access</option>
-                  </select>
+                  <label class="form-label fw-bold">Role</label>
+                  <input type="text" class="form-control bg-light text-muted" value="Client / Client Profile Access" readonly disabled>
+                  <input type="hidden" name="role" value="client">
                 </div>
                 
                 <button type="submit" class="btn btn-primary w-100 fw-bold">
