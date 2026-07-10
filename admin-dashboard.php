@@ -967,6 +967,7 @@ $flash = getFlash();
                 'submissions' => 'Submissions',
                 'api-keys' => 'API Keys',
                 'admin-panel' => 'Admin Panel',
+                'create-login-account' => 'Create Login Account',
                 'cost-ranking' => 'Cost & Ranking',
                 'auto-schedule' => 'Auto-Schedule',
                 'ai-workflow' => 'AI Workflow',
