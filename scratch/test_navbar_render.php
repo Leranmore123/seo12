@@ -1,12 +1,11 @@
 <?php
 header('Content-Type: text/plain');
+require_once dirname(__DIR__) . '/config.php';
 
 // Simulate session for user 24 (Rahul_LMT)
 $_SESSION['user_id'] = 24;
 $_SESSION['username'] = 'Rahul_LMT';
 $_SESSION['role'] = 'client';
-
-require_once dirname(__DIR__) . '/config.php';
 
 // Capture output of navbar.php
 ob_start();
