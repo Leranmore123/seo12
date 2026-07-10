@@ -6,13 +6,31 @@
 // ============================================================
 
 require_once 'config.php';
-requireMenuPermission('admin-panel');
+// Check if the user is allowed to access the admin dashboard or the user manager
+requireLogin();
+$isAdmin = (($_SESSION['role'] ?? 'client') === 'admin');
+$hasPerm = false;
 
-// Restrict to Admin role
-if (($_SESSION['role'] ?? 'client') !== 'admin') {
-    setFlash('danger', 'Access denied. Admin permissions required.');
-    header('Location: dashboard.php');
-    exit;
+if (!$isAdmin) {
+    // If not admin, check if they have either admin-panel or create-login-account permission
+    $userId = $_SESSION['user_id'] ?? 0;
+    if ($userId > 0) {
+        $db = getDB();
+        $stmt = $db->prepare("SELECT allowed_menus FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $val = $stmt->fetchColumn();
+        if ($val !== null && $val !== '') {
+            $allowed = array_map('trim', explode(',', strtolower($val)));
+            if (in_array('admin-panel', $allowed) || in_array('create-login-account', $allowed)) {
+                $hasPerm = true;
+            }
+        }
+    }
+    if (!$hasPerm) {
+        setFlash('danger', 'Access denied. You do not have permission to access that page.');
+        header('Location: dashboard.php');
+        exit;
+    }
 }
 
 $db = getDB();
@@ -625,6 +643,7 @@ $flash = getFlash();
     </div>
   </div>
 
+  <?php if ($isAdmin): ?>
   <div class="row g-4">
     <!-- LEFT: Clients List & Onboarding triggers -->
     <div class="col-lg-8">
@@ -768,6 +787,7 @@ $flash = getFlash();
       </div>
     </div>
   </div>
+  <?php endif; ?>
 
   <!-- User Access Management Section -->
   <div class="row g-4 mt-2">
