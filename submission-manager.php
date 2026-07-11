@@ -1359,8 +1359,8 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
                 $cooldown = checkPlatformCooldown($db, $selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite, count($allAccounts));
                 
                 // Fetch the latest background queue task for this platform
-                $queueStmt = $db->prepare("SELECT status, error_message FROM backlink_queue WHERE project_id=? AND platform=? ORDER BY id DESC LIMIT 1");
-                $queueStmt->execute([$selectedProjectId, $site['id']]);
+                $queueStmt = $db->prepare("SELECT status, error_message FROM backlink_queue WHERE project_id=? AND platform=? AND keyword=? AND target_url=? ORDER BY id DESC LIMIT 1");
+                $queueStmt->execute([$selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite]);
                 $qItem = $queueStmt->fetch(PDO::FETCH_ASSOC);
                 ?>
                 <?php if ($cooldown['is_cooldown']): ?>
@@ -1494,8 +1494,8 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
                 $cooldown = checkPlatformCooldown($db, $selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite, count($allAccounts));
                 
                 // Fetch the latest background queue task for this platform
-                $queueStmt = $db->prepare("SELECT status, error_message FROM backlink_queue WHERE project_id=? AND platform=? ORDER BY id DESC LIMIT 1");
-                $queueStmt->execute([$selectedProjectId, $site['id']]);
+                $queueStmt = $db->prepare("SELECT status, error_message FROM backlink_queue WHERE project_id=? AND platform=? AND keyword=? AND target_url=? ORDER BY id DESC LIMIT 1");
+                $queueStmt->execute([$selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite]);
                 $qItem = $queueStmt->fetch(PDO::FETCH_ASSOC);
                 ?>
                 <?php if ($cooldown['is_cooldown']): ?>
