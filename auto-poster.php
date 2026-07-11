@@ -3868,12 +3868,14 @@ function savePostedBacklink(PDO $db, int $projectId, string $platform, array $re
     }
 
     // Trigger Tier 2 backlink pyramid auto-posting
-    $tier1Platforms = ['wordpress', 'blogger', 'livejournal', 'medium', 'devto', 'github'];
-    if (in_array(strtolower($platform), $tier1Platforms)) {
-        try {
-            enqueueTier2Backlinks($db, $projectId, $url, $keyword ?: '');
-        } catch (Exception $e) {
-            // Ignore Tier 2 queue exceptions to prevent breaking the main flow
+    if (defined('ENABLE_TIER2_POSTING') ? ENABLE_TIER2_POSTING : true) {
+        $tier1Platforms = ['wordpress', 'blogger', 'livejournal', 'medium', 'devto', 'github'];
+        if (in_array(strtolower($platform), $tier1Platforms)) {
+            try {
+                enqueueTier2Backlinks($db, $projectId, $url, $keyword ?: '');
+            } catch (Exception $e) {
+                // Ignore Tier 2 queue exceptions to prevent breaking the main flow
+            }
         }
     }
 }

@@ -61,6 +61,9 @@ define('GOOGLE_CSE_CX',        (string) seoCfg('GOOGLE_CSE_CX', ''));
 define('DATAFORSEO_LOGIN',     (string) seoCfg('DATAFORSEO_LOGIN', ''));
 define('DATAFORSEO_PASSWORD',  (string) seoCfg('DATAFORSEO_PASSWORD', ''));
 
+// Toggle for Tier 2 Auto-Posting (set to false in config.local.php to save API costs)
+define('ENABLE_TIER2_POSTING', (bool) seoCfg('ENABLE_TIER2_POSTING', true));
+
 define('SMTP_HOST', (string) seoCfg('SMTP_HOST', 'smtp.gmail.com'));
 define('SMTP_USER', (string) seoCfg('SMTP_USER', ''));
 define('SMTP_PASS', (string) seoCfg('SMTP_PASS', ''));

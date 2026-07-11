@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_keys'])) {
             'HUGGINGFACE_API_KEY'  => trim($_POST['huggingface'] ?? ''),
             'SMTP_USER'            => trim($_POST['smtp_user'] ?? ''),
             'SMTP_PASS'            => trim($_POST['smtp_pass'] ?? ''),
+            'ENABLE_TIER2_POSTING' => isset($_POST['enable_tier2']),
         ];
         $existing = is_readable(__DIR__ . '/config.local.php')
             ? (array) include __DIR__ . '/config.local.php'
@@ -192,6 +193,24 @@ function maskKey($v) {
           <small class="text-muted">For Gmail: Go to Google Account → Security → 2-Step Verification → App passwords → Generate 16-character password.</small>
         </div>
       </details>
+
+      <!-- Queue & Promotion Settings -->
+      <div class="card mb-4 border-info shadow-sm mt-4">
+        <div class="card-header bg-info text-dark fw-bold">
+          <i class="fas fa-sitemap me-2"></i>Queue & Tier 2 Auto-Posting Settings
+        </div>
+        <div class="card-body">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="enable_tier2" id="enableTier2" 
+                   <?= (defined('ENABLE_TIER2_POSTING') ? ENABLE_TIER2_POSTING : true) ? 'checked' : '' ?>>
+            <label class="form-check-label fw-bold" for="enableTier2">Enable Tier 2 Backlink Auto-Posting</label>
+          </div>
+          <div class="form-text text-muted">
+            When enabled, successfully creating a Tier 1 post (Blogger, Dev.to, GitHub, etc.) will automatically queue promotional posts (micro-blog shares on Bluesky, Tumblr, Symbaloo, Pearltrees) pointing to that Tier 1 backlink. 
+            <strong>Disable this to save ChatGPT / Gemini API token costs.</strong>
+          </div>
+        </div>
+      </div>
 
       <button type="submit" class="btn btn-primary btn-lg">
         <i class="fas fa-save me-2"></i>Save All Keys
