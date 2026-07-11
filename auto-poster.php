@@ -210,12 +210,19 @@ function postToBlogger($accessToken, $blogId, $keyword, $targetSite, $openaiKey,
     if (empty($ai['content'])) return ['error' => $ai['error'] ?? 'AI content generation failed. Check OpenAI/Gemini API keys.'];
     $title = $ai['title'] ?? ucwords($keyword) . ' Training - ' . date('F Y');
 
+    $content = $ai['content'];
+    // Ensure targetSite is in the content as Anchor Text with the keyword
+    $cleanSite = preg_replace('/^https?:\/\/(www\.)?/', '', $targetSite);
+    if (stripos($content, $cleanSite) === false) {
+        $content .= "<br><br><b>Learn More:</b> For more details, visit <a href=\"" . htmlspecialchars($targetSite) . "\">" . htmlspecialchars(ucwords($keyword)) . "</a>";
+    }
+
     // Try post with current token
     $ch = curl_init("https://www.googleapis.com/blogger/v3/blogs/{$blogId}/posts/");
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => json_encode(['kind' => 'blogger#post', 'title' => $title, 'content' => $ai['content']]),
+        CURLOPT_POSTFIELDS     => json_encode(['kind' => 'blogger#post', 'title' => $title, 'content' => $content]),
         CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $accessToken, 'Content-Type: application/json'],
         CURLOPT_TIMEOUT        => 30,
         CURLOPT_SSL_VERIFYPEER => false,
@@ -242,7 +249,7 @@ function postToBlogger($accessToken, $blogId, $keyword, $targetSite, $openaiKey,
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_POST           => true,
-                CURLOPT_POSTFIELDS     => json_encode(['kind' => 'blogger#post', 'title' => $title, 'content' => $ai['content']]),
+                CURLOPT_POSTFIELDS     => json_encode(['kind' => 'blogger#post', 'title' => $title, 'content' => $content]),
                 CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $newToken, 'Content-Type: application/json'],
                 CURLOPT_TIMEOUT        => 30,
                 CURLOPT_SSL_VERIFYPEER => false,
@@ -255,7 +262,7 @@ function postToBlogger($accessToken, $blogId, $keyword, $targetSite, $openaiKey,
             'manual'  => true,
             'message' => 'Blogger token expired - please re-authenticate at developers.google.com/oauthplayground',
             'title'   => $title,
-            'content' => $ai['content'],
+            'content' => $content,
             'url'     => 'https://developers.google.com/oauthplayground',
             'source'  => $ai['source'],
         ];
@@ -411,10 +418,15 @@ function postToGitHub($apiKey, $ghUsername, $keyword, $targetSite, $geminiKey, $
     $repoName = substr($repoSlug . '-guide-' . date('Y') . ($postCount > 1 ? '-v' . $postCount : ''), 0, 100);
 
     $postTitle = $ai['title'] ?? generateUniqueTitle($keyword, $postCount, [], OPENAI_API_KEY);
-    $content  = strip_tags($ai['content']);
+    
+    // Convert HTML links to Markdown links first to preserve targetSite
+    $content = $ai['content'] ?? '';
+    $content = preg_replace('/<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)<\/a>/is', '[$2]($1)', $content);
+    $content = strip_tags($content);
+    
     $readme   = "# " . $postTitle . "\n\n"
               . $content
-              . "\n\n## Learn More\nVisit [" . $targetSite . "](" . $targetSite . ")\n";
+              . "\n\n## Learn More\nFor more information, visit [" . ucwords($keyword) . "](" . $targetSite . ")\n";
 
     // ── Step 1: Create repo ──────────────────────────────────
     $ch = curl_init('https://api.github.com/user/repos');
@@ -810,7 +822,7 @@ function postToDevTo($apiKey, $keyword, $targetSite, $geminiKey, $openaiKey, $po
     // Ensure targetSite is in the content (either as absolute URL or markdown link)
     $cleanSite = preg_replace('/^https?:\/\/(www\.)?/', '', $targetSite);
     if (stripos($bodyMarkdown, $cleanSite) === false) {
-        $bodyMarkdown .= "\n\n## Learn More\nVisit [" . $targetSite . "](" . $targetSite . ")";
+        $bodyMarkdown .= "\n\n## Learn More\nFor more information, visit [" . ucwords($keyword) . "](" . $targetSite . ")";
     }
 
     $ch = curl_init('https://dev.to/api/articles');
@@ -2546,8 +2558,18 @@ function postToLiveJournal($username, $password, $keyword, $targetSite, $openaiK
         return ['error' => 'LiveJournal: Add username + password credentials.'];
 
     $ai    = generateAIContent($keyword, $targetSite, 'livejournal', 'blog_post', '', $openaiKey, $postCount ?? 1, $usedTitles ?? []);
-    $text  = strip_tags($ai['content'] ?? '');
-    if (empty($text)) $text = "Best {$keyword} training guide. Learn more: {$targetSite}";
+    // Preserve <a> tags while stripping other HTML
+    $text  = strip_tags($ai['content'] ?? '', '<a>');
+    if (empty($text)) {
+        $text = "Best " . htmlspecialchars($keyword) . " training guide. Learn more: <a href=\"" . htmlspecialchars($targetSite) . "\">" . htmlspecialchars(ucwords($keyword)) . "</a>";
+    }
+    
+    // Ensure targetSite is in the content as Anchor Text with the keyword
+    $cleanSite = preg_replace('/^https?:\/\/(www\.)?/', '', $targetSite);
+    if (stripos($text, $cleanSite) === false) {
+        $text .= "<br><br><b>Learn More:</b> For more details, visit <a href=\"" . htmlspecialchars($targetSite) . "\">" . htmlspecialchars(ucwords($keyword)) . "</a>";
+    }
+
     $title = $ai['title'] ?? generateUniqueTitle($keyword, $postCount ?? 1, [], OPENAI_API_KEY);
 
     // LiveJournal XML-RPC endpoint
@@ -2558,7 +2580,7 @@ function postToLiveJournal($username, $password, $keyword, $targetSite, $openaiK
          . '<member><name>username</name><value><string>' . htmlspecialchars($username) . '</string></value></member>'
          . '<member><name>hpassword</name><value><string>' . md5($password) . '</string></value></member>'
          . '<member><name>ver</name><value><int>1</int></value></member>'
-         . '<member><name>event</name><value><string>' . htmlspecialchars(mb_substr($text, 0, 4000) . "\n\nLearn more: " . $targetSite) . '</string></value></member>'
+         . '<member><name>event</name><value><string>' . htmlspecialchars(mb_substr($text, 0, 4000)) . '</string></value></member>'
          . '<member><name>subject</name><value><string>' . htmlspecialchars($title) . '</string></value></member>'
          . '<member><name>security</name><value><string>public</string></value></member>'
          . '<member><name>year</name><value><int>' . date('Y') . '</int></value></member>'
