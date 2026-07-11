@@ -602,7 +602,7 @@ $platforms = [
         'title' => '✍️ Micro Blogging',
         'color' => 'success',
         'sites' => [
-            ['id' => 'scoopit',      'name' => 'Scoop.it',       'url' => 'https://www.scoop.it',        'what_system_does' => '📋 Semi-Auto — Auto Post dabavo → Title + Description auto-generate thay → Copy karo → Scoop.it khulse → Paste karo → Publish button dabavo', 'autopost' => false],
+            ['id' => 'scoopit',      'name' => 'Scoop.it',       'url' => 'https://www.scoop.it',        'what_system_does' => '📋 Semi-Auto — Auto Post dabavo → Title + Description auto-generate thay → Copy karo → Scoop.it khulse → Paste karo → Publish button dabavo'],
             ['id' => 'wakelet',      'name' => 'Wakelet',        'url' => 'https://wakelet.com',         'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System collection create kare + URL add kare with keyword + backlink'],
             ['id' => 'vivauae',      'name' => 'Vivauae',        'url' => 'https://vivauae.com',         'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System article submit kare with keyword + backlink'],
             ['id' => 'padlet',       'name' => 'Padlet',         'url' => 'https://padlet.com',          'what_system_does' => '🤖 Browser Session — Chrome band karo → Auto Post click karo → System tumhara browser session use karke post add karega. Board: lmt-wb7faycbn66hp2z5'],
