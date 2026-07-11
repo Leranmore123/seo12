@@ -4,6 +4,40 @@ requireMenuPermission('dashboard');
 $db = getDB();
 $userId = $_SESSION['user_id'];
 
+// Handle Project Deletion
+if (isset($_GET['delete_project'])) {
+    $deleteId = (int)$_GET['delete_project'];
+    
+    // First verify the project belongs to the logged-in user
+    $check = $db->prepare("SELECT id FROM projects WHERE id=? AND user_id=?");
+    $check->execute([$deleteId, $userId]);
+    if ($check->fetch()) {
+        $db->beginTransaction();
+        try {
+            // Delete related backlinks
+            $db->prepare("DELETE FROM backlinks WHERE project_id=?")->execute([$deleteId]);
+            // Delete related queue tasks
+            $db->prepare("DELETE FROM backlink_queue WHERE project_id=?")->execute([$deleteId]);
+            // Delete related SEO reports
+            $db->prepare("DELETE FROM seo_reports WHERE project_id=?")->execute([$deleteId]);
+            // Delete related credentials/social accounts
+            $db->prepare("DELETE FROM social_accounts WHERE project_id=?")->execute([$deleteId]);
+            // Delete the project
+            $db->prepare("DELETE FROM projects WHERE id=? AND user_id=?")->execute([$deleteId, $userId]);
+            
+            $db->commit();
+            setFlash('success', 'Project deleted successfully along with its backlinks, queue, and reports.');
+        } catch (Exception $e) {
+            $db->rollBack();
+            setFlash('danger', 'Error deleting project: ' . $e->getMessage());
+        }
+    } else {
+        setFlash('danger', 'Access denied or project not found.');
+    }
+    header("Location: dashboard.php");
+    exit;
+}
+
 // Self-healing migration for package_type
 try {
     $db->exec("ALTER TABLE projects ADD COLUMN package_type VARCHAR(50) DEFAULT 'basic'");
@@ -180,6 +214,9 @@ $flash = getFlash();
                   </a>
                   <a href="export-excel.php?id=<?= $p['id'] ?>" class="btn btn-success" title="Export Excel">
                     <i class="fas fa-file-excel"></i>
+                  </a>
+                  <a href="dashboard.php?delete_project=<?= $p['id'] ?>" class="btn btn-danger" title="Delete Project" onclick="return confirm('Are you sure you want to delete this project and all its related backlinks, queue, and reports? This action cannot be undone.');">
+                    <i class="fas fa-trash"></i>
                   </a>
                 </div>
               </td>
