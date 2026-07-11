@@ -6,12 +6,22 @@ $navUserId = $_SESSION['user_id'] ?? 0;
 $navUserRole = $_SESSION['role'] ?? 'client';
 
 $navProjId = 0;
+$navPendingCount = 0;
 if ($navUserId > 0) {
     try {
         $db = getDB();
         $navProjStmt = $db->prepare("SELECT id FROM projects WHERE user_id=? LIMIT 1");
         $navProjStmt->execute([$navUserId]);
         $navProjId = (int)$navProjStmt->fetchColumn();
+        
+        // Count pending tasks in queue for this user's projects
+        $navPendingStmt = $db->prepare("
+            SELECT COUNT(*) FROM backlink_queue q 
+            JOIN projects p ON q.project_id = p.id 
+            WHERE p.user_id = ? AND q.status = 'pending'
+        ");
+        $navPendingStmt->execute([$navUserId]);
+        $navPendingCount = (int)$navPendingStmt->fetchColumn();
     } catch (Exception $e) {}
 }
 
@@ -83,6 +93,9 @@ function isNavAllowed($menuCode, $allowedMenus) {
         <li class="nav-item">
           <a class="nav-link <?= $currentPage === 'submission-manager.php' ? 'active fw-bold' : '' ?>" href="submission-manager.php">
             <i class="fas fa-paper-plane me-1"></i>Submissions
+            <?php if ($navPendingCount > 0): ?>
+              <span class="badge bg-warning text-dark ms-1" style="font-size: 11px;" title="Pending Queue Tasks"><?= $navPendingCount ?></span>
+            <?php endif; ?>
           </a>
         </li>
         <?php endif; ?>

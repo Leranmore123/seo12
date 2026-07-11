@@ -1267,6 +1267,55 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
       </div>
     </div>
   </div>
+  <?php
+  // Fetch pending queue tasks for this specific project
+  $pendingTasks = $db->prepare("
+      SELECT * FROM backlink_queue 
+      WHERE project_id = ? AND status = 'pending' 
+      ORDER BY created_at ASC
+  ");
+  $pendingTasks->execute([$selectedProjectId]);
+  $pendingTasks = $pendingTasks->fetchAll(PDO::FETCH_ASSOC);
+  ?>
+
+  <?php if (!empty($pendingTasks)): ?>
+  <div class="card mb-4 border-warning shadow-sm">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="fas fa-clock me-2"></i>
+        Pending Tasks in Queue (<?= count($pendingTasks) ?>)
+      </h5>
+      <span class="badge bg-dark text-white">System is processing these in background</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th>ID</th>
+              <th>Platform</th>
+              <th>Keyword</th>
+              <th>Target URL</th>
+              <th>Date Queued</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+          <?php foreach ($pendingTasks as $task): ?>
+            <tr>
+              <td>#<?= $task['id'] ?></td>
+              <td><span class="badge bg-secondary"><?= clean($task['platform']) ?></span></td>
+              <td><?= clean($task['keyword']) ?></td>
+              <td><a href="<?= clean($task['target_url']) ?>" target="_blank" class="text-decoration-none text-dark fw-bold"><?= clean(substr($task['target_url'], 0, 50)) ?>...</a></td>
+              <td><small><?= date('d M H:i', strtotime($task['created_at'])) ?></small></td>
+              <td><span class="badge bg-warning text-dark"><i class="fas fa-spinner fa-spin me-1"></i>Pending</span></td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
   <?php endif; ?>
 
   <!-- Platform Submission Console (1 - 10) -->
