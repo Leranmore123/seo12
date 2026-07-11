@@ -431,7 +431,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['execute_git_push'])) 
     </div>
 
     <!-- Inline Configuration Card (Toggled via button click above) -->
-    <div class="card p-4 border-0 shadow-sm border-warning mb-4 <?= (empty($project['local_code_path']) || empty($project['git_repo_url'])) ? '' : 'd-none' ?>" id="inlineConfigCard" style="border-radius:16px;">
+    <div class="card p-4 border-0 shadow-sm border-warning mb-4 <?= (empty($project['local_code_path'] ?? '') || empty($project['git_repo_url'] ?? '')) ? '' : 'd-none' ?>" id="inlineConfigCard" style="border-radius:16px;">
         <div class="card-header bg-warning text-dark py-2" style="border-radius:12px 12px 0 0;">
             <h6 class="mb-0"><i class="fas fa-cog me-2"></i>Configure Project Path & Repository</h6>
         </div>
@@ -450,11 +450,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['execute_git_push'])) 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label small fw-bold">GitHub Username</label>
-                        <input type="text" name="github_user" class="form-control form-control-sm" value="<?= htmlspecialchars($project['github_user'] ?: 'kartik') ?>" placeholder="e.g. kartik" required>
+                        <input type="text" name="github_user" class="form-control form-control-sm" value="<?= htmlspecialchars(($project['github_user'] ?? '') ?: 'kartik') ?>" placeholder="e.g. kartik" required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label small fw-bold">GitHub Access Token / Password</label>
-                        <input type="password" name="github_token" class="form-control form-control-sm" value="<?= htmlspecialchars($project['github_token'] ?: '12345678') ?>" placeholder="e.g. 12345678" required>
+                        <input type="password" name="github_token" class="form-control form-control-sm" value="<?= htmlspecialchars(($project['github_token'] ?? '') ?: '12345678') ?>" placeholder="e.g. 12345678" required>
                     </div>
                 </div>
                 <button type="submit" name="save_config" class="btn btn-primary btn-sm">

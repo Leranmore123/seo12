@@ -420,8 +420,8 @@ const workflowSteps = {
         desc: `You have successfully set up your website as a project in the system. <br><br>
                <strong>Site Information:</strong> <br>
                <ul>
-                 <li>Website URL: <code><?= clean($project['website_url']) ?></code></li>
-                 <li>Business Name: <strong><?= clean($project['business_name'] ?: 'Not Setup') ?></strong></li>
+                 <li>Website URL: <code><?= clean($project['website_url'] ?? '') ?></code></li>
+                 <li>Business Name: <strong><?= clean(($project['business_name'] ?? '') ?: 'Not Setup') ?></strong></li>
                </ul>`,
         btnText: "Add New Project",
         btnLink: "add-project.php"
@@ -448,7 +448,7 @@ const workflowSteps = {
         desc: `System performs crawling of the site automatically to run the on-page audit. <br><br>
                <strong>Crawling Details:</strong> <br>
                <ul>
-                 <li>Website Link: <code><?= clean($project['target_site'] ?: $project['website_url']) ?></code></li>
+                 <li>Website Link: <code><?= clean(($project['target_site'] ?? '') ?: ($project['website_url'] ?? '')) ?></code></li>
                </ul>`,
         btnText: "View On-page Report",
         btnLink: "seo-80-20.php?id=<?= $projectId ?>"
@@ -461,7 +461,7 @@ const workflowSteps = {
         desc: `Automatic checking of technical errors, mobile compatibility, Robots.txt, and Sitemap on the website. <br><br>
                <strong>Recent Audit Status:</strong> <br>
                <ul>
-                 <li>PageSpeed Score: <strong><?= $project['pagespeed_score'] ?: 'Not tested' ?>/100</strong></li>
+                 <li>PageSpeed Score: <strong><?= ($project['pagespeed_score'] ?? '') ?: 'Not tested' ?>/100</strong></li>
                  <li>Open Task Issues: <strong class='text-danger'><?= $openIssuesCount ?> Open</strong></li>
                </ul>`,
         btnText: "Run On-page Analyzer",
@@ -520,7 +520,7 @@ const workflowSteps = {
         status: "Live Integration",
         desc: `Approved changes are automatically saved directly on the site via credentials.`,
         btnText: "Visit Live Site",
-        btnLink: "<?= clean($project['website_url']) ?>"
+        btnLink: "<?= clean($project['website_url'] ?? '') ?>"
     },
     11: {
         title: "Step 11: Index Request",

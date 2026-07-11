@@ -2274,8 +2274,8 @@ function checkLinkIndexing(blId, btn) {
 }
 
 // Manager Arrays
-let managerKeywords = <?= json_encode(array_filter(array_map('trim', explode(',', $project['target_keyword'])))) ?>;
-let managerSites = <?= json_encode(array_filter(array_map('trim', explode(',', $project['target_site'])))) ?>;
+let managerKeywords = <?= json_encode(array_filter(array_map('trim', explode(',', $project['target_keyword'] ?? '')))) ?>;
+let managerSites = <?= json_encode(array_filter(array_map('trim', explode(',', $project['target_site'] ?? '')))) ?>;
 
 document.addEventListener("DOMContentLoaded", () => {
   renderManagerKeywords();
