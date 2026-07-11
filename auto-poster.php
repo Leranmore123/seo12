@@ -522,7 +522,7 @@ function postToGitHub($apiKey, $ghUsername, $keyword, $targetSite, $geminiKey, $
 // No API key needed â€” just username + app password
 // Get app password: bsky.app â†’ Settings â†’ App Passwords
 // ============================================================
-function postToBluesky($username, $appPassword, $keyword, $targetSite, $openaiKey, $projectId = 0, string $businessName = '', string $businessDesc = '') {
+function postToBluesky($username, $appPassword, $keyword, $targetSite, $openaiKey, $projectId = 0, string $businessName = '', string $businessDesc = '', $postCount = 1, array $usedTitles = []) {
     if (empty($username))    return ['error' => 'Bluesky username missing.'];
     $username = trim($username);
     if (strpos($username, '@') === 0) {
@@ -550,12 +550,23 @@ function postToBluesky($username, $appPassword, $keyword, $targetSite, $openaiKe
         return ['error' => 'Bluesky login failed: ' . ($session['message'] ?? json_encode($session)) . ' — verify your Bluesky handle and App Password from bsky.app/settings/app-passwords'];
     }
 
-    // Generate AI content
-    $ai  = generateAIContent($keyword, $targetSite, 'bluesky', 'micro_blog', '', $openaiKey, 1, [], $businessName, $businessDesc);
+    // Generate AI content using the specific 'bluesky_post' prompt
+    $ai  = generateAIContent($keyword, $targetSite, 'bluesky', 'bluesky_post', '', $openaiKey, $postCount, $usedTitles, $businessName, $businessDesc);
     if (empty($ai['content'])) {
         return ['error' => $ai['error'] ?? 'AI content generation failed for Bluesky.'];
     }
     $text = mb_substr(strip_tags($ai['content']), 0, 299, 'UTF-8');
+
+    // Ensure targetSite is included in the text for clickable facet link
+    $cleanSite = preg_replace('/^https?:\/\/(www\.)?/', '', $targetSite);
+    if (stripos($text, $cleanSite) === false) {
+        $suffix = " " . $targetSite;
+        $maxTextLen = 299 - strlen($suffix);
+        if (mb_strlen($text, 'UTF-8') > $maxTextLen) {
+            $text = mb_substr($text, 0, $maxTextLen, 'UTF-8');
+        }
+        $text .= $suffix;
+    }
 
     // Step 2: Get project image from DB
     $imageBlob = null;
