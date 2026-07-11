@@ -1268,13 +1268,16 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
     </div>
   </div>
   <?php
-  // Fetch pending queue tasks for this specific project
+  // Fetch pending queue tasks for this specific project and targets
   $pendingTasks = $db->prepare("
       SELECT * FROM backlink_queue 
-      WHERE project_id = ? AND status = 'pending' 
+      WHERE project_id = ? 
+        AND status = 'pending' 
+        AND (keyword = ? OR (keyword IS NULL AND ? = ''))
+        AND (target_url = ? OR target_url IS NULL OR (target_url IS NULL AND ? = ''))
       ORDER BY created_at ASC
   ");
-  $pendingTasks->execute([$selectedProjectId]);
+  $pendingTasks->execute([$selectedProjectId, $currentKeyword, $currentKeyword, $currentTargetSite, $currentTargetSite]);
   $pendingTasks = $pendingTasks->fetchAll(PDO::FETCH_ASSOC);
   ?>
 
