@@ -1317,6 +1317,8 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
     </div>
   </div>
   <?php endif; ?>
+  
+  <?php endif; ?>
 
   <!-- Platform Submission Console (1 - 10) -->
   <div class="card mb-4 border-0 shadow-sm">
