@@ -623,19 +623,26 @@ function postToBluesky($username, $appPassword, $keyword, $targetSite, $openaiKe
         }
     }
 
-    // Step 4: Create post with clickable link facet
+    // Step 4: Create post with clickable link facet (prefers Keyword Anchor Text)
     $cleanSite = preg_replace('/^https?:\/\/(www\.)?/', '', $targetSite);
     
-    $linkStart = mb_strpos($text, $targetSite, 0, 'UTF-8');
-    $matchedUrl = $targetSite;
+    // First try to find the Keyword in the text to turn it into an Anchor Link
+    $linkStart = mb_stripos($text, $keyword, 0, 'UTF-8');
+    $matchedTerm = $keyword;
+    
     if ($linkStart === false) {
-        $linkStart = mb_strpos($text, $cleanSite, 0, 'UTF-8');
-        $matchedUrl = $cleanSite;
-    }
-    if ($linkStart === false) {
-        $wwwSite = 'www.' . $cleanSite;
-        $linkStart = mb_strpos($text, $wwwSite, 0, 'UTF-8');
-        $matchedUrl = $wwwSite;
+        // Fallback to finding URL strings
+        $linkStart = mb_strpos($text, $targetSite, 0, 'UTF-8');
+        $matchedTerm = $targetSite;
+        if ($linkStart === false) {
+            $linkStart = mb_strpos($text, $cleanSite, 0, 'UTF-8');
+            $matchedTerm = $cleanSite;
+        }
+        if ($linkStart === false) {
+            $wwwSite = 'www.' . $cleanSite;
+            $linkStart = mb_strpos($text, $wwwSite, 0, 'UTF-8');
+            $matchedTerm = $wwwSite;
+        }
     }
 
     $record = [
@@ -645,9 +652,11 @@ function postToBluesky($username, $appPassword, $keyword, $targetSite, $openaiKe
         'langs'     => ['en'],
     ];
 
-    // Add clickable link facet
+    // Add clickable link facet (turns the keyword or URL into a clickable link)
     if ($linkStart !== false) {
-        $linkEnd = $linkStart + mb_strlen($matchedUrl, 'UTF-8');
+        // Get the exact casing of the term from the text
+        $matchedTermText = mb_substr($text, $linkStart, mb_strlen($matchedTerm, 'UTF-8'), 'UTF-8');
+        $linkEnd = $linkStart + mb_strlen($matchedTermText, 'UTF-8');
         $record['facets'] = [[
             'index' => [
                 'byteStart' => strlen(mb_substr($text, 0, $linkStart, 'UTF-8')),
