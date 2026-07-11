@@ -1306,8 +1306,8 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
               <td>#<?= $task['id'] ?></td>
               <td><span class="badge bg-secondary"><?= clean($task['platform']) ?></span></td>
               <td><?= clean($task['keyword']) ?></td>
-              <td><a href="<?= clean($task['target_url']) ?>" target="_blank" class="text-decoration-none text-dark fw-bold"><?= clean(substr($task['target_url'], 0, 50)) ?>...</a></td>
-              <td><small><?= date('d M H:i', strtotime($task['created_at'])) ?></small></td>
+              <td><a href="<?= clean($task['target_url']) ?>" target="_blank" class="text-decoration-none text-dark fw-bold"><?= clean(substr((string)$task['target_url'], 0, 50)) ?>...</a></td>
+              <td><small><?= date('d M H:i', strtotime((string)($task['created_at'] ?? ''))) ?></small></td>
               <td><span class="badge bg-warning text-dark"><i class="fas fa-spinner fa-spin me-1"></i>Pending</span></td>
             </tr>
           <?php endforeach; ?>
