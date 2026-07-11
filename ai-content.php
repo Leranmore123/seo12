@@ -411,7 +411,8 @@ STRICT REQUIREMENTS:
 - Keep the writing tone completely natural, informative, and engaging.
 - Naturally include the main keyword '{$keyword}' and target link: {$targetSite}
 - Add between 3 and 5 relevant hashtags at the end.
-- Every post must be completely different and fresh.",
+- Every post must be completely different and fresh.
+Platform: {$platform}. Post variation #{$postCount}. Random seed: {$randomSeed}. Timestamp: {$timestamp}. UNIQUE content only.",
 
         'pdf_description' => "Write a detailed document/PDF description (300-400 words) about '{$keyword}'.
 {$platformCtx}
