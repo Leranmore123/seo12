@@ -802,6 +802,17 @@ function postToDevTo($apiKey, $keyword, $targetSite, $geminiKey, $openaiKey, $po
     }
     if (empty($tags)) $tags = ['training', 'education'];
 
+    // Convert HTML links to Markdown links first to preserve targetSite
+    $content = $ai['content'] ?? '';
+    $content = preg_replace('/<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)<\/a>/is', '[$2]($1)', $content);
+    $bodyMarkdown = strip_tags($content);
+
+    // Ensure targetSite is in the content (either as absolute URL or markdown link)
+    $cleanSite = preg_replace('/^https?:\/\/(www\.)?/', '', $targetSite);
+    if (stripos($bodyMarkdown, $cleanSite) === false) {
+        $bodyMarkdown .= "\n\n## Learn More\nVisit [" . $targetSite . "](" . $targetSite . ")";
+    }
+
     $ch = curl_init('https://dev.to/api/articles');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -809,7 +820,7 @@ function postToDevTo($apiKey, $keyword, $targetSite, $geminiKey, $openaiKey, $po
         CURLOPT_POSTFIELDS     => json_encode([
             'article' => [
                 'title'          => $title,
-                'body_markdown'  => strip_tags($ai['content']),
+                'body_markdown'  => $bodyMarkdown,
                 'published'      => true,
                 'tags'           => $tags,
             ]
@@ -845,7 +856,16 @@ function postToHashnode($apiKey, $publicationId, $keyword, $targetSite, $geminiK
     $title = $ai['title'] ?? ucwords($keyword) . ' Training Guide - ' . date('Y');
     $slug    = substr(preg_replace('/[^a-z0-9]+/', '-', strtolower($keyword)) . '-guide-' . date('Y'), 0, 100);
     $slug    = trim($slug, '-');
-    $content = strip_tags($ai['content']);
+    // Convert HTML links to Markdown links first to preserve targetSite
+    $content = $ai['content'] ?? '';
+    $content = preg_replace('/<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)<\/a>/is', '[$2]($1)', $content);
+    $content = strip_tags($content);
+
+    // Ensure targetSite is in the content
+    $cleanSite = preg_replace('/^https?:\/\/(www\.)?/', '', $targetSite);
+    if (stripos($content, $cleanSite) === false) {
+        $content .= "\n\n## Learn More\nVisit [" . $targetSite . "](" . $targetSite . ")";
+    }
 
     // Try API (Pro accounts only)
     $pubId = $publicationId ?: null;
