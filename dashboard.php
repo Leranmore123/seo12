@@ -203,7 +203,7 @@ $flash = getFlash();
                 <?php endif; ?>
               </td>
               <td><span class="badge bg-info"><?= $p['backlinks_count'] ?></span></td>
-              <td><small><?= date('d M Y', strtotime($p['created_at'])) ?></small></td>
+              <td><small><?= formatLocalTime($p['created_at'], 'd M Y') ?></small></td>
               <td>
                 <div class="btn-group btn-group-sm">
                   <a href="seo-80-20.php?id=<?= $p['id'] ?>" class="btn btn-primary" title="Run SEO">

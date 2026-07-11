@@ -1211,7 +1211,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
                   <i class="fas fa-external-link-alt ms-1 small"></i>
                 </a>
               </td>
-              <td><small><?= date('d M Y H:i', strtotime($bl['created_at'])) ?></small></td>
+              <td><small><?= formatLocalTime($bl['created_at'], 'd M Y H:i') ?></small></td>
               <td class="bl-status-cell">
                 <?php
                 $vStatus = $bl['verified_status'] ?? 'unverified';
@@ -1225,7 +1225,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
                     echo '<span class="badge bg-secondary"><i class="fas fa-question-circle me-1"></i>Unverified</span>';
                 }
                 if (!empty($bl['last_checked_at'])) {
-                    echo '<br><small class="text-muted" style="font-size: 10px;">Checked: ' . date('d M, H:i', strtotime($bl['last_checked_at'])) . '</small>';
+                    echo '<br><small class="text-muted" style="font-size: 10px;">Checked: ' . formatLocalTime($bl['last_checked_at'], 'd M, H:i') . '</small>';
                 }
                 ?>
               </td>
@@ -1240,7 +1240,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
                     echo '<span class="badge bg-secondary"><i class="fas fa-question-circle me-1"></i>Unchecked</span>';
                 }
                 if (!empty($bl['last_index_checked_at'])) {
-                    echo '<br><small class="text-muted" style="font-size: 10px;">Checked: ' . date('d M, H:i', strtotime($bl['last_index_checked_at'])) . '</small>';
+                    echo '<br><small class="text-muted" style="font-size: 10px;">Checked: ' . formatLocalTime($bl['last_index_checked_at'], 'd M, H:i') . '</small>';
                 }
                 ?>
               </td>
@@ -1310,7 +1310,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
               <td><span class="badge bg-secondary"><?= clean($task['platform']) ?></span></td>
               <td><?= clean($task['keyword']) ?></td>
               <td><a href="<?= clean($task['target_url']) ?>" target="_blank" class="text-decoration-none text-dark fw-bold"><?= clean(substr((string)$task['target_url'], 0, 50)) ?>...</a></td>
-              <td><small><?= date('d M H:i', strtotime((string)($task['created_at'] ?? ''))) ?></small></td>
+              <td><small><?= formatLocalTime($task['created_at'], 'd M H:i') ?></small></td>
               <td><span class="badge bg-warning text-dark"><i class="fas fa-spinner fa-spin me-1"></i>Pending</span></td>
             </tr>
           <?php endforeach; ?>

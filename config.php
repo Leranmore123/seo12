@@ -144,6 +144,17 @@ function clean($input) {
     return htmlspecialchars(strip_tags(trim((string) $input)), ENT_QUOTES, 'UTF-8');
 }
 
+function formatLocalTime($utcDateTime, $format = 'd M H:i', $timezone = 'Asia/Kolkata') {
+    if (empty($utcDateTime)) return '';
+    try {
+        $dt = new DateTime($utcDateTime, new DateTimeZone('UTC'));
+        $dt->setTimezone(new DateTimeZone($timezone));
+        return $dt->format($format);
+    } catch (Exception $e) {
+        return $utcDateTime;
+    }
+}
+
 function csrfToken() {
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
