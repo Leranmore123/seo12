@@ -21,77 +21,91 @@ if ($running > 0) {
     exit;
 }
 
-// Get the oldest pending task
-$stmt = $db->prepare("SELECT * FROM backlink_queue WHERE status = 'pending' ORDER BY id ASC LIMIT 1");
-$stmt->execute();
-$task = $stmt->fetch(PDO::FETCH_ASSOC);
+// Get the batch size from config or default to 5
+$batchSize = defined('CRON_BATCH_SIZE') ? (int)CRON_BATCH_SIZE : 5;
+if ($batchSize < 1) {
+    $batchSize = 1;
+}
 
-if (!$task) {
+// Get oldest pending tasks up to the batch limit
+$stmt = $db->prepare("SELECT * FROM backlink_queue WHERE status = 'pending' ORDER BY id ASC LIMIT ?");
+$stmt->bindValue(1, $batchSize, PDO::PARAM_INT);
+$stmt->execute();
+$tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+if (empty($tasks)) {
     echo "No pending tasks in queue. Exiting.\n";
     exit;
 }
 
-$taskId = $task['id'];
-$projectId = $task['project_id'];
-$socialAccountId = $task['social_account_id'];
-$platform = $task['platform'];
+echo "Found " . count($tasks) . " tasks to process in this batch.\n";
 
-echo "Processing Task ID {$taskId} (Platform: {$platform}, Project ID: {$projectId})\n";
-
-// Update status to processing
-$updateStmt = $db->prepare("UPDATE backlink_queue SET status = 'processing', updated_at = NOW() WHERE id = ?");
-$updateStmt->execute([$taskId]);
-
-try {
-    // Load social account credentials
-    $accStmt = $db->prepare("SELECT * FROM social_accounts WHERE id = ?");
-    $accStmt->execute([$socialAccountId]);
-    $creds = $accStmt->fetch(PDO::FETCH_ASSOC);
+foreach ($tasks as $task) {
+    $taskId = $task['id'];
+    $projectId = $task['project_id'];
+    $socialAccountId = $task['social_account_id'];
+    $platform = $task['platform'];
     
-    if (!$creds) {
-        throw new Exception("Social credentials not found for Account ID {$socialAccountId}");
-    }
+    echo "----------------------------------------\n";
+    echo "Processing Task ID {$taskId} (Platform: {$platform}, Project ID: {$projectId})\n";
     
-    // Load project details
-    $projStmt = $db->prepare("SELECT * FROM projects WHERE id = ?");
-    $projStmt->execute([$projectId]);
-    $project = $projStmt->fetch(PDO::FETCH_ASSOC);
+    // Update status to processing
+    $updateStmt = $db->prepare("UPDATE backlink_queue SET status = 'processing', updated_at = NOW() WHERE id = ?");
+    $updateStmt->execute([$taskId]);
     
-    if (!$project) {
-        throw new Exception("Project details not found for Project ID {$projectId}");
-    }
-    
-    // Set GET parameters so runPlatformAutoPost() picks them up
-    $_GET['keyword']     = $task['keyword'];
-    $_GET['target_site'] = $task['target_url'];
-    
-    // Execute posting
-    $result = runPlatformAutoPost($platform, $creds, $project, $projectId);
-    
-    if (!empty($result['success'])) {
-        // Save posted backlink to database
-        savePostedBacklink($db, $projectId, $platform, $result);
+    try {
+        // Load social account credentials
+        $accStmt = $db->prepare("SELECT * FROM social_accounts WHERE id = ?");
+        $accStmt->execute([$socialAccountId]);
+        $creds = $accStmt->fetch(PDO::FETCH_ASSOC);
         
-        // Update task status to success
-        $finishStmt = $db->prepare("UPDATE backlink_queue SET status = 'success', published_url = ?, error_message = NULL, updated_at = NOW() WHERE id = ?");
-        $finishStmt->execute([$result['url'] ?? '', $taskId]);
-        echo "SUCCESS: Post published successfully at " . ($result['url'] ?? '') . "\n";
+        if (!$creds) {
+            throw new Exception("Social credentials not found for Account ID {$socialAccountId}");
+        }
         
-    } elseif (!empty($result['manual'])) {
-        $msg = "Manual action required. " . ($result['message'] ?? '');
-        $finishStmt = $db->prepare("UPDATE backlink_queue SET status = 'failed', error_message = ?, updated_at = NOW() WHERE id = ?");
-        $finishStmt->execute([$msg, $taskId]);
-        echo "MANUAL: " . $msg . "\n";
+        // Load project details
+        $projStmt = $db->prepare("SELECT * FROM projects WHERE id = ?");
+        $projStmt->execute([$projectId]);
+        $project = $projStmt->fetch(PDO::FETCH_ASSOC);
         
-    } else {
-        $err = $result['error'] ?? 'Unknown execution error occurred.';
-        throw new Exception($err);
+        if (!$project) {
+            throw new Exception("Project details not found for Project ID {$projectId}");
+        }
+        
+        // Set GET parameters so runPlatformAutoPost() picks them up
+        $_GET['keyword']     = $task['keyword'];
+        $_GET['target_site'] = $task['target_url'];
+        
+        // Execute posting
+        $result = runPlatformAutoPost($platform, $creds, $project, $projectId);
+        
+        if (!empty($result['success'])) {
+            // Save posted backlink to database
+            savePostedBacklink($db, $projectId, $platform, $result);
+            
+            // Update task status to success
+            $finishStmt = $db->prepare("UPDATE backlink_queue SET status = 'success', published_url = ?, error_message = NULL, updated_at = NOW() WHERE id = ?");
+            $finishStmt->execute([$result['url'] ?? '', $taskId]);
+            echo "SUCCESS: Post published successfully at " . ($result['url'] ?? '') . "\n";
+            
+        } elseif (!empty($result['manual'])) {
+            $msg = "Manual action required. " . ($result['message'] ?? '');
+            $finishStmt = $db->prepare("UPDATE backlink_queue SET status = 'failed', error_message = ?, updated_at = NOW() WHERE id = ?");
+            $finishStmt->execute([$msg, $taskId]);
+            echo "MANUAL: " . $msg . "\n";
+            
+        } else {
+            $err = $result['error'] ?? 'Unknown execution error occurred.';
+            throw new Exception($err);
+        }
+        
+    } catch (Throwable $e) {
+        $errorMsg = $e->getMessage();
+        echo "ERROR: {$errorMsg}\n";
+        
+        $failStmt = $db->prepare("UPDATE backlink_queue SET status = 'failed', error_message = ?, updated_at = NOW() WHERE id = ?");
+        $failStmt->execute([$errorMsg, $taskId]);
     }
-    
-} catch (Throwable $e) {
-    $errorMsg = $e->getMessage();
-    echo "ERROR: {$errorMsg}\n";
-    
-    $failStmt = $db->prepare("UPDATE backlink_queue SET status = 'failed', error_message = ?, updated_at = NOW() WHERE id = ?");
-    $failStmt->execute([$errorMsg, $taskId]);
 }
+
+echo "Batch processing finished.\n";

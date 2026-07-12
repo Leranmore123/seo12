@@ -64,6 +64,9 @@ define('DATAFORSEO_PASSWORD',  (string) seoCfg('DATAFORSEO_PASSWORD', ''));
 // Toggle for Tier 2 Auto-Posting (set to false in config.local.php to save API costs)
 define('ENABLE_TIER2_POSTING', (bool) seoCfg('ENABLE_TIER2_POSTING', true));
 
+// Cron queue worker batch size (number of tasks to process in one execution)
+define('CRON_BATCH_SIZE', (int) seoCfg('CRON_BATCH_SIZE', 5));
+
 define('SMTP_HOST', (string) seoCfg('SMTP_HOST', 'smtp.gmail.com'));
 define('SMTP_USER', (string) seoCfg('SMTP_USER', ''));
 define('SMTP_PASS', (string) seoCfg('SMTP_PASS', ''));
