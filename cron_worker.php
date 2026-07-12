@@ -21,24 +21,80 @@ if ($running > 0) {
     exit;
 }
 
-// Get the batch size from config or default to 5
-$batchSize = defined('CRON_BATCH_SIZE') ? (int)CRON_BATCH_SIZE : 5;
-if ($batchSize < 1) {
-    $batchSize = 1;
+// Helper to identify if a platform requires Selenium browser automation
+function isSeleniumPlatform($platform, $creds = []) {
+    $platform = strtolower($platform);
+    // These platforms strictly use Selenium browser automation
+    $seleniumOnly = ['pinterest', 'wakelet', 'symbaloo', 'pearltrees', 'diigo', 'plurk', 'livejournal'];
+    if (in_array($platform, $seleniumOnly)) {
+        return true;
+    }
+    
+    // For platforms that support both API and Selenium (like tumblr, mewe, instapaper)
+    // If they have no API key / token in credentials, they will fallback to Selenium
+    $hybridPlatforms = ['tumblr', 'mewe', 'instapaper'];
+    if (in_array($platform, $hybridPlatforms)) {
+        $apiKey = $creds['api_key'] ?? '';
+        if (empty($apiKey)) {
+            return true; // No API key -> will run using Selenium
+        }
+    }
+    
+    return false; // Runs via API (fast)
 }
 
-// Get oldest pending tasks up to the batch limit
-$stmt = $db->prepare("SELECT * FROM backlink_queue WHERE status = 'pending' ORDER BY id ASC LIMIT ?");
-$stmt->bindValue(1, $batchSize, PDO::PARAM_INT);
-$stmt->execute();
-$tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Get the batch limits (maximum 5 API tasks and 1 Selenium task per execution)
+$maxApiTasks = 5;
+$maxSeleniumTasks = 1;
 
-if (empty($tasks)) {
+// Get a larger pool of oldest pending tasks to filter
+$stmt = $db->prepare("SELECT * FROM backlink_queue WHERE status = 'pending' ORDER BY id ASC LIMIT 30");
+$stmt->execute();
+$pendingPool = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+if (empty($pendingPool)) {
     echo "No pending tasks in queue. Exiting.\n";
     exit;
 }
 
-echo "Found " . count($tasks) . " tasks to process in this batch.\n";
+$tasks = [];
+$apiCount = 0;
+$seleniumCount = 0;
+
+foreach ($pendingPool as $task) {
+    // Load credentials to check if it's a hybrid platform running on Selenium
+    $accStmt = $db->prepare("SELECT * FROM social_accounts WHERE id = ?");
+    $accStmt->execute([$task['social_account_id']]);
+    $creds = $accStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    
+    $isSelenium = isSeleniumPlatform($task['platform'], $creds);
+    
+    if ($isSelenium) {
+        if ($seleniumCount >= $maxSeleniumTasks) {
+            continue; // Already selected 1 Selenium task, skip others
+        }
+        $tasks[] = $task;
+        $seleniumCount++;
+    } else {
+        if ($apiCount >= $maxApiTasks) {
+            continue; // Already selected 5 API tasks, skip others
+        }
+        $tasks[] = $task;
+        $apiCount++;
+    }
+    
+    // Stop selecting if we have reached our maximum batch capacity
+    if ($seleniumCount >= $maxSeleniumTasks && $apiCount >= $maxApiTasks) {
+        break;
+    }
+}
+
+if (empty($tasks)) {
+    echo "No tasks selected for this batch. Exiting.\n";
+    exit;
+}
+
+echo "Found " . count($tasks) . " tasks to process in this batch (API: {$apiCount}, Selenium: {$seleniumCount}).\n";
 
 foreach ($tasks as $task) {
     $taskId = $task['id'];
