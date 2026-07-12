@@ -604,6 +604,12 @@ function postToBluesky($username, $appPassword, $keyword, $targetSite, $openaiKe
     }
 
     if ($imgData) {
+        // Compress image if it exceeds 1.5MB to prevent Bluesky blob too big error (max 2,000,000 bytes)
+        $originalLength = strlen($imgData);
+        $imgData = compressImageIfNeeded($imgData);
+        if (strlen($imgData) < $originalLength) {
+            $mime = 'image/jpeg';
+        }
         $ch = curl_init('https://bsky.social/xrpc/com.atproto.repo.uploadBlob');
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
@@ -3917,6 +3923,30 @@ function enqueueTier2Backlinks(PDO $db, int $projectId, string $tier1Url, string
     }
 }
 
+/**
+ * Compresses an image raw data string if it exceeds a threshold (default 1.5MB)
+ * to prevent API errors (like Bluesky's 2MB limit).
+ */
+function compressImageIfNeeded(string $imgData, int $maxSize = 1500000): string {
+    if (strlen($imgData) <= $maxSize) {
+        return $imgData;
+    }
+    if (!extension_loaded('gd')) {
+        return $imgData; // Fallback if GD extension is not available
+    }
+    $im = @imagecreatefromstring($imgData);
+    if (!$im) {
+        return $imgData;
+    }
+    ob_start();
+    @imagejpeg($im, null, 75); // compress as JPEG with 75% quality
+    $compressed = ob_get_clean();
+    imagedestroy($im);
+    if ($compressed && strlen($compressed) < strlen($imgData)) {
+        return $compressed;
+    }
+    return $imgData;
+}
 
 /**
  * Get how many times this project has been posted to a platform.
