@@ -279,11 +279,28 @@ if (isset($_GET['generate']) && isset($_GET['project_id'])) {
     $filename = 'auto_img_' . $projectId . '_' . time() . '.jpg';
     $path     = $uploadDir . $filename;
 
+    // Fetch dynamic client phone and email from project settings
+    $phone = '9036354554';
+    $email = 'office.learnmore@gmail.com';
+    try {
+        $projRow = $db->prepare("SELECT phone, email FROM projects WHERE id = ?");
+        $projRow->execute([$projectId]);
+        $projInfo = $projRow->fetch(PDO::FETCH_ASSOC);
+        if ($projInfo) {
+            if (!empty($projInfo['phone'])) {
+                $phone = $projInfo['phone'];
+            }
+            if (!empty($projInfo['email'])) {
+                $email = $projInfo['email'];
+            }
+        }
+    } catch (Exception $e) {}
+
     $result = generateMarketingImage(
         $keyword,
         $targetSite,
-        '9036354554',
-        'office.learnmore@gmail.com',
+        $phone,
+        $email,
         $path
     );
 

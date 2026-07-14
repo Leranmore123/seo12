@@ -144,12 +144,15 @@ function seleniumPinterest(array $creds, string $keyword, string $targetSite, in
         $usedTitles = $s2->fetchAll(PDO::FETCH_COLUMN);
 
         if ($projectId > 0) {
-            $pStmt = $db->prepare("SELECT business_name, business_desc FROM projects WHERE id=?");
+            $pStmt = $db->prepare("SELECT business_name, business_desc, phone, email, post_image FROM projects WHERE id=?");
             $pStmt->execute([$projectId]);
             $proj = $pStmt->fetch(PDO::FETCH_ASSOC);
             if ($proj) {
                 $businessName = $proj['business_name'] ?? '';
                 $businessDesc = $proj['business_desc'] ?? '';
+                $dbPhone      = $proj['phone'] ?? '';
+                $dbEmail      = $proj['email'] ?? '';
+                $projectImg   = $proj['post_image'] ?? '';
             }
         }
     } catch (Exception $e) {}
@@ -169,16 +172,7 @@ function seleniumPinterest(array $creds, string $keyword, string $targetSite, in
     $imagePath = '';
     $uploadDir = dirname(__DIR__) . '/uploads/';
 
-    // 1. Get project details including post_image
-    $projectImg = '';
-    if ($projectId > 0) {
-        try {
-            $db = getDB();
-            $s = $db->prepare("SELECT post_image FROM projects WHERE id=?");
-            $s->execute([$projectId]);
-            $projectImg = $s->fetchColumn();
-        } catch (Exception $e) {}
-    }
+    // 1. Get project details including post_image (already loaded)
 
     // 2. Use project_image if exists
     if ($projectImg && file_exists($uploadDir . $projectImg)) {
@@ -191,8 +185,8 @@ function seleniumPinterest(array $creds, string $keyword, string $targetSite, in
         } else {
             // 4. Generate vertical image (1000x1500 px) on the fly
             require_once dirname(__DIR__) . '/image-generator.php';
-            $phone = '9036354554';
-            $email = 'office.learnmore@gmail.com';
+            $phone = !empty($dbPhone) ? $dbPhone : '9036354554';
+            $email = !empty($dbEmail) ? $dbEmail : 'office.learnmore@gmail.com';
             $res = generateMarketingImage($keyword, $targetSite, $phone, $email, $verticalImage, true);
             if (!empty($res['success'])) {
                 $imagePath = $verticalImage;
