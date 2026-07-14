@@ -50,6 +50,7 @@ define('SITE_URL', rtrim((string) seoCfg('SITE_URL', detectSiteUrl()), '/'));
 
 // API keys — set in config.local.php (see api-setup.php)
 define('OPENAI_API_KEY',       (string) seoCfg('OPENAI_API_KEY', ''));
+define('OPENAI_IMAGE_API_KEY', (string) seoCfg('OPENAI_IMAGE_API_KEY', ''));
 define('OPENAI_MODEL',         (string) seoCfg('OPENAI_MODEL', 'gpt-4o-mini'));
 define('OPENAI_IMAGE_MODEL',   (string) seoCfg('OPENAI_IMAGE_MODEL', 'dall-e-3'));
 define('OPENAI_IMAGE_SIZE',    (string) seoCfg('OPENAI_IMAGE_SIZE', '1024x1024'));

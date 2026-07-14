@@ -12,49 +12,11 @@ require_once __DIR__ . '/includes/poster-builder.php';
  * ChatGPT builds DALL-E prompt from keyword + target site URL
  * Generates unique prompts every time using random seed
  */
-function generateImagePromptForProject(string $keyword, string $targetSite): string {
-    $kwTitle  = ucwords($keyword);
-    $siteHost = parse_url($targetSite, PHP_URL_HOST) ?: $targetSite;
-    $siteClean = str_replace(['https://', 'http://'], '', rtrim($targetSite, '/'));
-
-    // Add random seed for unique image generation every time
-    $randomSeed = rand(100000, 999999);
-    $timestamp = time();
-
-    $prompt = <<<PROMPT
-You are an expert marketing designer. Create ONE detailed English prompt for DALL-E 3 image generation.
-
-Business context:
-- Target Keyword (main topic): {$keyword}
-- Target Site URL (brand/website to promote): {$targetSite}
-- Brand/domain hint: {$siteHost}
-- Random seed: {$randomSeed}
-- Timestamp: {$timestamp}
-
-Requirements for the marketing poster image:
-- Professional IT/training/course promotional poster style
-- Visually represent "{$keyword}" with relevant tech icons (charts, laptops, data tools if applicable)
-- Modern corporate look: dark blue or navy tech background, professional Indian person with laptop optional
-- Space at bottom for contact bar (do not add readable phone numbers in image — overlay added later)
-- High quality, photorealistic, 4K commercial style
-- NO misspelled text blocks; if text appears keep it minimal and professional
-- Theme must match what someone searching "{$keyword}" would expect
-- IMPORTANT: Create a UNIQUE image - never repeat the same composition, colors, or style
-
-Return ONLY the DALL-E image prompt (max 180 words). No quotes, no markdown.
-PROMPT;
-
-    $ai = generateWithAI($prompt);
-    if (!empty($ai['text'])) {
-        return trim($ai['text']);
-    }
-
-    // Fallback with random seed
-    return "Professional marketing poster for {$kwTitle} training course. "
-        . "Modern dark blue technology background, confident professional with laptop, "
-        . "floating icons related to {$keyword}, corporate educational brand style for {$siteClean}, "
-        . "gold accent highlights, photorealistic 4K commercial photography, clean layout. "
-        . "Unique variation seed: {$randomSeed}.";
+function generateImagePromptForProject(string $keyword, string $targetSite, string $phone = '', string $email = ''): string {
+    if (empty($phone)) $phone = '9036354554';
+    if (empty($email)) $email = 'office.learnmore@gmail.com';
+    // Send the user-defined custom prompt directly to DALL-E 3
+    return "{$keyword} {$targetSite} Phone: {$phone} Email: {$email} mane seo post mate image banvi ne apo";
 }
 
 function addOverlay($imagePath, $keyword, $phone, $email, $targetSite, $outputPath) {
@@ -215,30 +177,18 @@ function generateGDFallback($keyword, $targetSite, $phone, $email, $outputPath) 
  * Main: AWS/Ahmedabad style poster — keyword + phone + email + city background
  */
 function generateMarketingImage(string $keyword, string $targetSite, string $phone, string $email, string $outputPath) {
-    // 1) Professional poster (screenshot-like — exact phone/email)
-    $poster = buildLearnmoreStylePoster($keyword, $phone, $email, $targetSite, $outputPath);
-    if (!empty($poster['success'])) {
-        return $poster;
-    }
-
-    // 2) Backup: DALL-E photo style
-    $uploadDir = dirname($outputPath);
-    $tempPath  = $uploadDir . '/temp_' . basename($outputPath);
-    $dallePrompt = generateImagePromptForProject($keyword, $targetSite);
+    // We send the user's custom raw prompt directly to DALL-E and save the raw output without GD overlay
+    $dallePrompt = generateImagePromptForProject($keyword, $targetSite, $phone, $email);
 
     if (hasChatGPT()) {
-        $dalle = generateImageWithDalle($dallePrompt, $tempPath);
+        $dalle = generateImageWithDalle($dallePrompt, $outputPath);
         if (!empty($dalle['success'])) {
-            addOverlay($tempPath, $keyword, $phone, $email, $targetSite, $outputPath);
-            @unlink($tempPath);
-            return ['success' => true, 'source' => 'ChatGPT DALL-E 3 (backup)'];
+            return ['success' => true, 'source' => 'ChatGPT DALL-E 3 (Raw API Prompt)'];
         }
     }
 
-    if (generateWithPollinations($dallePrompt, $tempPath)) {
-        addOverlay($tempPath, $keyword, $phone, $email, $targetSite, $outputPath);
-        @unlink($tempPath);
-        return ['success' => true, 'source' => 'Pollinations backup'];
+    if (generateWithPollinations($dallePrompt, $outputPath)) {
+        return ['success' => true, 'source' => 'Pollinations backup (Raw API Prompt)'];
     }
 
     return generateGDFallback($keyword, $targetSite, $phone, $email, $outputPath);

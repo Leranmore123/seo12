@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_keys'])) {
     } else {
         $keys = [
             'OPENAI_API_KEY'       => trim($_POST['openai'] ?? ''),
+            'OPENAI_IMAGE_API_KEY' => trim($_POST['openai_image'] ?? ''),
             'GEMINI_API_KEY'       => trim($_POST['gemini'] ?? ''),
             'DATAFORSEO_LOGIN'     => trim($_POST['dataforseo_login'] ?? ''),
             'DATAFORSEO_PASSWORD'  => trim($_POST['dataforseo_password'] ?? ''),
@@ -123,6 +124,15 @@ function maskKey($v) {
           <strong>How to get:</strong> <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com/api-keys</a>
           → Login → <strong>Create new secret key</strong> → copy <code>sk-...</code> → paste here.
           <br>Model: <code><?= clean(OPENAI_MODEL) ?></code> (for all content generation)
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-bold">OpenAI Image API Key <span class="text-secondary">(DALL-E 3 only — Optional)</span></label>
+        <input type="text" name="openai_image" class="form-control" placeholder="sk-..."
+               value="<?= clean($local['OPENAI_IMAGE_API_KEY'] ?? (defined('OPENAI_IMAGE_API_KEY') && OPENAI_IMAGE_API_KEY !== 'your-openai-image-api-key' ? OPENAI_IMAGE_API_KEY : '')) ?>">
+        <div class="form-text">
+          Use a separate OpenAI key strictly for image generation if you want to isolate DALL-E costs. If empty, falls back to the main OpenAI Key.
         </div>
       </div>
 

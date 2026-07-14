@@ -669,7 +669,7 @@ function generateSmartTemplate($keyword, $targetSite, $contentType) {
  * Generates unique images every time using random seed.
  */
 function generateImageWithDalle(string $prompt, string $outputPath, ?string $apiKey = null): ?array {
-    $apiKey = $apiKey ?? OPENAI_API_KEY;
+    $apiKey = $apiKey ?? (defined('OPENAI_IMAGE_API_KEY') && OPENAI_IMAGE_API_KEY !== '' ? OPENAI_IMAGE_API_KEY : OPENAI_API_KEY);
     if ($apiKey === '' || strpos($apiKey, 'sk-') !== 0) {
         return ['error' => 'OpenAI API key missing'];
     }
