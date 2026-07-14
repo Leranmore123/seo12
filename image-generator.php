@@ -177,18 +177,11 @@ function generateGDFallback($keyword, $targetSite, $phone, $email, $outputPath) 
  * Main: AWS/Ahmedabad style poster — keyword + phone + email + city background
  */
 function generateMarketingImage(string $keyword, string $targetSite, string $phone, string $email, string $outputPath) {
-    // We send the user's custom raw prompt directly to DALL-E and save the raw output without GD overlay
+    // We send the user's custom raw prompt directly to Pollinations (Free and Unlimited)
     $dallePrompt = generateImagePromptForProject($keyword, $targetSite, $phone, $email);
 
-    if (hasChatGPT()) {
-        $dalle = generateImageWithDalle($dallePrompt, $outputPath);
-        if (!empty($dalle['success'])) {
-            return ['success' => true, 'source' => 'ChatGPT DALL-E 3 (Raw API Prompt)'];
-        }
-    }
-
     if (generateWithPollinations($dallePrompt, $outputPath)) {
-        return ['success' => true, 'source' => 'Pollinations backup (Raw API Prompt)'];
+        return ['success' => true, 'source' => 'Pollinations (Free and Unlimited)'];
     }
 
     return generateGDFallback($keyword, $targetSite, $phone, $email, $outputPath);
