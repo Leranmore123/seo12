@@ -1146,9 +1146,8 @@ def post_minds(email, password, keyword, target_site, ai_title="", ai_content=""
                     time.sleep(6); break
             except: continue
 
-        final = driver.current_url
-        log("Minds: Final URL = " + final)
-        result(True, url=final if "minds.com" in final else "https://www.minds.com/newsfeed/subscriptions")
+        profile_url = f"https://www.minds.com/{email}"
+        result(True, url=profile_url)
 
     except Exception as e:
         result(False, error=str(e))
