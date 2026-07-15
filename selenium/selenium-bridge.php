@@ -15,7 +15,7 @@ define('SELENIUM_DIR', __DIR__);
 /**
  * Run a Selenium Python script and return parsed JSON result
  */
-function runSeleniumScript(string $script, array $args, int $timeout = 120): array {
+function runSeleniumScript(string $script, array $args, int $timeout = 240): array {
     $scriptPath = SELENIUM_DIR . DIRECTORY_SEPARATOR . $script;
     if (!file_exists($scriptPath)) {
         return ['success' => false, 'error' => "Script not found: {$script}"];
@@ -78,7 +78,14 @@ function runSeleniumScript(string $script, array $args, int $timeout = 120): arr
         if (feof($pipes[1]) && feof($pipes[2])) break;
         if ((time() - $start) > $timeout) {
             proc_terminate($process);
-            return ['success' => false, 'error' => "Selenium timeout after {$timeout}s"];
+            $lines = array_filter(explode("\n", trim($output)));
+            foreach ($lines as $line) {
+                $decoded = json_decode(trim($line), true);
+                if ($decoded !== null && isset($decoded['log'])) {
+                    echo "[Python Log (Pre-timeout)] " . $decoded['log'] . "\n";
+                }
+            }
+            return ['success' => false, 'error' => "Selenium timeout after {$timeout}s. Stderr: " . $stderr];
         }
         usleep(100000); // 100ms
     }
@@ -291,7 +298,7 @@ function seleniumMedium(array $creds, string $keyword, string $targetSite, strin
     file_put_contents($tmpFile, $aiBody);
 
     $args   = [$email, $password, $keyword, $targetSite, $aiTitle, $imgPath, $tmpFile];
-    $result = runSeleniumScript('medium_post.py', $args, 120);
+    $result = runSeleniumScript('medium_post.py', $args, 240);
 
     // Cleanup
     @unlink($tmpFile);
@@ -324,7 +331,7 @@ function seleniumGeneric(string $platform, array $creds, string $keyword, string
     file_put_contents($tmpFile, $content);
 
     $args   = [$platform, $email, $password, $keyword, $targetSite, $tmpFile];
-    $result = runSeleniumScript('generic_post.py', $args, 120);
+    $result = runSeleniumScript('generic_post.py', $args, 240);
 
     @unlink($tmpFile);
 
@@ -395,7 +402,7 @@ function seleniumMicroBlog(string $platform, array $creds, string $keyword, stri
     file_put_contents($tmpFile, $aiContent);
 
     $args   = [$platform, $email, $password, $keyword, $targetSite, $aiTitle, $tmpFile];
-    $result = runSeleniumScript('micro_blog_post.py', $args, 120);
+    $result = runSeleniumScript('micro_blog_post.py', $args, 240);
 
     @unlink($tmpFile);
 
@@ -487,7 +494,7 @@ function seleniumSite123(array $creds, string $keyword, string $targetSite, int 
     file_put_contents($tmpFile, $aiBody);
 
     $args   = [$email, $password, $keyword, $targetSite, $aiTitle, $imgPath, $tmpFile];
-    $result = runSeleniumScript('site123_add_post.py', $args, 150);
+    $result = runSeleniumScript('site123_add_post.py', $args, 240);
 
     @unlink($tmpFile);
 
@@ -607,7 +614,7 @@ function seleniumLiveJournal(array $creds, string $keyword, string $targetSite, 
     file_put_contents($tmpFile, $aiBody);
     $args[] = $tmpFile;
 
-    $result = runSeleniumScript('livejournal_post.py', $args, 150);
+    $result = runSeleniumScript('livejournal_post.py', $args, 240);
 
     // Cleanup temp file
     @unlink($tmpFile);
