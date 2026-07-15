@@ -145,7 +145,7 @@ if ($isRun || $isAjax) {
     $targetSite = $project['target_site'] ?: $project['website_url'];
     // Clean duplicate words from keyword before checking rank
     require_once __DIR__ . '/ai-content.php';
-    $cleanedKeyword = cleanKeyword($project['target_keyword']);
+    $cleanedKeyword = substr(cleanKeyword($project['target_keyword']), 0, 255);
     $rank = checkGoogleRank($cleanedKeyword, $targetSite);
 
     // Save to DB

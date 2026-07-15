@@ -280,7 +280,7 @@ function seleniumMedium(array $creds, string $keyword, string $targetSite, strin
     } catch (Exception $e) {}
 
     // Write content to temp file — avoids Windows command line 8191 char limit
-    $tmpFile = sys_get_temp_dir() . '/medium_content_' . time() . '.txt';
+    $tmpFile = dirname(__DIR__) . '/uploads/medium_content_' . time() . '.txt';
     file_put_contents($tmpFile, $aiBody);
 
     $args   = [$email, $password, $keyword, $targetSite, $aiTitle, $imgPath, $tmpFile];
@@ -313,7 +313,7 @@ function seleniumGeneric(string $platform, array $creds, string $keyword, string
     }
 
     // Write content to temp file to preserve HTML tags and formatting
-    $tmpFile = sys_get_temp_dir() . '/' . $platform . '_content_' . time() . '.txt';
+    $tmpFile = dirname(__DIR__) . '/uploads/' . $platform . '_content_' . time() . '.txt';
     file_put_contents($tmpFile, $content);
 
     $args   = [$platform, $email, $password, $keyword, $targetSite, $tmpFile];
@@ -384,7 +384,7 @@ function seleniumMicroBlog(string $platform, array $creds, string $keyword, stri
     }
 
     // Write content to temp file — avoids Windows CLI 8191 char limit
-    $tmpFile = sys_get_temp_dir() . '/' . $platform . '_content_' . time() . '.txt';
+    $tmpFile = dirname(__DIR__) . '/uploads/' . $platform . '_content_' . time() . '.txt';
     file_put_contents($tmpFile, $aiContent);
 
     $args   = [$platform, $email, $password, $keyword, $targetSite, $aiTitle, $tmpFile];
@@ -476,7 +476,7 @@ function seleniumSite123(array $creds, string $keyword, string $targetSite, int 
     }
 
     // Write content to temp file — avoids Windows CLI limit
-    $tmpFile = sys_get_temp_dir() . '/site123_content_' . time() . '.txt';
+    $tmpFile = dirname(__DIR__) . '/uploads/site123_content_' . time() . '.txt';
     file_put_contents($tmpFile, $aiBody);
 
     $args   = [$email, $password, $keyword, $targetSite, $aiTitle, $imgPath, $tmpFile];
@@ -596,7 +596,7 @@ function seleniumLiveJournal(array $creds, string $keyword, string $targetSite, 
     $args   = [$username, $password, $keyword, $targetSite, $aiTitle, $imgPath];
 
     // Write content to temp file — avoids Windows command line 8191 char limit
-    $tmpFile = sys_get_temp_dir() . '/lj_content_' . time() . '.txt';
+    $tmpFile = dirname(__DIR__) . '/uploads/lj_content_' . time() . '.txt';
     file_put_contents($tmpFile, $aiBody);
     $args[] = $tmpFile;
 
