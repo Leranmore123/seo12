@@ -949,46 +949,35 @@ def post_minds(email, password, keyword, target_site, ai_title="", ai_content=""
             driver.get("https://www.minds.com/login")
             time.sleep(5)
 
-            # Find username input (type=text, not search)
-            all_txt = driver.find_elements(By.CSS_SELECTOR, "input[type='text']")
-            for inp in all_txt:
-                if (inp.get_attribute('name') or '') == 'q': continue
-                if inp.is_displayed():
-                    inp.click()
-                    inp.clear()
-                    time.sleep(0.3)
-                    inp.send_keys(email)
-                    log("Minds: Username typed")
-                    break
+            # Find username input
+            username_inp = WebDriverWait(driver, 15).until(
+                EC.visibility_of_element_located((By.ID, "username"))
+            )
+            username_inp.click()
+            username_inp.clear()
+            time.sleep(0.3)
+            username_inp.send_keys(email)
+            log("Minds: Username typed")
 
             # Password
-            pw = driver.find_elements(By.CSS_SELECTOR, "input[type='password']")
-            for p in pw:
-                if p.is_displayed():
-                    p.click()
-                    p.clear()
-                    time.sleep(0.3)
-                    p.send_keys(password)
-                    log("Minds: Password typed")
-                    break
+            password_inp = WebDriverWait(driver, 15).until(
+                EC.visibility_of_element_located((By.ID, "password"))
+            )
+            password_inp.click()
+            password_inp.clear()
+            time.sleep(0.3)
+            password_inp.send_keys(password)
+            log("Minds: Password typed")
 
             time.sleep(0.5)
             # Click Login button
-            for sel in ["button.m-button--blue",
-                        "//button[contains(.,'Login')]",
-                        "//button[normalize-space(text())='Login']",
-                        "//button[contains(text(),'Login')]",
-                        "button[type='submit']"]:
-                try:
-                    by = By.XPATH if sel.startswith('//') else By.CSS_SELECTOR
-                    btn = WebDriverWait(driver,6).until(EC.element_to_be_clickable((by,sel)))
-                    if btn.is_displayed():
-                        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", btn)
-                        time.sleep(0.3)
-                        driver.execute_script("arguments[0].click();", btn)
-                        log("Minds: Login clicked: " + btn.text.strip())
-                        break
-                except: continue
+            btn = WebDriverWait(driver, 15).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "button.m-button--blue, button.m-button--solid, button[type='submit']"))
+            )
+            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", btn)
+            time.sleep(0.3)
+            driver.execute_script("arguments[0].click();", btn)
+            log("Minds: Login clicked: " + btn.text.strip())
 
             time.sleep(10)
             log("Minds: Post-login URL = " + driver.current_url)
