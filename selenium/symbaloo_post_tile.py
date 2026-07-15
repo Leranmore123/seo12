@@ -268,7 +268,13 @@ try:
         exit()
 
     # Type target URL
-    tile_input.click()
+    try:
+        tile_input.click()
+    except Exception as e:
+        log(f"Symbaloo: Standard click on input failed ({e}), trying JS click")
+        try:
+            driver.execute_script("arguments[0].click();", tile_input)
+        except: pass
     tile_input.clear()
     time.sleep(0.3)
     tile_input.send_keys(target_url)

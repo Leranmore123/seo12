@@ -116,7 +116,14 @@ foreach ($tasks as $task) {
         $creds = $accStmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$creds) {
-            throw new Exception("Social credentials not found for Account ID {$socialAccountId}");
+            // Fallback: search for any active credentials for this project and platform
+            $fallbackStmt = $db->prepare("SELECT * FROM social_accounts WHERE project_id = ? AND platform = ? AND status = 'active' LIMIT 1");
+            $fallbackStmt->execute([$projectId, $platform]);
+            $creds = $fallbackStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$creds) {
+                throw new Exception("Social credentials not found for Account ID {$socialAccountId}");
+            }
         }
         
         // Load project details
