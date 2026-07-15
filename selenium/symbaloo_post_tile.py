@@ -42,7 +42,13 @@ ai_description = sys.argv[6] if len(sys.argv) > 6 else ""
 
 import hashlib
 email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
-PROFILE_DIR = os.path.join(SCRIPT_DIR, f'chrome_profile_symbaloo_{email_hash}')
+try:
+    import pwd
+    sys_user = pwd.getpwuid(os.getuid())[0]
+except Exception:
+    import getpass
+    sys_user = getpass.getuser()
+PROFILE_DIR = os.path.join(SCRIPT_DIR, f'chrome_profile_symbaloo_{email_hash}_{sys_user}')
 
 for lf in [os.path.join(PROFILE_DIR,'Default','LOCK'),
            os.path.join(PROFILE_DIR,'SingletonLock')]:

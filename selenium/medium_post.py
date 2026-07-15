@@ -25,7 +25,13 @@ import hashlib
 email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest() if email else "default"
 
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
-PROFILE_DIR = os.path.join(SCRIPT_DIR, f'chrome_profile_medium_{email_hash}')
+try:
+    import pwd
+    sys_user = pwd.getpwuid(os.getuid())[0]
+except Exception:
+    import getpass
+    sys_user = getpass.getuser()
+PROFILE_DIR = os.path.join(SCRIPT_DIR, f'chrome_profile_medium_{email_hash}_{sys_user}')
 
 # Clean lock files in selenium profile
 for root, dirs, files in os.walk(PROFILE_DIR):

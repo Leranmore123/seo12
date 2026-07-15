@@ -57,7 +57,13 @@ def get_driver_with_profile(platform='', email='default'):
     """Use saved Chrome profile — preserves login sessions (no need to login again)"""
     import os, hashlib
     email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest() if email else 'default'
-    profile_dir = os.path.join(os.path.dirname(__file__), f'chrome_profile_{platform}_{email_hash}')
+    try:
+        import pwd
+        sys_user = pwd.getpwuid(os.getuid())[0]
+    except Exception:
+        import getpass
+        sys_user = getpass.getuser()
+    profile_dir = os.path.join(os.path.dirname(__file__), f'chrome_profile_{platform}_{email_hash}_{sys_user}')
     os.makedirs(profile_dir, exist_ok=True)
 
     opts = Options()
@@ -841,7 +847,13 @@ def get_profile_driver(platform_name, email='default'):
     """Get Chrome driver with saved profile — robust lock cleanup"""
     import os as _os, glob as _glob, time as _time, hashlib
     email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest() if email else 'default'
-    _PROFILE = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), f'chrome_profile_{platform_name}_{email_hash}')
+    try:
+        import pwd
+        sys_user = pwd.getpwuid(_os.getuid())[0]
+    except Exception:
+        import getpass
+        sys_user = getpass.getuser()
+    _PROFILE = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), f'chrome_profile_{platform_name}_{email_hash}_{sys_user}')
     _os.makedirs(_PROFILE, exist_ok=True)
 
     # Aggressively remove ALL lock files
