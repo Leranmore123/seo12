@@ -4,9 +4,14 @@ Scoop.it Auto-Post — Pinterest-style saved profile
 Flow: Login → Topic page → PUBLISH dropdown → URL input → metadata fetch → Publish
 Usage: python scoopit_post.py <email> <password> <keyword> <target_url>
 """
-import sys, json, time, os, getpass
+import sys, json, time, os
 os.environ['WDM_LOG'] = '0'
-sys_user = getpass.getuser()
+try:
+    import pwd
+    sys_user = pwd.getpwuid(os.getuid())[0]
+except Exception:
+    import getpass
+    sys_user = getpass.getuser()
 os.environ['WDM_DIR'] = f'/tmp/.wdm_{sys_user}'
 from selenium import webdriver
 from selenium.webdriver.common.by import By

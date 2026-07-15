@@ -8,11 +8,15 @@ import sys
 import json
 import time
 import os
-import getpass
 import re
 import datetime
 os.environ['WDM_LOG'] = '0'
-sys_user = getpass.getuser()
+try:
+    import pwd
+    sys_user = pwd.getpwuid(os.getuid())[0]
+except Exception:
+    import getpass
+    sys_user = getpass.getuser()
 os.environ['WDM_DIR'] = f'/tmp/.wdm_{sys_user}'
 
 from selenium import webdriver

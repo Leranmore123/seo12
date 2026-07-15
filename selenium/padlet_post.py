@@ -4,9 +4,14 @@ Padlet Auto-Post — Pinterest-style saved profile approach
 Board: https://padlet.com/kanzariyapratik124/lmt-wb7faycbn66hp2z5
 Usage: python padlet_post.py <email> <password> <keyword> <target_url>
 """
-import sys, json, time, os, getpass
+import sys, json, time, os
 os.environ['WDM_LOG'] = '0'
-sys_user = getpass.getuser()
+try:
+    import pwd
+    sys_user = pwd.getpwuid(os.getuid())[0]
+except Exception:
+    import getpass
+    sys_user = getpass.getuser()
 os.environ['WDM_DIR'] = f'/tmp/.wdm_{sys_user}'
 from selenium import webdriver
 from selenium.webdriver.common.by import By
