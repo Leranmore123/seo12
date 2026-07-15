@@ -284,19 +284,45 @@ function generateAIContent($keyword, $targetSite, $platform, $contentType, $gemi
     $randomSeed = rand(100000, 999999);
     $timestamp  = time();
 
+    // Detect if the project/niche is about education/training/courses
+    $isEducation = false;
+    $checkStr = strtolower($keyword . ' ' . $businessName . ' ' . $businessDesc);
+    $eduWords = ['training', 'course', 'learn', 'academy', 'institute', 'class', 'student', 'tutorial', 'career', 'education', 'java', 'programming', 'developer', 'syllabus'];
+    foreach ($eduWords as $w) {
+        if (strpos($checkStr, $w) !== false) {
+            $isEducation = true;
+            break;
+        }
+    }
+
     // Content variation angles — rotate based on post count so each post is different
-    $variationAngles = [
-        1 => "Focus angle: Explain what {$keyword} is and why it matters. Target: complete beginners who just heard about it.",
-        2 => "Focus angle: Career benefits and salary potential after learning {$keyword}. Target: job seekers and career switchers.",
-        3 => "Focus angle: Practical step-by-step 'how to get started' guide for {$keyword}. Target: motivated learners ready to begin.",
-        4 => "Focus angle: Common mistakes beginners make learning {$keyword} and how to avoid them. Target: people who tried before and failed.",
-        5 => "Focus angle: Compare {$keyword} with similar alternatives — why choose this skill over others. Target: analytical decision-makers.",
-        6 => "Focus angle: Real success stories and case studies from people who learned {$keyword}. Target: skeptical readers needing social proof.",
-        7 => "Focus angle: Future trends — how {$keyword} will evolve in the next 3 years and why now is the best time to learn. Target: forward-thinking learners.",
-        8 => "Focus angle: Tools, resources, and software used by {$keyword} professionals daily. Target: hands-on technical learners.",
-        9 => "Focus angle: Beginner FAQs — answer the 5 most common questions people ask about {$keyword}.",
-        10 => "Focus angle: Day-in-the-life of a {$keyword} professional — what they actually do at work.",
-    ];
+    if ($isEducation) {
+        $variationAngles = [
+            1 => "Focus angle: Explain what {$keyword} is and why it matters. Target: complete beginners who just heard about it.",
+            2 => "Focus angle: Career benefits and salary potential after learning {$keyword}. Target: job seekers and career switchers.",
+            3 => "Focus angle: Practical step-by-step 'how to get started' guide for {$keyword}. Target: motivated learners ready to begin.",
+            4 => "Focus angle: Common mistakes beginners make learning {$keyword} and how to avoid them. Target: people who tried before and failed.",
+            5 => "Focus angle: Compare {$keyword} with similar alternatives — why choose this skill over others. Target: analytical decision-makers.",
+            6 => "Focus angle: Real success stories and case studies from people who learned {$keyword}. Target: skeptical readers needing social proof.",
+            7 => "Focus angle: Future trends — how {$keyword} will evolve in the next 3 years and why now is the best time to learn. Target: forward-thinking learners.",
+            8 => "Focus angle: Tools, resources, and software used by {$keyword} professionals daily. Target: hands-on technical learners.",
+            9 => "Focus angle: Beginner FAQs — answer the 5 most common questions people ask about {$keyword}.",
+            10 => "Focus angle: Day-in-the-life of a {$keyword} professional — what they actually do at work.",
+        ];
+    } else {
+        $variationAngles = [
+            1 => "Focus angle: Why {$keyword} is a top choice for customers looking for quality and reliability. Target: home buyers, investors, or general customers.",
+            2 => "Focus angle: The ultimate buyer's guide and key factors to consider when choosing {$keyword}. Target: serious buyers ready to make a decision.",
+            3 => "Focus angle: Top 5 benefits and advantages of investing in {$keyword}. Target: investors and long-term planners.",
+            4 => "Focus angle: Common mistakes to avoid when choosing or purchasing {$keyword}. Target: first-time buyers looking to save money and avoid scams.",
+            5 => "Focus angle: Comparing {$keyword} options or locations — what makes it the best choice. Target: analytical buyers looking for the best deal.",
+            6 => "Focus angle: Real customer reviews, testimonials, and case studies about {$keyword}. Target: skeptical readers looking for social proof.",
+            7 => "Focus angle: Future growth and market trends for {$keyword} — why now is the perfect time to invest. Target: forward-thinking buyers.",
+            8 => "Focus angle: Step-by-step process of buying, getting started, or renting {$keyword}. Target: clients ready to take action.",
+            9 => "Focus angle: Frequently Asked Questions — answer the top 5 questions customers ask about {$keyword}.",
+            10 => "Focus angle: Inside look at {$keyword} — key highlights, features, and unique selling points.",
+        ];
+    }
     $angleKey  = (($postCount - 1) % count($variationAngles)) + 1;
     $angleHint = $variationAngles[$angleKey];
 
@@ -436,8 +462,8 @@ STRICT STRUCTURE:
 - <h2> Section 1: What is {$keyword} and Why It Matters
 - <h2> Section 2: Key Benefits (minimum 6 bullet points)
 - <h2> Section 3: Step-by-Step Guide / How It Works
-- <h2> Section 4: Career Opportunities and Salary
-- <h2> Section 5: Why Choose Learnmore Technologies
+- <h2> Section 4: " . ($isEducation ? "Career Opportunities and Salary" : "Market Value, Pricing, and Investment Benefits") . "
+- <h2> Section 5: Why Choose " . (!empty($businessName) ? $businessName : "Learnmore Technologies") . "
 - <h2> Section 6: FAQ (3 questions with keyword in each)
 - <h2> Conclusion with strong CTA linking to {$targetSite}
 KEYWORD RULES:
