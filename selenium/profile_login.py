@@ -29,6 +29,8 @@ PLATFORM_URLS = {
     'penzu':     ('https://penzu.com/login',           'penzu.com'),
     'plurk':     ('https://www.plurk.com/',            'plurk.com'),
     'linktree':  ('https://linktr.ee/login',           'linktr.ee'),
+    'medium':    ('https://medium.com/m/signin',       'medium.com'),
+    'scoopit':   ('https://www.scoop.it/login',        'scoop.it'),
 }
 
 if len(sys.argv) < 4:
@@ -46,8 +48,10 @@ if platform not in PLATFORM_URLS:
 
 login_url, success_domain = PLATFORM_URLS[platform]
 
+import hashlib
+email_hash  = hashlib.md5(email.lower().encode('utf-8')).hexdigest() if email else 'default'
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
-PROFILE_DIR = os.path.join(SCRIPT_DIR, f'chrome_profile_{platform}')
+PROFILE_DIR = os.path.join(SCRIPT_DIR, f'chrome_profile_{platform}_{email_hash}')
 
 # Remove lock files
 for lf in [os.path.join(PROFILE_DIR, 'Default', 'LOCK'),
@@ -170,7 +174,7 @@ try:
     cookies = driver.get_cookies()
     print(f"\n[OK] {len(cookies)} cookies saved")
     print(f"[OK] URL: {driver.current_url}")
-    print(f"[OK] Session saved to chrome_profile_{platform}/")
+    print(f"[OK] Session saved to chrome_profile_{platform}_{email_hash}/")
     print(f"[OK] {platform.title()} Auto Post is ready!")
 
     driver.save_screenshot(os.path.join(SCRIPT_DIR, f'{platform}_loggedin.png'))

@@ -206,53 +206,65 @@ try:
         result(False, error="Symbaloo: No empty cells in this mix")
         exit()
 
-    # Double-click first empty cell — tileSearchInput appears
-    cell = cells[0]
-    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", cell)
-    time.sleep(0.5)
-
-    # Try Javascript double-click first (highly reliable in headless mode)
-    try:
-        driver.execute_script("""
-            var target = arguments[0];
-            var clickEvent = document.createEvent('MouseEvents');
-            clickEvent.initEvent('dblclick', true, true);
-            target.dispatchEvent(clickEvent);
-        """, cell)
-        log("Symbaloo: Double-clicked empty cell via JS dispatch")
-    except Exception as e:
-        log(f"Symbaloo: JS double-click failed: {e}")
-
-    # Fallback to ActionChains double click
-    try:
-        ActionChains(driver).double_click(cell).perform()
-        log("Symbaloo: Double-clicked empty cell via ActionChains")
-    except Exception as e:
-        log(f"Symbaloo: ActionChains double-click failed: {e}")
-
-    time.sleep(4)
-    close_adblock_modal(driver)
-
-    # Find tileSearchInput — it appears after double-click
+    # Try up to 5 empty cells to open the tile addition sidebar
     tile_input = None
-    for sel in [
-        "#tileSearchInput",
-        "input[placeholder*='URL' i]",
-        "input[placeholder*='url' i]",
-        "input[placeholder*='search query' i]",
-        "input[placeholder*='Enter a URL' i]",
-    ]:
+    max_cells_to_try = min(len(cells), 5)
+
+    for idx in range(max_cells_to_try):
+        cell = cells[idx]
+        log(f"Symbaloo: Trying empty cell #{idx+1}...")
         try:
-            el = WebDriverWait(driver, 8).until(EC.element_to_be_clickable((By.CSS_SELECTOR, sel)))
-            if el.is_displayed():
-                tile_input = el
-                log(f"Symbaloo: Found tileSearchInput [{sel}]")
-                break
+            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", cell)
+            time.sleep(0.5)
         except: continue
+
+        # 1. Single click via JS
+        try:
+            driver.execute_script("arguments[0].click();", cell)
+            time.sleep(0.5)
+        except: pass
+
+        # 2. Double click via JS
+        try:
+            driver.execute_script("""
+                var target = arguments[0];
+                var clickEvent = document.createEvent('MouseEvents');
+                clickEvent.initEvent('dblclick', true, true);
+                target.dispatchEvent(clickEvent);
+            """, cell)
+            time.sleep(1)
+        except: pass
+
+        # 3. ActionChains double click
+        try:
+            ActionChains(driver).double_click(cell).perform()
+            time.sleep(2)
+        except: pass
+
+        close_adblock_modal(driver)
+
+        # Check if tileSearchInput is visible
+        for sel in [
+            "#tileSearchInput",
+            "input[placeholder*='URL' i]",
+            "input[placeholder*='url' i]",
+            "input[placeholder*='search query' i]",
+            "input[placeholder*='Enter a URL' i]",
+        ]:
+            try:
+                el = driver.find_element(By.CSS_SELECTOR, sel)
+                if el.is_displayed():
+                    tile_input = el
+                    log(f"Symbaloo: Found tileSearchInput [{sel}] on cell #{idx+1}!")
+                    break
+            except: continue
+
+        if tile_input:
+            break
 
     if not tile_input:
         driver.save_screenshot(os.path.join(SCRIPT_DIR, 'symbaloo_error.png'))
-        result(False, error="Symbaloo: tileSearchInput not found after double-click")
+        result(False, error="Symbaloo: tileSearchInput not found after trying multiple empty cells")
         exit()
 
     # Type target URL

@@ -994,8 +994,13 @@ def post_minds(email, password, keyword, target_site, ai_title="", ai_content=""
             log("Minds: Post-login URL = " + driver.current_url)
             src2 = driver.page_source.lower()
             if "login" in driver.current_url.lower() and "logout" not in src2:
-                result(False, error="Minds: Login failed. Run minds_login.py manually first.")
-                return
+                # Try navigating to newsfeed to see if login cookie was accepted anyway
+                driver.get("https://www.minds.com/newsfeed/subscriptions")
+                time.sleep(6)
+                src2 = driver.page_source.lower()
+                if "login" in driver.current_url.lower() and "logout" not in src2:
+                    result(False, error="Minds: Login failed. Please verify credentials, run profile_login.py manually, or use API Token.")
+                    return
             log("Minds: Logged in!")
         else:
             log("Minds: Already logged in!")
