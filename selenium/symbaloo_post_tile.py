@@ -4,9 +4,10 @@ Symbaloo — Add tile to Digital Marketing Service mix
 Flow: Open mix → Double-click empty cell → tileSearchInput appears
       → Type URL → Enter → Tile appears → Done
 """
-import os, sys, time, json
+import os, sys, time, json, getpass
 script_dir = os.path.dirname(os.path.abspath(__file__))
-app_tmp_dir = os.path.join(script_dir, 'tmp_dir')
+sys_user = getpass.getuser()
+app_tmp_dir = os.path.join(script_dir, f'tmp_dir_{sys_user}')
 try:
     os.makedirs(app_tmp_dir, exist_ok=True)
 except Exception:

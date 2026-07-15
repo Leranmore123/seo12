@@ -8,10 +8,12 @@ import sys
 import json
 import time
 import os
+import getpass
 import re
 import datetime
 os.environ['WDM_LOG'] = '0'
-os.environ['WDM_DIR'] = '/tmp/.wdm'
+sys_user = getpass.getuser()
+os.environ['WDM_DIR'] = f'/tmp/.wdm_{sys_user}'
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By

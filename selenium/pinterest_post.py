@@ -3,9 +3,10 @@
 Pinterest Auto-Post via Selenium — v4 Final
 Verified selectors from live page inspection on kanzariyapratik124@gmail.com
 """
-import sys, json, time, os, re
+import sys, json, time, os, re, getpass
 script_dir = os.path.dirname(os.path.abspath(__file__))
-app_tmp_dir = os.path.join(script_dir, 'tmp_dir')
+sys_user = getpass.getuser()
+app_tmp_dir = os.path.join(script_dir, f'tmp_dir_{sys_user}')
 try:
     os.makedirs(app_tmp_dir, exist_ok=True)
 except Exception:

@@ -3,9 +3,10 @@
 4Shared Auto-Upload PDF via Selenium — Pinterest-style saved profile
 Usage: python fourshared_upload.py <email> <password> <pdf_path> <keyword>
 """
-import sys, json, time, os
+import sys, json, time, os, getpass
 os.environ['WDM_LOG'] = '0'
-os.environ['WDM_DIR'] = '/tmp/.wdm'
+sys_user = getpass.getuser()
+os.environ['WDM_DIR'] = f'/tmp/.wdm_{sys_user}'
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait

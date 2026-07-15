@@ -4,9 +4,10 @@ Micro Blog / Bookmarking Platforms Selenium Auto-Poster
 Handles: scoopit, wakelet, padlet, pearltrees, mewe, instapaper, vivauae
 Usage: python micro_blog_post.py <platform> <email> <password> <keyword> <target_site>
 """
-import sys, json, time, re, os
+import sys, json, time, re, os, getpass
 script_dir = os.path.dirname(os.path.abspath(__file__))
-app_tmp_dir = os.path.join(script_dir, 'tmp_dir')
+sys_user = getpass.getuser()
+app_tmp_dir = os.path.join(script_dir, f'tmp_dir_{sys_user}')
 try:
     os.makedirs(app_tmp_dir, exist_ok=True)
 except Exception:
