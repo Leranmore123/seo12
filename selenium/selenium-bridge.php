@@ -38,7 +38,14 @@ function runSeleniumScript(string $script, array $args, int $timeout = 120): arr
     if (!is_array($env)) {
         $env = [];
     }
-    $appTmpDir = __DIR__ . DIRECTORY_SEPARATOR . 'tmp_dir';
+    // Get the current running system user to prevent multi-user permission conflicts (e.g. between ubuntu and www-data)
+    $systemUser = getenv('USER') ?: getenv('USERNAME');
+    if (empty($systemUser) && function_exists('posix_getpwuid')) {
+        $systemUser = posix_getpwuid(posix_geteuid())['name'] ?? '';
+    }
+    $systemUser = $systemUser ? preg_replace('/[^a-zA-Z0-9_-]/', '', $systemUser) : 'default';
+
+    $appTmpDir = __DIR__ . DIRECTORY_SEPARATOR . 'tmp_dir_' . $systemUser;
     if (!file_exists($appTmpDir)) {
         @mkdir($appTmpDir, 0777, true);
     }
