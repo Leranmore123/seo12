@@ -240,7 +240,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_logo'])) {
             setFlash('danger', 'Invalid file. Use PNG (recommended), JPG, GIF or WebP.');
         }
     }
-    header('Location: submission-manager.php?project_id=' . ($_POST['project_id'] ?? '')); exit;
+    $projectId = (int)($_POST['project_id'] ?? 0);
+    $kwParam = !empty($_POST['keyword']) ? '&keyword=' . urlencode($_POST['keyword']) : '';
+    $siteParam = !empty($_POST['target_site']) ? '&target_site=' . urlencode($_POST['target_site']) : '';
+    header('Location: submission-manager.php?project_id=' . $projectId . $kwParam . $siteParam); exit;
 }
 
 // Handle image upload for project
@@ -261,7 +264,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_image'])) {
             setFlash('danger', 'Invalid file type. Use JPG, PNG, GIF or WebP.');
         }
     }
-    header('Location: submission-manager.php?project_id=' . $projectId); exit;
+    $kwParam = !empty($_POST['keyword']) ? '&keyword=' . urlencode($_POST['keyword']) : '';
+    $siteParam = !empty($_POST['target_site']) ? '&target_site=' . urlencode($_POST['target_site']) : '';
+    header('Location: submission-manager.php?project_id=' . $projectId . $kwParam . $siteParam); exit;
 }
 
 // Fetch all projects for this user
@@ -1064,6 +1069,8 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
           <form method="POST" enctype="multipart/form-data">
             <input type="hidden" name="upload_logo" value="1">
             <input type="hidden" name="project_id" value="<?= $selectedProjectId ?>">
+            <input type="hidden" name="keyword" value="<?= htmlspecialchars($currentKeyword) ?>">
+            <input type="hidden" name="target_site" value="<?= htmlspecialchars($currentTargetSite) ?>">
             <label class="form-label fw-bold">Upload Learnmore Technologies Logo (PNG recommended)</label>
             <div class="input-group">
               <input type="file" name="logo_image" class="form-control" accept="image/*" required>
@@ -1101,6 +1108,8 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
           <form method="POST" enctype="multipart/form-data">
             <input type="hidden" name="upload_image" value="1">
             <input type="hidden" name="project_id" value="<?= $selectedProjectId ?>">
+            <input type="hidden" name="keyword" value="<?= htmlspecialchars($currentKeyword) ?>">
+            <input type="hidden" name="target_site" value="<?= htmlspecialchars($currentTargetSite) ?>">
             <label class="form-label fw-bold">Upload your own image OR auto-generate below</label>
             <div class="input-group mb-2">
               <input type="file" name="post_image" class="form-control" accept="image/*">
@@ -2195,9 +2204,13 @@ function addLogoToImage(projectId, btn) {
 function generateImage(projectId, btn) {
   if (!btn) btn = event.target;
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>ChatGPT creating image...';
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating image...';
 
-  fetch('image-generator.php?generate=1&project_id=' + projectId, {credentials: 'same-origin'})
+  // Get currently selected keyword and target URL from drop-downs
+  const kw = document.getElementById('backlinkKeywordSelect').value;
+  const site = document.getElementById('backlinkUrlSelect').value;
+
+  fetch('image-generator.php?generate=1&project_id=' + projectId + '&keyword=' + encodeURIComponent(kw) + '&target_site=' + encodeURIComponent(site), {credentials: 'same-origin'})
     .then(r => r.json())
     .then(data => {
       if (data.success) {

@@ -205,8 +205,8 @@ if (isset($_GET['generate']) && isset($_GET['project_id'])) {
         exit;
     }
 
-    $keyword    = $project['target_keyword'];
-    $targetSite = $project['target_site'] ?: $project['website_url'];
+    $keyword    = isset($_GET['keyword']) && $_GET['keyword'] !== '' ? $_GET['keyword'] : $project['target_keyword'];
+    $targetSite = isset($_GET['target_site']) && $_GET['target_site'] !== '' ? $_GET['target_site'] : ($project['target_site'] ?: $project['website_url']);
 
     if (empty($keyword) || empty($targetSite)) {
         header('Content-Type: application/json');
