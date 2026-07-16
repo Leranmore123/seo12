@@ -157,6 +157,9 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
             else:
                 log("LiveJournal: Already logged in!")
 
+            # Listen to browser console logs for debugging
+            page.on("console", lambda msg: log(f"[Browser Console] {msg.text}"))
+
             # Ensure update page is loaded
             if "update.bml" not in page.url:
                 page.goto("https://www.livejournal.com/update.bml", timeout=60000)
