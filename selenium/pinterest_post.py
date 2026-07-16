@@ -118,26 +118,60 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
 
             # Wait for email field (may show captcha/block)
             try:
-                email_field = wait.until(EC.presence_of_element_located((By.ID, "email")))
-                email_field.click()
-                email_field.clear()
-                driver.execute_script("arguments[0].value = '';", email_field)
-                time.sleep(0.3)
-                email_field.send_keys(email)
-                time.sleep(0.5)
+                # Wait for at least one email field to be present
+                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='email'], input#email, input[name='username']")))
+                
+                # Find all potential email fields and choose the displayed one
+                email_fields = driver.find_elements(By.CSS_SELECTOR, "input[type='email'], input#email, input[name='username']")
+                email_field = None
+                for ef in email_fields:
+                    if ef.is_displayed():
+                        email_field = ef
+                        break
+                if not email_field and email_fields:
+                    email_field = email_fields[0]
 
-                pass_field = driver.find_element(By.ID, "password")
-                pass_field.click()
-                pass_field.clear()
-                driver.execute_script("arguments[0].value = '';", pass_field)
-                time.sleep(0.3)
-                pass_field.send_keys(password)
-                time.sleep(0.4)
+                if email_field:
+                    email_field.click()
+                    email_field.clear()
+                    driver.execute_script("arguments[0].value = '';", email_field)
+                    time.sleep(0.3)
+                    email_field.send_keys(email)
+                    time.sleep(0.5)
 
-                driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
+                # Find all potential password fields and choose the displayed one
+                password_fields = driver.find_elements(By.CSS_SELECTOR, "input[type='password'], input#password, input[name='password']")
+                pass_field = None
+                for pf in password_fields:
+                    if pf.is_displayed():
+                        pass_field = pf
+                        break
+                if not pass_field and password_fields:
+                    pass_field = password_fields[0]
+
+                if pass_field:
+                    pass_field.click()
+                    pass_field.clear()
+                    driver.execute_script("arguments[0].value = '';", pass_field)
+                    time.sleep(0.3)
+                    pass_field.send_keys(password)
+                    time.sleep(0.4)
+
+                # Find all potential submit buttons and choose the displayed one
+                submit_buttons = driver.find_elements(By.CSS_SELECTOR, "button[type='submit'], button.red.SignupButton, button.red.LoginButton")
+                submit_btn = None
+                for sb in submit_buttons:
+                    if sb.is_displayed():
+                        submit_btn = sb
+                        break
+                if not submit_btn and submit_buttons:
+                    submit_btn = submit_buttons[0]
+
+                if submit_btn:
+                    submit_btn.click()
                 time.sleep(7)
             except Exception as e:
-                log(f"Login form: {e}")
+                log(f"Login form error: {e}")
 
             if "login" in driver.current_url:
                 try:
