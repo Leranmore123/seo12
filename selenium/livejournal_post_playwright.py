@@ -242,7 +242,7 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
                     all_links = page.locator("a").all()
                     for link in all_links:
                         href = link.get_attribute("href") or ""
-                        if user_subdomain in href and any(c.isdigit() for c in href) and "profile" not in href and "photo" not in href and "friends" not in href and "update.bml" not in href and "post/" not in href:
+                        if user_subdomain in href and re.search(r'/\d+\.html', href):
                             log(f"LiveJournal: Extracted entry URL: {href}")
                             result(True, url=href)
                             context.close()
