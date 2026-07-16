@@ -160,23 +160,23 @@ def mastodon_full_flow(email, password, keyword, target_site):
             # Extract auth code
             page_src = page.content()
 
-            # 1. Look in input fields
-            inputs = page.locator("input").all()
-            for inp in inputs:
-                val = inp.get_attribute("value") or ""
-                if len(val) >= 20 and re.match(r'^[A-Za-z0-9_\-]+$', val):
-                    auth_code = val
-                    log(f"Auth code from input: {auth_code[:15]}...")
+            # 1. Look in code/pre elements first (standard OAuth2 OOB presentation)
+            elements = page.locator("code, pre").all()
+            for el in elements:
+                t = (el.text_content() or "").strip()
+                if len(t) >= 20 and re.match(r'^[A-Za-z0-9_\-]+$', t):
+                    auth_code = t
+                    log(f"Auth code from element: {auth_code[:15]}...")
                     break
 
-            # 2. Look in code/pre elements
+            # 2. Look in visible input fields (excluding hidden CSRF tokens)
             if not auth_code:
-                elements = page.locator("code, pre, p").all()
-                for el in elements:
-                    t = (el.text_content() or "").strip()
-                    if len(t) >= 20 and re.match(r'^[A-Za-z0-9_\-]+$', t):
-                        auth_code = t
-                        log(f"Auth code from element: {auth_code[:15]}...")
+                inputs = page.locator("input:not([type='hidden'])").all()
+                for inp in inputs:
+                    val = inp.get_attribute("value") or ""
+                    if len(val) >= 20 and re.match(r'^[A-Za-z0-9_\-]+$', val):
+                        auth_code = val
+                        log(f"Auth code from input: {auth_code[:15]}...")
                         break
 
             # 3. Look in URL params
