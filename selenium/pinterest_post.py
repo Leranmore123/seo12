@@ -96,6 +96,7 @@ def js_set_value(driver, el, value):
     """, el, value)
 
 def pinterest_post(email, password, keyword, target_site, image_path=None, ai_title="", ai_content=""):
+    log(f"Starting Pinterest post with email: {email}")
     driver = get_driver(email)
     wait   = WebDriverWait(driver, 30)
 
