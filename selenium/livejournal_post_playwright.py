@@ -21,6 +21,41 @@ def log(msg):
 def result(success, url='', error=''):
     print(json.dumps({"success": success, "url": url, "error": error}), flush=True)
 
+def get_lj_session(user, pwd):
+    import requests
+    challenge_url = "https://www.livejournal.com/interface/flat"
+    try:
+        r = requests.post(challenge_url, data={"mode": "getchallenge"}, timeout=30)
+        lines = [line.strip() for line in r.text.split("\n") if line.strip()]
+        data = {}
+        for i in range(0, len(lines) - 1, 2):
+            data[lines[i]] = lines[i+1]
+        chal = data.get("challenge")
+        if not chal:
+            return None
+            
+        pw_hash = hashlib.md5(pwd.encode('utf-8')).hexdigest()
+        auth_response = hashlib.md5((chal + pw_hash).encode('utf-8')).hexdigest()
+        
+        r2 = requests.post(challenge_url, data={
+            "mode": "sessiongenerate",
+            "user": user,
+            "auth_method": "challenge",
+            "auth_challenge": chal,
+            "auth_response": auth_response,
+            "clientversion": "Python-Autopost"
+        }, timeout=30)
+        lines2 = [line.strip() for line in r2.text.split("\n") if line.strip()]
+        data2 = {}
+        for i in range(0, len(lines2) - 1, 2):
+            data2[lines2[i]] = lines2[i+1]
+            
+        if data2.get("success") == "OK":
+            return data2.get("ljsession")
+    except Exception as e:
+        log(f"Session generation error: {e}")
+    return None
+
 def livejournal_post(username, password, keyword, target_url, ai_title, image_path, content_file):
     user_hash = hashlib.md5(username.lower().encode('utf-8')).hexdigest()
     profile_dir = os.path.join(script_dir, f'chrome_profile_livejournal_{user_hash}_{sys_user}')
@@ -66,10 +101,26 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
             page.set_viewport_size({"width": 1400, "height": 900})
             
             log("LiveJournal: Checking login state...")
+            
+            # Replicate secure flat login session generation and cookie injection
+            ljsession = get_lj_session(username, password)
+            if ljsession:
+                log("LiveJournal: Flat API session generated. Injecting session cookie...")
+                page.goto("https://www.livejournal.com/robots.txt", timeout=60000)
+                page.wait_for_timeout(1000)
+                
+                context.add_cookies([{
+                    "name": "ljsession",
+                    "value": ljsession,
+                    "domain": ".livejournal.com",
+                    "path": "/"
+                }])
+                log("LiveJournal: Session cookie injected.")
+            
             page.goto("https://www.livejournal.com/update.bml", timeout=60000)
             page.wait_for_timeout(3000)
             
-            # Check if redirected to login page
+            # Check if redirected to login page (fallback)
             if "login.bml" in page.url or page.locator("input[name='user']").count() > 0:
                 log("LiveJournal: Logging in...")
                 page.goto("https://www.livejournal.com/login.bml?returnto=https://www.livejournal.com/update.bml", timeout=60000)
