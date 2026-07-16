@@ -223,7 +223,7 @@ function seleniumPinterest(array $creds, string $keyword, string $targetSite, in
     $args[] = $aiTitle;
     $args[] = $aiDesc;
 
-    $result = runSeleniumScript('pinterest_post.py', $args, 240);
+    $result = runSeleniumScript('pinterest_post_playwright.py', $args, 240);
 
     if (!empty($result['success'])) {
         return [
@@ -716,7 +716,7 @@ function seleniumSymbaloo(array $creds, string $keyword, string $targetSite, str
 
     $customMix = $creds['api_key'] ?? '';
     $args      = [$email, $password, $keyword, $targetSite, $customMix, $aiDesc];
-    $result    = runSeleniumScript('symbaloo_post_tile.py', $args, 180);
+    $result    = runSeleniumScript('symbaloo_post_playwright.py', $args, 240);
 
     if (!empty($result['success'])) {
         return [
