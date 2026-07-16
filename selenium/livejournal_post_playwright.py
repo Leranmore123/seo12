@@ -214,13 +214,39 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
             log("LiveJournal: Final publish confirmed")
             page.wait_for_timeout(10000)
 
-            # Detect final post URL from redirect URL
+            # Detect final post URL from redirect URL or page links
             final_url = page.url
-            if "livejournal.com" in final_url and "update.bml" not in final_url:
+            if "livejournal.com" in final_url and "update.bml" not in final_url and "post/" not in final_url:
                 log(f"LiveJournal: Published at {final_url}")
                 result(True, url=final_url)
             else:
-                fallback_url = f"https://{username}.livejournal.com/"
+                user_subdomain = username.lower().replace('_', '-')
+                post_link_loc = page.locator(f"a[href*='{user_subdomain}.livejournal.com']").first
+                try:
+                    post_link_loc.wait_for(state="visible", timeout=5000)
+                    extracted_url = post_link_loc.get_attribute("href")
+                    if extracted_url:
+                        log(f"LiveJournal: Extracted post URL: {extracted_url}")
+                        result(True, url=extracted_url)
+                        context.close()
+                        return
+                except Exception as ex:
+                    log(f"No specific journal link found on page: {ex}")
+                
+                # Alternate search: search all links for entry URL format
+                try:
+                    all_links = page.locator("a").all()
+                    for link in all_links:
+                        href = link.get_attribute("href") or ""
+                        if "livejournal.com" in href and any(c.isdigit() for c in href) and "update.bml" not in href and "post/" not in href:
+                            log(f"LiveJournal: Extracted URL from entry link: {href}")
+                            result(True, url=href)
+                            context.close()
+                            return
+                except:
+                    pass
+
+                fallback_url = f"https://{user_subdomain}.livejournal.com/"
                 log(f"LiveJournal: Fallback to profile URL: {fallback_url}")
                 result(True, url=fallback_url)
             
