@@ -247,9 +247,9 @@ try:
             time.sleep(1)
         except: pass
 
-        # 3. ActionChains double click
+        # 3. Native selenium click
         try:
-            ActionChains(driver).double_click(cell).perform()
+            cell.click()
             time.sleep(2)
         except: pass
 
