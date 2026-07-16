@@ -142,22 +142,45 @@ def minds_post(email, password, keyword, target_url, ai_title="", ai_content="")
                 "textarea[data-ref='composer-textarea']",
                 "textarea.m-composerTextarea__message",
                 "textarea[placeholder*='mind' i]",
-                "textarea[placeholder*='Speak' i]"
+                "textarea[placeholder*='Speak' i]",
+                "textarea"
             ]
             
             filled = False
             for selector in compose_selectors:
                 try:
-                    locator = page.locator(selector)
+                    locator = page.locator(selector).first
                     if locator.count() > 0:
-                        locator.first.wait_for(state="visible", timeout=5000)
-                        locator.first.click()
-                        page.wait_for_timeout(500)
-                        locator.first.fill(content_text)
-                        log(f"Minds: Content filled into: {selector}")
-                        filled = True
-                        break
-                except:
+                        log(f"Minds: Found composer element for selector: {selector}")
+                        # Force click to expand composer
+                        locator.click(force=True)
+                        page.wait_for_timeout(1000)
+                        
+                        # Set value using prototype descriptor override
+                        success = page.evaluate("""
+                            ([sel, val]) => {
+                                var el = document.querySelector(sel);
+                                if (!el) return false;
+                                el.focus();
+                                var setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value') || 
+                                             Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+                                if (setter && setter.set) {
+                                    setter.set.call(el, val);
+                                } else {
+                                    el.value = val;
+                                }
+                                el.dispatchEvent(new Event('input', {bubbles:true}));
+                                el.dispatchEvent(new Event('change', {bubbles:true}));
+                                return true;
+                            }
+                        """, [selector, content_text])
+                        
+                        if success:
+                            log(f"Minds: Content injected via JS into: {selector}")
+                            filled = True
+                            break
+                except Exception as ex:
+                    log(f"Minds: Fill exception on {selector}: {ex}")
                     pass
 
             if not filled:
@@ -167,14 +190,24 @@ def minds_post(email, password, keyword, target_url, ai_title="", ai_content="")
 
             # Click Publish/Post button
             posted = False
-            # Find all buttons containing text 'Post'
-            post_btn = page.locator("button:has-text('Post'), button:has-text('post'), .m-composerToolbar__action button").first
-            if post_btn.count() > 0:
-                post_btn.wait_for(state="visible", timeout=5000)
-                post_btn.click()
-                log("Minds: Post button clicked")
-                posted = True
-                page.wait_for_timeout(6000)
+            post_btn_selectors = [
+                "button:has-text('Post')",
+                "button:has-text('post')",
+                ".m-composerToolbar__action button",
+                ".m-composerToolbar__action--post button",
+                "button.m-button--blue.m-button--small"
+            ]
+            for btn_sel in post_btn_selectors:
+                try:
+                    btn = page.locator(btn_sel).first
+                    if btn.count() > 0:
+                        btn.click(force=True)
+                        log(f"Minds: Clicked post button via selector: {btn_sel}")
+                        posted = True
+                        page.wait_for_timeout(6000)
+                        break
+                except:
+                    pass
             
             if not posted:
                 raise Exception("Minds: Post button not found or not clickable")
