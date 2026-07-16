@@ -303,13 +303,15 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
             
         except Exception as e:
             try:
-                page.screenshot(path=os.path.join(script_dir, 'symbaloo_error.png'))
-                log("Saved exception error screenshot to symbaloo_error.png")
+                if 'page' in locals():
+                    page.screenshot(path=os.path.join(script_dir, 'symbaloo_error.png'))
+                    log("Saved exception error screenshot to symbaloo_error.png")
             except Exception as ex:
                 log(f"Screenshot exception: {ex}")
             result(False, error=str(e))
             try:
-                context.close()
+                if 'context' in locals():
+                    context.close()
             except:
                 pass
 
