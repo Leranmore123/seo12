@@ -164,6 +164,10 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
 
             # 1. Fill title
             log("LiveJournal: Filling title...")
+            try:
+                page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'lj_step1_loaded.png'))
+            except:
+                pass
             title_input = page.locator("textarea[placeholder='Title'], input[placeholder='Title']").first
             title_input.wait_for(state="visible", timeout=20000)
             title_input.click()
@@ -199,6 +203,10 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
             editor.press("Backspace")
             log("LiveJournal: Content pasted & state synced")
             page.wait_for_timeout(2000)
+            try:
+                page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'lj_step2_filled.png'))
+            except:
+                pass
 
             # 3. Publish
             log("LiveJournal: Clicking publish button...")
@@ -206,6 +214,10 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
             publish_btn.wait_for(state="visible", timeout=10000)
             publish_btn.click()
             page.wait_for_timeout(3000)
+            try:
+                page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'lj_step3_after_tune.png'))
+            except:
+                pass
 
             # Confirm publish dialog
             confirm_btn = page.locator(".js--submit-post, button.js--submit-post").first
@@ -213,6 +225,10 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
             confirm_btn.click()
             log("LiveJournal: Final publish confirmed")
             page.wait_for_timeout(10000)
+            try:
+                page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'lj_step4_after_confirm.png'))
+            except:
+                pass
 
             # Detect final post URL from redirect URL or page links
             final_url = page.url
