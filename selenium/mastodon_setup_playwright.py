@@ -94,10 +94,7 @@ def mastodon_full_flow(email, password, keyword, target_site):
             page.goto(f"{BASE_URL}/home", timeout=60000)
             page.wait_for_timeout(3000)
 
-            src = page.content().lower()
-            logged = ("logout" in src or "/home" in page.url or "collections" in page.url)
-
-            if not logged:
+            if "sign_in" in page.url or "/home" not in page.url:
                 log("Logging in...")
                 page.goto(f"{BASE_URL}/auth/sign_in", timeout=60000)
                 page.wait_for_timeout(3000)
