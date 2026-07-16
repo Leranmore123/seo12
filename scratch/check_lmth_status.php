@@ -22,14 +22,14 @@ try {
     
     echo "\n=== LATEST SUCCESSFUL PINTEREST BACKLINKS ===\n";
     $stmt2 = $db->query("
-        SELECT id, project_id, published_url, created_at 
+        SELECT id, project_id, backlink_url, created_at 
         FROM backlinks 
         WHERE platform = 'pinterest' 
         ORDER BY id DESC LIMIT 5
     ");
     $rows2 = $stmt2->fetchAll(PDO::FETCH_ASSOC);
     foreach ($rows2 as $r2) {
-        echo "Backlink ID: {$r2['id']} | Project: {$r2['project_id']} | URL: {$r2['published_url']} | Created: {$r2['created_at']}\n";
+        echo "Backlink ID: {$r2['id']} | Project: {$r2['project_id']} | URL: {$r2['backlink_url']} | Created: {$r2['created_at']}\n";
     }
 } catch (Exception $e) {
     echo "Error: " . $e->getMessage() . "\n";
