@@ -11,3 +11,11 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $decoded = decodePass($row['password']);
     echo "ID: {$row['id']} | Project: {$row['project_id']} | User: {$row['username']} | Plaintext: {$decoded}\n";
 }
+
+echo "\n=== DECODED MASTODON ACCOUNTS ===\n";
+$stmt = $db->prepare("SELECT id, project_id, username, password FROM social_accounts WHERE platform='mastodon'");
+$stmt->execute();
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    $decoded = decodePass($row['password']);
+    echo "ID: {$row['id']} | Project: {$row['project_id']} | User: {$row['username']} | Plaintext: {$decoded}\n";
+}
