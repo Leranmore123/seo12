@@ -4,6 +4,7 @@ Pinterest Auto-Post via Playwright
 Migrated from Selenium for enhanced stability and auto-waiting.
 """
 import sys, json, time, os, re
+os.environ['PLAYWRIGHT_BROWSERS_PATH'] = '/usr/local/share/playwright'
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Profile isolation by sys_user and email hash
