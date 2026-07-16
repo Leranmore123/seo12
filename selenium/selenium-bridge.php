@@ -223,7 +223,7 @@ function seleniumPinterest(array $creds, string $keyword, string $targetSite, in
     $args[] = $aiTitle;
     $args[] = $aiDesc;
 
-    $result = runSeleniumScript('pinterest_post.py', $args, 120);
+    $result = runSeleniumScript('pinterest_post.py', $args, 240);
 
     if (!empty($result['success'])) {
         return [
