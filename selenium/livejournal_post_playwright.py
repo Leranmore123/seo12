@@ -162,6 +162,16 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
                 page.goto("https://www.livejournal.com/update.bml", timeout=60000)
                 page.wait_for_timeout(5000)
 
+            # Dismiss any "Unsaved draft" dialog if it appears
+            try:
+                no_thanks_btn = page.locator("button:has-text('No thanks'), button:has-text('No, thanks')").first
+                if no_thanks_btn.is_visible():
+                    log("LiveJournal: Dismissing unsaved draft dialog...")
+                    no_thanks_btn.click()
+                    page.wait_for_timeout(1000)
+            except Exception as e:
+                log(f"Draft popup check failed/skipped: {e}")
+
             # 1. Fill title
             log("LiveJournal: Filling title...")
             try:
@@ -179,6 +189,7 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
             log("LiveJournal: Filling Draft.js content...")
             editor = page.locator(".public-DraftEditor-content").first
             editor.wait_for(state="visible", timeout=20000)
+            editor.focus()
             editor.click()
             page.wait_for_timeout(500)
 
@@ -198,9 +209,10 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
                 }
             """, [".public-DraftEditor-content", ai_content])
 
-            # Trigger state synchronization with a space and backspace
-            editor.press("Space")
-            editor.press("Backspace")
+            # Trigger state synchronization using keyboard simulation on focused element
+            page.keyboard.type(" ")
+            page.wait_for_timeout(500)
+            page.keyboard.press("Backspace")
             log("LiveJournal: Content pasted & state synced")
             page.wait_for_timeout(2000)
             try:
@@ -222,12 +234,20 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
             # Confirm publish dialog
             confirm_btn = page.locator("button.js--submit-post:not([disabled])").filter(has_text="Publish").first
             confirm_btn.wait_for(state="visible", timeout=25000)
-            page.evaluate("""
-                () => {
-                    var btn = document.querySelector('button.js--submit-post');
-                    if (btn) btn.click();
-                }
-            """)
+            
+            try:
+                # Try native click first
+                confirm_btn.click(timeout=5000)
+                log("LiveJournal: Final publish confirmed natively")
+            except Exception as ex:
+                log(f"Native click failed, using JS click fallback: {ex}")
+                page.evaluate("""
+                    () => {
+                        var btn = document.querySelector('button.js--submit-post');
+                        if (btn) btn.click();
+                    }
+                """)
+                log("LiveJournal: Final publish confirmed via JS")
             log("LiveJournal: Final publish confirmed")
             page.wait_for_timeout(10000)
             try:
