@@ -222,7 +222,12 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
             # Confirm publish dialog
             confirm_btn = page.locator("button.js--submit-post:not([disabled])").filter(has_text="Publish").first
             confirm_btn.wait_for(state="visible", timeout=25000)
-            confirm_btn.click()
+            page.evaluate("""
+                () => {
+                    var btn = document.querySelector('button.js--submit-post');
+                    if (btn) btn.click();
+                }
+            """)
             log("LiveJournal: Final publish confirmed")
             page.wait_for_timeout(10000)
             try:
