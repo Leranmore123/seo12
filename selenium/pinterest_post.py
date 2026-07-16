@@ -119,10 +119,21 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
             # Wait for email field (may show captcha/block)
             try:
                 email_field = wait.until(EC.presence_of_element_located((By.ID, "email")))
+                email_field.click()
+                email_field.clear()
+                driver.execute_script("arguments[0].value = '';", email_field)
+                time.sleep(0.3)
                 email_field.send_keys(email)
                 time.sleep(0.5)
-                driver.find_element(By.ID, "password").send_keys(password)
+
+                pass_field = driver.find_element(By.ID, "password")
+                pass_field.click()
+                pass_field.clear()
+                driver.execute_script("arguments[0].value = '';", pass_field)
+                time.sleep(0.3)
+                pass_field.send_keys(password)
                 time.sleep(0.4)
+
                 driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
                 time.sleep(7)
             except Exception as e:
