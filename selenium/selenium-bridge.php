@@ -200,8 +200,8 @@ function seleniumPinterest(array $creds, string $keyword, string $targetSite, in
             // 4. Generate vertical image (1000x1500 px) on the fly
             require_once dirname(__DIR__) . '/image-generator.php';
             $phone = !empty($dbPhone) ? $dbPhone : '9036354554';
-            $email = !empty($dbEmail) ? $dbEmail : 'office.learnmore@gmail.com';
-            $res = generateMarketingImage($keyword, $targetSite, $phone, $email, $verticalImage, true);
+            $imgEmail = !empty($dbEmail) ? $dbEmail : 'office.learnmore@gmail.com';
+            $res = generateMarketingImage($keyword, $targetSite, $phone, $imgEmail, $verticalImage, true);
             if (!empty($res['success'])) {
                 $imagePath = $verticalImage;
             }
