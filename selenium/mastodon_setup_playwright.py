@@ -144,18 +144,27 @@ def mastodon_full_flow(email, password, keyword, target_site):
                 raise Exception("Mastodon email not confirmed. Check email inbox and click confirmation link.")
 
             # Click Authorize
-            authorize_btn = page.locator("button:has-text('Authorize'), button:has-text('allow'), input[type='submit'][value='Authorize']").first
-            if authorize_btn.count() > 0:
+            log(f"Current page URL before authorize: {page.url}")
+            try:
+                page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'mastodon_auth.png'))
+                log("Saved pre-authorization screenshot to mastodon_auth.png")
+            except Exception as se:
+                log(f"Pre-auth screenshot failed: {se}")
+
+            # Wait for authorize button
+            authorize_btn = page.locator("button:has-text('Authorize'), button:has-text('authorize'), button.button--type-submit, button.allow, input[type='submit'][value='Authorize']").first
+            try:
+                authorize_btn.wait_for(state="visible", timeout=15000)
                 log("Clicking authorize button...")
-                authorize_btn.click()
-                page.wait_for_timeout(4000)
-            else:
+                authorize_btn.click(force=True)
+                page.wait_for_timeout(6000)
+            except Exception as e:
+                log(f"Authorize button wait failed: {e}. Trying fallback form submit...")
                 # Fallback form submit
-                submit_btn = page.locator("button[type='submit'], input[type='submit']").first
+                submit_btn = page.locator("form.button_to button[type='submit'], form.authorize button[type='submit'], button[type='submit']").first
                 if submit_btn.count() > 0:
-                    log("Clicking submit button fallback...")
-                    submit_btn.click()
-                    page.wait_for_timeout(4000)
+                    submit_btn.click(force=True)
+                    page.wait_for_timeout(6000)
 
             # Extract auth code
             page_src = page.content()
@@ -199,6 +208,9 @@ def mastodon_full_flow(email, password, keyword, target_site):
                         log(f"Auth code via regex: {auth_code[:15]}...")
                         break
 
+            if not auth_code:
+                raise Exception("Could not extract authorization code from the callback page.")
+
             context.close()
 
         except Exception as e:
@@ -214,9 +226,6 @@ def mastodon_full_flow(email, password, keyword, target_site):
             except:
                 pass
             return None, str(e)
-
-    if not auth_code:
-        return None, "Could not extract authorization code."
 
     # ── Step 5: Exchange auth code for access token ───────────────
     log("Exchanging code for access token...")
