@@ -102,7 +102,7 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                 page.wait_for_timeout(7000)
                 
                 if "login" in page.url:
-                    page.screenshot(path=os.path.join(script_dir, 'pinterest_error.png'))
+                    page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'pinterest_error.png'))
                     log("Saved login failure screenshot to pinterest_error.png")
                     result(False, error="Pinterest login failed — may be blocked temporarily. Try again in 10 minutes.")
                     context.close()
@@ -266,7 +266,7 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
         except Exception as e:
             try:
                 if 'page' in locals():
-                    page.screenshot(path=os.path.join(script_dir, 'pinterest_error.png'))
+                    page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'pinterest_error.png'))
                     log("Saved exception error screenshot to pinterest_error.png")
             except Exception as ex:
                 log(f"Screenshot exception: {ex}")

@@ -210,7 +210,7 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                     break
                     
             if not tile_input:
-                page.screenshot(path=os.path.join(script_dir, 'symbaloo_error.png'))
+                page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'symbaloo_error.png'))
                 result(False, error="Symbaloo: tileSearchInput not found after trying multiple empty cells")
                 context.close()
                 return
@@ -226,7 +226,7 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
             log("Symbaloo: Enter pressed on input")
             page.wait_for_timeout(6000)
             
-            page.screenshot(path=os.path.join(script_dir, 'symbaloo_tile_added.png'))
+            page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'symbaloo_tile_added.png'))
             page.wait_for_timeout(6000)
             
             # Try to click search result item
@@ -296,7 +296,7 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                 log("Symbaloo: Clicked Finish button")
                 page.wait_for_timeout(4000)
                 
-            page.screenshot(path=os.path.join(script_dir, 'symbaloo_tile_final.png'))
+            page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'symbaloo_tile_final.png'))
             log(f"Symbaloo: Final URL = {page.url}")
             result(True, url=page.url)
             context.close()
@@ -304,7 +304,7 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
         except Exception as e:
             try:
                 if 'page' in locals():
-                    page.screenshot(path=os.path.join(script_dir, 'symbaloo_error.png'))
+                    page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'symbaloo_error.png'))
                     log("Saved exception error screenshot to symbaloo_error.png")
             except Exception as ex:
                 log(f"Screenshot exception: {ex}")
