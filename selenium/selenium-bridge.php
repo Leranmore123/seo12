@@ -626,6 +626,155 @@ function seleniumLiveJournal(array $creds, string $keyword, string $targetSite, 
 }
 
 // ============================================================
+// MINDS.COM — Playwright auto-post
+// ============================================================
+function seleniumMinds(array $creds, string $keyword, string $targetSite, string $aiTitle = '', string $aiContent = '', int $projectId = 0): array {
+    $email    = $creds['username'] ?? '';
+    $password = decodePass($creds['password'] ?? '');
+
+    if (empty($email) || empty($password)) {
+        return ['error' => 'Minds: Add email + password in Social Accounts.'];
+    }
+
+    if (empty($aiTitle) || empty($aiContent)) {
+        require_once dirname(__DIR__) . '/ai-content.php';
+        $db = getDB();
+        $postCount = 1;
+        $usedTitles = [];
+        $businessName = '';
+        $businessDesc = '';
+        try {
+            $stmt = $db->prepare("SELECT COUNT(*) FROM backlinks WHERE platform='minds' AND status='created'");
+            $stmt->execute();
+            $postCount = (int)$stmt->fetchColumn() + 1;
+
+            $stmt2 = $db->prepare("SELECT post_title FROM backlinks WHERE post_title IS NOT NULL ORDER BY created_at ASC LIMIT 50");
+            $stmt2->execute();
+            $usedTitles = $stmt2->fetchAll(PDO::FETCH_COLUMN);
+
+            if ($projectId > 0) {
+                $pStmt = $db->prepare("SELECT business_name, business_desc FROM projects WHERE id=?");
+                $pStmt->execute([$projectId]);
+                $proj = $pStmt->fetch(PDO::FETCH_ASSOC);
+                if ($proj) {
+                    $businessName = $proj['business_name'] ?? '';
+                    $businessDesc = $proj['business_desc'] ?? '';
+                }
+            }
+        } catch (Exception $e) {}
+
+        $ai = generateAIContent($keyword, $targetSite, 'minds', 'micro_blog', '', OPENAI_API_KEY, $postCount, $usedTitles, $businessName, $businessDesc);
+        if (empty($ai['content'])) {
+            return ['error' => $ai['error'] ?? 'AI content generation failed for Minds. Check API keys.'];
+        }
+        $aiTitle   = $ai['title']   ?? generateUniqueTitle($keyword, $postCount, $usedTitles, OPENAI_API_KEY);
+        $aiContent = strip_tags($ai['content']);
+    }
+
+    $args   = [$email, $password, $keyword, $targetSite, $aiTitle, $aiContent];
+    $result = runSeleniumScript('minds_post_playwright.py', $args, 240);
+
+    if (!empty($result['success'])) {
+        return [
+            'success'    => true,
+            'url'        => $result['url'] ?: "https://www.minds.com",
+            'source'     => 'Playwright',
+            'post_title' => $aiTitle,
+        ];
+    }
+
+    $errorMsg = $result['error'] ?? 'Unknown error';
+    return [
+        'manual'     => true,
+        'message'    => 'Minds: ' . $errorMsg,
+        'url'        => "https://www.minds.com",
+        'source'     => 'Playwright Fallback',
+        'post_title' => $aiTitle,
+    ];
+}
+
+// ============================================================
+// LIVEJOURNAL — Playwright auto-post
+// ============================================================
+function seleniumLiveJournalPlaywright(array $creds, string $keyword, string $targetSite, int $projectId = 0): array {
+    $username = $creds['username'] ?? '';
+    $password = decodePass($creds['password'] ?? '');
+
+    if (empty($username)) {
+        return ['error' => 'LiveJournal: Add username credentials.'];
+    }
+
+    require_once dirname(__DIR__) . '/ai-content.php';
+    $postCount  = 1; $usedTitles = [];
+    $businessName = '';
+    $businessDesc = '';
+    try {
+        $db = getDB();
+        $s  = $db->prepare("SELECT COUNT(*) FROM backlinks WHERE platform='livejournal' AND status='created'"); $s->execute();
+        $postCount = (int)$s->fetchColumn() + 1;
+        $s2 = $db->prepare("SELECT post_title FROM backlinks WHERE post_title IS NOT NULL ORDER BY created_at ASC LIMIT 50"); $s2->execute();
+        $usedTitles = $s2->fetchAll(PDO::FETCH_COLUMN);
+
+        if ($projectId > 0) {
+            $pStmt = $db->prepare("SELECT business_name, business_desc FROM projects WHERE id=?");
+            $pStmt->execute([$projectId]);
+            $proj = $pStmt->fetch(PDO::FETCH_ASSOC);
+            if ($proj) {
+                $businessName = $proj['business_name'] ?? '';
+                $businessDesc = $proj['business_desc'] ?? '';
+            }
+        }
+    } catch (Exception $e) {}
+    $ai      = generateAIContent($keyword, $targetSite, 'livejournal', 'blog_post', '', OPENAI_API_KEY, $postCount, $usedTitles, $businessName, $businessDesc);
+    if (empty($ai['content'])) {
+        return ['error' => $ai['error'] ?? 'AI content generation failed. Check OpenAI/Gemini API keys.'];
+    }
+    $aiTitle = $ai['title'] ?? generateUniqueTitle($keyword, $postCount, $usedTitles, OPENAI_API_KEY);
+    $aiBody  = $ai['content'];
+    $aiBody = strip_tags($aiBody, '<a><h1><h2><h3><p><ul><ol><li><strong><em><br>');
+
+    // Get project image path and resolve its public HTTP URL
+    $imgPath = '';
+    $imgFiles = glob(dirname(__DIR__) . '/uploads/*.{jpg,jpeg,png}', GLOB_BRACE);
+    if ($imgFiles) {
+        usort($imgFiles, fn($a, $b) => filemtime($b) - filemtime($a));
+        $imgPath = $imgFiles[0];
+        
+        $publicBase = '';
+        if (!empty($_SERVER['HTTP_HOST'])) {
+            $publicBase = function_exists('detectSiteUrl') ? detectSiteUrl() : 'http://' . $_SERVER['HTTP_HOST'];
+        } else {
+            if (defined('SITE_URL') && strpos(SITE_URL, 'localhost') === false) {
+                $publicBase = SITE_URL;
+            } else {
+                $ip = trim(@file_get_contents('https://api.ipify.org', false, stream_context_create(['http' => ['timeout' => 2.5]])));
+                if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                    $publicBase = 'http://' . $ip;
+                } else {
+                    $publicBase = defined('SITE_URL') ? SITE_URL : 'http://localhost';
+                }
+            }
+        }
+        $imgPath = rtrim($publicBase, '/') . '/uploads/' . basename($imgPath);
+    }
+
+    $args   = [$username, $password, $keyword, $targetSite, $aiTitle, $imgPath];
+
+    $tmpFile = sys_get_temp_dir() . '/lj_content_' . time() . '.txt';
+    file_put_contents($tmpFile, $aiBody);
+    $args[] = $tmpFile;
+
+    $result = runSeleniumScript('livejournal_post_playwright.py', $args, 240);
+
+    @unlink($tmpFile);
+
+    if (!empty($result['success'])) {
+        return ['success' => true, 'url' => $result['url'] ?: 'https://' . $username . '.livejournal.com/', 'source' => 'Playwright', 'post_title' => $aiTitle];
+    }
+    return ['manual' => true, 'message' => 'LiveJournal: ' . ($result['error'] ?? 'Failed'), 'url' => 'https://www.livejournal.com/post/', 'source' => 'Playwright Fallback', 'post_title' => $aiTitle];
+}
+
+// ============================================================
 // WORDPRESS — Selenium auto-fix
 // ============================================================
 function seleniumWpAutoFix(int $projectId, string $wpUrl, string $wpUser, string $wpPassBase64, string $fixType, string $fixValue): array {

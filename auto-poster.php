@@ -1883,8 +1883,7 @@ function postToMastodonSelenium(array $creds, string $keyword, string $targetSit
         return ['error' => 'Mastodon: Add email + password credentials.'];
     }
 
-    require_once __DIR__ . '/selenium/selenium-bridge.php';
-    $scriptResult = runSeleniumScript('mastodon_setup.py',
+    $scriptResult = runSeleniumScript('mastodon_setup_playwright.py',
         [$email, trim($password), $keyword, $targetSite], 180);
 
     // Save token to DB — use id-based UPDATE for reliability
@@ -3632,7 +3631,7 @@ function runPlatformAutoPost(string $platform, array $creds, array $project, int
                 $r = postToMinds($apiKey, $keyword, $site, GEMINI_API_KEY, OPENAI_API_KEY, $postCount, $usedTitles, $project['business_name'] ?? '', $project['business_desc'] ?? '');
                 if (!empty($r['success'])) return $r;
             }
-            return seleniumMicroBlog('minds', $creds, $keyword, $site, '', '', $projectId);
+            return seleniumMinds($creds, $keyword, $site, '', '', $projectId);
 
         case 'plurk':
             // Try API first; fallback → Selenium
@@ -3762,7 +3761,7 @@ function runPlatformAutoPost(string $platform, array $creds, array $project, int
         }
         case 'livejournal':
             // Try dedicated script first (profile-based, more reliable)
-            return seleniumLiveJournal($creds, $keyword, $site, $projectId);
+            return seleniumLiveJournalPlaywright($creds, $keyword, $site, $projectId);
         case 'justpaste':
             return postToJustPaste($username, base64_decode($creds['password'] ?? '') ?: ($creds['password'] ?? ''), $keyword, $site, OPENAI_API_KEY);
         case 'mewe': {
