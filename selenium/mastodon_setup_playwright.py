@@ -91,16 +91,12 @@ def mastodon_full_flow(email, password, keyword, target_site):
 
             # Check login
             log("Checking login...")
-            page.goto(f"{BASE_URL}/home", timeout=60000)
+            page.goto(f"{BASE_URL}/auth/sign_in", timeout=60000)
             page.wait_for_timeout(3000)
 
-            if "sign_in" in page.url or "/home" not in page.url:
+            email_input = page.locator("input#user_email").first
+            if email_input.count() > 0 and email_input.is_visible():
                 log("Logging in...")
-                page.goto(f"{BASE_URL}/auth/sign_in", timeout=60000)
-                page.wait_for_timeout(3000)
-
-                email_input = page.locator("input#user_email").first
-                email_input.wait_for(state="visible", timeout=20000)
                 email_input.fill(email)
 
                 pass_input = page.locator("input#user_password").first
@@ -130,6 +126,8 @@ def mastodon_full_flow(email, password, keyword, target_site):
                         page.wait_for_timeout(3000)
                 
                 log("Logged in!")
+            else:
+                log("Already logged in!")
 
             # Go to authorize page
             log("Opening OAuth authorize page...")
