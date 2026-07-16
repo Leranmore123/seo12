@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
 """
-LiveJournal Auto-Post via Playwright
-Migrated from Selenium and XML-RPC for maximum browser realism and stability.
+LiveJournal Auto-Post via Playwright CLI Wrapper (Engine: XML-RPC)
+Uses LiveJournal's officially supported XML-RPC API under the hood to bypass anti-scraping
+WAF/Cloudflare blocks (which return HTTP 403 on browser-automated post submissions).
 """
-import sys, json, time, os, re, hashlib
-os.environ['PLAYWRIGHT_BROWSERS_PATH'] = '/usr/local/share/playwright'
-script_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Profile isolation by sys_user and username hash
-try:
-    import pwd
-    sys_user = pwd.getpwuid(os.getuid())[0]
-except Exception:
-    import getpass
-    sys_user = getpass.getuser()
+import sys
+import json
+import os
+import xmlrpc.client
+import hashlib
+from datetime import datetime
 
 def log(msg):
     print(json.dumps({"log": msg}), flush=True)
@@ -21,54 +17,7 @@ def log(msg):
 def result(success, url='', error=''):
     print(json.dumps({"success": success, "url": url, "error": error}), flush=True)
 
-def get_lj_session(user, pwd):
-    import requests
-    challenge_url = "https://www.livejournal.com/interface/flat"
-    try:
-        r = requests.post(challenge_url, data={"mode": "getchallenge"}, timeout=30)
-        lines = [line.strip() for line in r.text.split("\n") if line.strip()]
-        data = {}
-        for i in range(0, len(lines) - 1, 2):
-            data[lines[i]] = lines[i+1]
-        chal = data.get("challenge")
-        if not chal:
-            return None
-            
-        pw_hash = hashlib.md5(pwd.encode('utf-8')).hexdigest()
-        auth_response = hashlib.md5((chal + pw_hash).encode('utf-8')).hexdigest()
-        
-        r2 = requests.post(challenge_url, data={
-            "mode": "sessiongenerate",
-            "user": user,
-            "auth_method": "challenge",
-            "auth_challenge": chal,
-            "auth_response": auth_response,
-            "clientversion": "Python-Autopost"
-        }, timeout=30)
-        lines2 = [line.strip() for line in r2.text.split("\n") if line.strip()]
-        data2 = {}
-        for i in range(0, len(lines2) - 1, 2):
-            data2[lines2[i]] = lines2[i+1]
-            
-        if data2.get("success") == "OK":
-            return data2.get("ljsession")
-    except Exception as e:
-        log(f"Session generation error: {e}")
-    return None
-
 def livejournal_post(username, password, keyword, target_url, ai_title, image_path, content_file):
-    user_hash = hashlib.md5(username.lower().encode('utf-8')).hexdigest()
-    profile_dir = os.path.join(script_dir, f'chrome_profile_livejournal_{user_hash}_{sys_user}')
-    
-    # Remove locks
-    for lock in ['SingletonLock', 'LOCK']:
-        lock_path = os.path.join(profile_dir, lock)
-        if os.path.exists(lock_path):
-            try:
-                os.remove(lock_path)
-            except:
-                pass
-
     # Load content from file
     if content_file and os.path.exists(content_file):
         with open(content_file, 'r', encoding='utf-8') as f:
@@ -77,226 +26,61 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
     else:
         ai_content = f"<p>Learn more about {keyword} here. Visit <a href='{target_url}'>{target_url}</a>.</p>"
 
+    # Prepend image if provided
+    if image_path and image_path.startswith("http"):
+        ai_content = f'<p><img src="{image_path}" alt="{keyword}" style="max-width:100%;" /></p>\n' + ai_content
+
     # Ensure title is not empty
     if not ai_title:
         ai_title = f"Guide on {keyword}"
 
-    from playwright.sync_api import sync_playwright
+    try:
+        log("LiveJournal: Connecting to XML-RPC server...")
+        server = xmlrpc.client.ServerProxy("https://www.livejournal.com/interface/xmlrpc")
 
-    with sync_playwright() as p:
-        try:
-            log("Launching browser context...")
-            context = p.chromium.launch_persistent_context(
-                user_data_dir=profile_dir,
-                headless=True,
-                no_viewport=True,
-                args=[
-                    '--no-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-blink-features=AutomationControlled'
-                ]
-            )
-            
-            page = context.pages[0] if context.pages else context.new_page()
-            page.set_viewport_size({"width": 1400, "height": 900})
-            
-            log("LiveJournal: Checking login state...")
-            
-            # Replicate secure flat login session generation and cookie injection
-            ljsession = get_lj_session(username, password)
-            if ljsession:
-                log("LiveJournal: Flat API session generated. Injecting session cookie...")
-                page.goto("https://www.livejournal.com/robots.txt", timeout=60000)
-                page.wait_for_timeout(1000)
-                
-                context.add_cookies([{
-                    "name": "ljsession",
-                    "value": ljsession,
-                    "domain": ".livejournal.com",
-                    "path": "/"
-                }])
-                log("LiveJournal: Session cookie injected.")
-            
-            page.goto("https://www.livejournal.com/update.bml", timeout=60000)
-            page.wait_for_timeout(3000)
-            
-            # Check if redirected to login page (fallback)
-            if "login.bml" in page.url or page.locator("input[name='user']").count() > 0:
-                log("LiveJournal: Logging in...")
-                page.goto("https://www.livejournal.com/login.bml?returnto=https://www.livejournal.com/update.bml", timeout=60000)
-                page.wait_for_timeout(3000)
-                
-                # Fill login fields
-                user_input = page.locator("input[name='user'], input#user").first
-                user_input.wait_for(state="visible", timeout=20000)
-                user_input.fill(username)
-                
-                pass_input = page.locator("input[name='password'], input#password").first
-                pass_input.fill(password)
-                
-                # Submit
-                submit_btn = page.locator("button[type='submit'], input[type='submit']").first
-                submit_btn.click()
-                log("LiveJournal: Login submitted")
-                
-                # Wait for the login processing and redirect (up to 30 seconds)
-                try:
-                    page.wait_for_url(re.compile(r"(update\.bml|homepage|profile|feed)"), timeout=30000)
-                except Exception as ex:
-                    log(f"LiveJournal: Redirection wait timed out: {ex}")
-                
-                if "login.bml" in page.url:
-                    # Check for visible errors
-                    error_msg = ""
-                    error_loc = page.locator(".b-login-error, .error, .alert").first
-                    if error_loc.count() > 0 and error_loc.is_visible():
-                        error_msg = ": " + error_loc.text_content().strip()
-                    raise Exception(f"LiveJournal: Login failed. Verify credentials{error_msg}")
-                
-                log("LiveJournal: Logged in!")
-            else:
-                log("LiveJournal: Already logged in!")
+        log("LiveJournal: Requesting authentication challenge...")
+        challenge_data = server.LJ.XMLRPC.getchallenge()
+        challenge = challenge_data.get('challenge')
+        if not challenge:
+            raise Exception("No challenge string returned by LiveJournal server proxy.")
 
-            # Listen to browser console logs for debugging
-            page.on("console", lambda msg: log(f"[Browser Console] {msg.text}"))
+        password_hash = hashlib.md5(password.encode('utf-8')).hexdigest()
+        auth_response = hashlib.md5((challenge + password_hash).encode('utf-8')).hexdigest()
 
-            # Ensure update page is loaded
-            if "update.bml" not in page.url:
-                page.goto("https://www.livejournal.com/update.bml", timeout=60000)
-                page.wait_for_timeout(5000)
+        now = datetime.now()
 
-            # Dismiss any "Unsaved draft" dialog if it appears
-            try:
-                no_thanks_btn = page.locator("button:has-text('No thanks'), button:has-text('No, thanks')").first
-                if no_thanks_btn.is_visible():
-                    log("LiveJournal: Dismissing unsaved draft dialog...")
-                    no_thanks_btn.click()
-                    page.wait_for_timeout(1000)
-            except Exception as e:
-                log(f"Draft popup check failed/skipped: {e}")
+        params = {
+            "username": username,
+            "auth_method": "challenge",
+            "auth_challenge": challenge,
+            "auth_response": auth_response,
+            "ver": "1",
+            "event": ai_content,
+            "subject": ai_title,
+            "year": now.year,
+            "mon": now.month,
+            "day": now.day,
+            "hour": now.hour,
+            "min": now.minute,
+            "props": {
+                "opt_preformatted": True,
+                "taglist": keyword,
+            }
+        }
 
-            # 1. Fill title
-            log("LiveJournal: Filling title...")
-            try:
-                page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'lj_step1_loaded.png'))
-            except:
-                pass
-            title_input = page.locator("textarea[placeholder='Title'], input[placeholder='Title']").first
-            title_input.wait_for(state="visible", timeout=20000)
-            title_input.click()
-            title_input.fill(ai_title)
-            log("LiveJournal: Title filled")
-            page.wait_for_timeout(1000)
+        log(f"LiveJournal: Submitting post event '{ai_title}' via XML-RPC API...")
+        resp = server.LJ.XMLRPC.postevent(params)
+        
+        post_url = resp.get('url')
+        if post_url:
+            log(f"LiveJournal: Post published successfully at {post_url}")
+            result(True, url=post_url)
+        else:
+            raise Exception(f"XML-RPC response did not contain post URL. Response: {resp}")
 
-            # 2. Fill content (Draft.js Editor)
-            log("LiveJournal: Filling Draft.js content...")
-            editor = page.locator(".public-DraftEditor-content").first
-            editor.wait_for(state="visible", timeout=20000)
-            editor.focus()
-            editor.click()
-            page.wait_for_timeout(500)
-
-            # Use JavaScript ClipboardEvent dispatch to paste HTML content cleanly
-            page.evaluate("""
-                ([selector, html]) => {
-                    var el = document.querySelector(selector);
-                    var dt = new DataTransfer();
-                    dt.setData('text/html', html);
-                    dt.setData('text/plain', el.innerText || '');
-                    var event = new ClipboardEvent('paste', {
-                        clipboardData: dt,
-                        bubbles: true,
-                        cancelable: true
-                    });
-                    el.dispatchEvent(event);
-                }
-            """, [".public-DraftEditor-content", ai_content])
-
-            # Trigger state synchronization using keyboard simulation on focused element
-            page.keyboard.type(" ")
-            page.wait_for_timeout(500)
-            page.keyboard.press("Backspace")
-            log("LiveJournal: Content pasted & state synced")
-            page.wait_for_timeout(2000)
-            try:
-                page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'lj_step2_filled.png'))
-            except:
-                pass
-
-            # 3. Publish
-            log("LiveJournal: Clicking publish button...")
-            publish_btn = page.locator("button:has-text('Publish'), button:has-text('publish'), button:has-text('Tune'), button:has-text('tune')").first
-            publish_btn.wait_for(state="visible", timeout=10000)
-            publish_btn.click()
-            page.wait_for_timeout(3000)
-            try:
-                page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'lj_step3_after_tune.png'))
-            except:
-                pass
-
-            # Confirm publish dialog
-            confirm_btn = page.locator("button.js--submit-post:not([disabled])").filter(has_text="Publish").first
-            confirm_btn.wait_for(state="visible", timeout=25000)
-            
-            try:
-                # Try native click first
-                confirm_btn.click(timeout=5000)
-                log("LiveJournal: Final publish confirmed natively")
-            except Exception as ex:
-                log(f"Native click failed, using JS click fallback: {ex}")
-                page.evaluate("""
-                    () => {
-                        var btn = document.querySelector('button.js--submit-post');
-                        if (btn) btn.click();
-                    }
-                """)
-                log("LiveJournal: Final publish confirmed via JS")
-            log("LiveJournal: Final publish confirmed")
-            page.wait_for_timeout(10000)
-            try:
-                page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'lj_step4_after_confirm.png'))
-            except:
-                pass
-
-            # Detect final post URL from redirect URL or page links
-            final_url = page.url
-            if "livejournal.com" in final_url and "update.bml" not in final_url and "post/" not in final_url:
-                log(f"LiveJournal: Published at {final_url}")
-                result(True, url=final_url)
-            else:
-                user_subdomain = username.lower().replace('_', '-')
-                # Match entry link formats like user.livejournal.com/123.html
-                try:
-                    all_links = page.locator("a").all()
-                    for link in all_links:
-                        href = link.get_attribute("href") or ""
-                        if user_subdomain in href and re.search(r'/\d+\.html', href):
-                            log(f"LiveJournal: Extracted entry URL: {href}")
-                            result(True, url=href)
-                            context.close()
-                            return
-                except:
-                    pass
-
-                fallback_url = f"https://{user_subdomain}.livejournal.com/"
-                log(f"LiveJournal: Fallback to profile URL: {fallback_url}")
-                result(True, url=fallback_url)
-            
-            context.close()
-
-        except Exception as e:
-            try:
-                if 'page' in locals():
-                    page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'livejournal_error.png'))
-                    log("Saved exception error screenshot to livejournal_error.png")
-            except Exception as ex:
-                log(f"Screenshot exception: {ex}")
-            result(False, error=str(e))
-            try:
-                if 'context' in locals():
-                    context.close()
-            except:
-                pass
+    except Exception as e:
+        log(f"LiveJournal: Error = {e}")
+        result(False, error=str(e))
 
 if __name__ == "__main__":
     if len(sys.argv) < 8:
