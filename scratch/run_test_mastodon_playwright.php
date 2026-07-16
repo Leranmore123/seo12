@@ -3,16 +3,14 @@ require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../selenium/selenium-bridge.php';
 
 $db = getDB();
+
+// Update Project 211 Mastodon credentials to the correct ones
+$db->exec("UPDATE social_accounts SET username='rahul.learnmore12@gmail.com', password='" . base64_encode('@disha12@') . "' WHERE id=4506");
+echo "Updated database Mastodon account (ID: 4506) to rahul.learnmore12@gmail.com / @disha12@\n\n";
+
 $stmt = $db->prepare("SELECT * FROM social_accounts WHERE platform='mastodon' AND status='active' LIMIT 1");
 $stmt->execute();
 $creds = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$creds) {
-    echo "No active Mastodon account found in the database. Trying any Mastodon account...\n";
-    $stmt = $db->prepare("SELECT * FROM social_accounts WHERE platform='mastodon' LIMIT 1");
-    $stmt->execute();
-    $creds = $stmt->fetch(PDO::FETCH_ASSOC);
-}
 
 if (!$creds) {
     echo "Error: No Mastodon account found in the database!\n";
