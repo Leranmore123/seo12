@@ -220,8 +220,8 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
                 pass
 
             # Confirm publish dialog
-            confirm_btn = page.locator(".js--submit-post, button.js--submit-post").first
-            confirm_btn.wait_for(state="visible", timeout=10000)
+            confirm_btn = page.locator("button.js--submit-post:not([disabled])").filter(has_text="Publish").first
+            confirm_btn.wait_for(state="visible", timeout=25000)
             confirm_btn.click()
             log("LiveJournal: Final publish confirmed")
             page.wait_for_timeout(10000)
@@ -237,25 +237,13 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
                 result(True, url=final_url)
             else:
                 user_subdomain = username.lower().replace('_', '-')
-                post_link_loc = page.locator(f"a[href*='{user_subdomain}.livejournal.com']").first
-                try:
-                    post_link_loc.wait_for(state="visible", timeout=5000)
-                    extracted_url = post_link_loc.get_attribute("href")
-                    if extracted_url:
-                        log(f"LiveJournal: Extracted post URL: {extracted_url}")
-                        result(True, url=extracted_url)
-                        context.close()
-                        return
-                except Exception as ex:
-                    log(f"No specific journal link found on page: {ex}")
-                
-                # Alternate search: search all links for entry URL format
+                # Match entry link formats like user.livejournal.com/123.html
                 try:
                     all_links = page.locator("a").all()
                     for link in all_links:
                         href = link.get_attribute("href") or ""
-                        if "livejournal.com" in href and any(c.isdigit() for c in href) and "update.bml" not in href and "post/" not in href:
-                            log(f"LiveJournal: Extracted URL from entry link: {href}")
+                        if user_subdomain in href and any(c.isdigit() for c in href) and "profile" not in href and "photo" not in href and "friends" not in href and "update.bml" not in href and "post/" not in href:
+                            log(f"LiveJournal: Extracted entry URL: {href}")
                             result(True, url=href)
                             context.close()
                             return
