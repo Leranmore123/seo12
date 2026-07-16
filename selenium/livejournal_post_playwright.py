@@ -88,10 +88,19 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
                 submit_btn.click()
                 log("LiveJournal: Login submitted")
                 
-                page.wait_for_timeout(10000)
+                # Wait for the login processing and redirect (up to 30 seconds)
+                try:
+                    page.wait_for_url(re.compile(r"(update\.bml|homepage|profile|feed)"), timeout=30000)
+                except Exception as ex:
+                    log(f"LiveJournal: Redirection wait timed out: {ex}")
                 
                 if "login.bml" in page.url:
-                    raise Exception("LiveJournal: Login failed. Verify credentials.")
+                    # Check for visible errors
+                    error_msg = ""
+                    error_loc = page.locator(".b-login-error, .error, .alert").first
+                    if error_loc.count() > 0 and error_loc.is_visible():
+                        error_msg = ": " + error_loc.text_content().strip()
+                    raise Exception(f"LiveJournal: Login failed. Verify credentials{error_msg}")
                 
                 log("LiveJournal: Logged in!")
             else:
