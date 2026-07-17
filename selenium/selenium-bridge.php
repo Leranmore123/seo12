@@ -483,10 +483,15 @@ function seleniumSite123(array $creds, string $keyword, string $targetSite, int 
 
     // Get project image path
     $imgPath = '';
-    $imgFiles = glob(dirname(__DIR__) . '/uploads/*.{jpg,jpeg,png}', GLOB_BRACE);
-    if ($imgFiles) {
-        usort($imgFiles, fn($a, $b) => filemtime($b) - filemtime($a));
-        $imgPath = $imgFiles[0];
+    $enqueuedImg = function_exists('getEnqueuedImagePath') ? getEnqueuedImagePath() : null;
+    if ($enqueuedImg && file_exists(dirname(__DIR__) . '/uploads/' . $enqueuedImg)) {
+        $imgPath = dirname(__DIR__) . '/uploads/' . $enqueuedImg;
+    } else {
+        $imgFiles = glob(dirname(__DIR__) . '/uploads/*.{jpg,jpeg,png}', GLOB_BRACE);
+        if ($imgFiles) {
+            usort($imgFiles, fn($a, $b) => filemtime($b) - filemtime($a));
+            $imgPath = $imgFiles[0];
+        }
     }
 
     // Write content to temp file — avoids Windows CLI limit
@@ -581,12 +586,17 @@ function seleniumLiveJournal(array $creds, string $keyword, string $targetSite, 
 
     // Get project image path and resolve its public HTTP URL
     $imgPath = '';
-    $imgFiles = glob(dirname(__DIR__) . '/uploads/*.{jpg,jpeg,png}', GLOB_BRACE);
-    if ($imgFiles) {
-        usort($imgFiles, fn($a, $b) => filemtime($b) - filemtime($a));
-        $imgPath = $imgFiles[0];
-        
-        // Construct public URL
+    $enqueuedImg = function_exists('getEnqueuedImagePath') ? getEnqueuedImagePath() : null;
+    if ($enqueuedImg && file_exists(dirname(__DIR__) . '/uploads/' . $enqueuedImg)) {
+        $imgPath = dirname(__DIR__) . '/uploads/' . $enqueuedImg;
+    } else {
+        $imgFiles = glob(dirname(__DIR__) . '/uploads/*.{jpg,jpeg,png}', GLOB_BRACE);
+        if ($imgFiles) {
+            usort($imgFiles, fn($a, $b) => filemtime($b) - filemtime($a));
+            $imgPath = $imgFiles[0];
+        }
+    }
+    if (!empty($imgPath)) {
         $publicBase = '';
         if (!empty($_SERVER['HTTP_HOST'])) {
             // Check if detectSiteUrl() is defined
@@ -735,10 +745,17 @@ function seleniumLiveJournalPlaywright(array $creds, string $keyword, string $ta
 
     // Get project image path and resolve its public HTTP URL
     $imgPath = '';
-    $imgFiles = glob(dirname(__DIR__) . '/uploads/*.{jpg,jpeg,png}', GLOB_BRACE);
-    if ($imgFiles) {
-        usort($imgFiles, fn($a, $b) => filemtime($b) - filemtime($a));
-        $imgPath = $imgFiles[0];
+    $enqueuedImg = function_exists('getEnqueuedImagePath') ? getEnqueuedImagePath() : null;
+    if ($enqueuedImg && file_exists(dirname(__DIR__) . '/uploads/' . $enqueuedImg)) {
+        $imgPath = dirname(__DIR__) . '/uploads/' . $enqueuedImg;
+    } else {
+        $imgFiles = glob(dirname(__DIR__) . '/uploads/*.{jpg,jpeg,png}', GLOB_BRACE);
+        if ($imgFiles) {
+            usort($imgFiles, fn($a, $b) => filemtime($b) - filemtime($a));
+            $imgPath = $imgFiles[0];
+        }
+    }
+    if (!empty($imgPath)) {
         
         $publicBase = '';
         if (!empty($_SERVER['HTTP_HOST'])) {

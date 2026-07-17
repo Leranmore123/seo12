@@ -139,6 +139,13 @@ foreach ($tasks as $task) {
         $_GET['keyword']     = $task['keyword'];
         $_GET['target_site'] = $task['target_url'];
         
+        // Register the enqueued post image path so all posting engines pick it up
+        if (!empty($task['post_image'])) {
+            getEnqueuedImagePath($task['post_image']);
+        } else {
+            getEnqueuedImagePath(null); // Reset
+        }
+        
         // Execute posting
         $result = runPlatformAutoPost($platform, $creds, $project, $projectId);
         

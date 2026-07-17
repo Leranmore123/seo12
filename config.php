@@ -100,6 +100,10 @@ function getDB() {
                     PDO::ATTR_EMULATE_PREPARES   => false,
                 ]
             );
+            // Self-healing migration: Add post_image column to backlink_queue table if missing
+            try {
+                $pdo->exec("ALTER TABLE backlink_queue ADD COLUMN post_image VARCHAR(255) DEFAULT NULL");
+            } catch (PDOException $ex) {}
         } catch (PDOException $e) {
             if (!empty($_GET['ajax']) || !empty($_SERVER['HTTP_X_REQUESTED_WITH'])) {
                 header('Content-Type: application/json');
@@ -149,6 +153,14 @@ function requireMenuPermission($menuCode) {
 
 function clean($input) {
     return htmlspecialchars(strip_tags(trim((string) $input)), ENT_QUOTES, 'UTF-8');
+}
+
+function getEnqueuedImagePath() {
+    static $enqueuedImage = null;
+    if (func_num_args() > 0) {
+        $enqueuedImage = func_get_arg(0);
+    }
+    return $enqueuedImage;
 }
 
 function formatLocalTime($utcDateTime, $format = 'd M H:i', $timezone = 'Asia/Kolkata') {

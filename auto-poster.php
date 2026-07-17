@@ -158,6 +158,13 @@ function postToWordPress($apiKey, $wpUsername, $keyword, $targetSite, $geminiKey
  */
 function getProjectImagePath(int $projectId): ?string {
     $uploadDir = __DIR__ . '/uploads/';
+    
+    // Check if there is a specific enqueued image for this background task
+    $enqueuedImg = function_exists('getEnqueuedImagePath') ? getEnqueuedImagePath() : null;
+    if ($enqueuedImg && file_exists($uploadDir . $enqueuedImg)) {
+        return $uploadDir . $enqueuedImg;
+    }
+
     // 1. Try project-specific image
     if ($projectId > 0) {
         try {
@@ -580,16 +587,19 @@ function postToBluesky($username, $appPassword, $keyword, $targetSite, $openaiKe
         $text .= $suffix;
     }
 
-    // Step 2: Get project image from DB
+    // Step 2: Get project image from DB or queue
     $imageBlob = null;
     $imgData   = null;
     $mime      = 'image/jpeg';
 
     if ($projectId > 0) {
-        $dbConn = getDB(); // use getDB() instead of $db
-        $imgRow = $dbConn->prepare("SELECT post_image FROM projects WHERE id=?");
-        $imgRow->execute([$projectId]);
-        $projectImg = $imgRow->fetchColumn();
+        $projectImg = function_exists('getEnqueuedImagePath') ? getEnqueuedImagePath() : null;
+        if (!$projectImg) {
+            $dbConn = getDB(); // use getDB() instead of $db
+            $imgRow = $dbConn->prepare("SELECT post_image FROM projects WHERE id=?");
+            $imgRow->execute([$projectId]);
+            $projectImg = $imgRow->fetchColumn();
+        }
         if ($projectImg && file_exists(__DIR__ . '/uploads/' . $projectImg)) {
             $imgData = file_get_contents(__DIR__ . '/uploads/' . $projectImg);
             $ext     = strtolower(pathinfo($projectImg, PATHINFO_EXTENSION));
@@ -1792,10 +1802,13 @@ function postToMastodon($apiKey, $instance, $keyword, $targetSite, $geminiKey, $
     // Find project image
     $imgFile = null;
     if ($projectId > 0) {
-        $db     = getDB();
-        $imgRow = $db->prepare("SELECT post_image FROM projects WHERE id=?");
-        $imgRow->execute([$projectId]);
-        $pImg   = $imgRow->fetchColumn();
+        $pImg = function_exists('getEnqueuedImagePath') ? getEnqueuedImagePath() : null;
+        if (!$pImg) {
+            $db     = getDB();
+            $imgRow = $db->prepare("SELECT post_image FROM projects WHERE id=?");
+            $imgRow->execute([$projectId]);
+            $pImg   = $imgRow->fetchColumn();
+        }
         if ($pImg && file_exists($uploadDir . $pImg)) {
             $imgFile = $uploadDir . $pImg;
         }

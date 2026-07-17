@@ -50,7 +50,9 @@ if (empty($keyword)) {
     $keyword = $project['business_name'] ?? '';
 }
 
-$insertStmt = $db->prepare('INSERT INTO backlink_queue (project_id, social_account_id, platform, keyword, target_url, status) VALUES (?, ?, ?, ?, ?, "pending")');
+$currentImage = $project['post_image'] ?? null;
+
+$insertStmt = $db->prepare('INSERT INTO backlink_queue (project_id, social_account_id, platform, keyword, target_url, status, post_image) VALUES (?, ?, ?, ?, ?, "pending", ?)');
 $checkStmt  = $db->prepare('SELECT COUNT(*) FROM backlink_queue WHERE project_id = ? AND social_account_id = ? AND platform = ? AND keyword = ? AND target_url = ? AND status IN ("pending", "processing")');
 
 foreach ($accounts as $creds) {
@@ -74,6 +76,7 @@ foreach ($accounts as $creds) {
         $creds['platform'],
         $keyword,
         $targetSite,
+        $currentImage
     ]);
     
     $results[] = [
