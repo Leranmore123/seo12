@@ -119,8 +119,11 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
             
             # Navigate to login
             log("Symbaloo: Navigating to login page...")
-            page.goto("https://www.symbaloo.com/login")
-            page.wait_for_timeout(5000)
+            try:
+                page.goto("https://www.symbaloo.com/login", wait_until="domcontentloaded", timeout=60000)
+            except Exception as ge:
+                log(f"Symbaloo: login page goto warning ({ge}), continuing...")
+            page.wait_for_timeout(4000)
             
             close_consent_modal(page)
             
@@ -142,15 +145,18 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                 submit_btn = page.locator("button[type='submit'], #login-button").first
                 submit_btn.click()
                 
-                page.wait_for_timeout(10000)
+                page.wait_for_timeout(8000)
             else:
                 log("Symbaloo: Already logged in!")
                 
             # Go to target mix URL
             target_mix = custom_mix_url if (custom_mix_url and "symbaloo.com" in custom_mix_url) else "https://www.symbaloo.com/"
             log(f"Symbaloo: Navigating to mix = {target_mix}")
-            page.goto(target_mix)
-            page.wait_for_timeout(10000)
+            try:
+                page.goto(target_mix, wait_until="domcontentloaded", timeout=60000)
+            except Exception as ge:
+                log(f"Symbaloo: mix page goto warning ({ge}), continuing...")
+            page.wait_for_timeout(6000)
             
             close_consent_modal(page)
             close_adblock_modal(page)
