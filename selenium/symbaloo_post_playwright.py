@@ -54,6 +54,11 @@ def close_consent_modal(page):
 
 def close_adblock_modal(page):
     try:
+        page.evaluate("""
+            document.querySelectorAll('embedded-app-container[key="adBlockInformationDialog"], div[key="adBlockInformationDialog"], [aria-labelledby="dialogTitle"]').forEach(el => el.remove());
+        """)
+    except Exception: pass
+    try:
         body_text = page.locator("body").inner_text()
         if "ad-block" not in body_text.lower() and "adblock" not in body_text.lower():
             return False
@@ -71,9 +76,12 @@ def close_adblock_modal(page):
             for idx in range(btns.count()):
                 btn = btns.nth(idx)
                 if btn.is_visible():
-                    btn.click()
+                    try:
+                        btn.evaluate("el => el.click()")
+                    except Exception:
+                        btn.click(force=True)
                     log(f"Symbaloo: Closed adblock popup via {sel}")
-                    page.wait_for_timeout(2000)
+                    page.wait_for_timeout(1500)
                     return True
         # Try escape key
         page.keyboard.press("Escape")
@@ -319,9 +327,13 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                 
             # Look for "Edit Tile"
             page.wait_for_timeout(2000)
+            close_adblock_modal(page)
             edit_tile_btn = page.locator("button:has-text('Edit Tile')").first
             if edit_tile_btn.count() > 0 and edit_tile_btn.is_visible():
-                edit_tile_btn.click()
+                try:
+                    edit_tile_btn.evaluate("el => el.click()")
+                except Exception:
+                    edit_tile_btn.click(force=True)
                 log("Symbaloo: Edit Tile clicked")
                 page.wait_for_timeout(4000)
                 
@@ -355,9 +367,13 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                     
             # Click "Finish editing Webmix"
             page.wait_for_timeout(2000)
-            finish_btn = page.locator("button:has-text('Finish'), button:has-text('finish')").first
+            close_adblock_modal(page)
+            finish_btn = page.locator("button:has-text('Finish'), button:has-text('finish'), button:has-text('Save')").first
             if finish_btn.count() > 0 and finish_btn.is_visible():
-                finish_btn.click()
+                try:
+                    finish_btn.evaluate("el => el.click()")
+                except Exception:
+                    finish_btn.click(force=True)
                 log("Symbaloo: Clicked Finish button")
                 page.wait_for_timeout(4000)
                 
