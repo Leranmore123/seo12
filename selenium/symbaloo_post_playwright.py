@@ -165,31 +165,9 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
             close_adblock_modal(page)
             
             log(f"Symbaloo: Mix loaded = {page.url}")
+            page.keyboard.press("Escape")
+            page.wait_for_timeout(500)
             
-            # Click Edit Webmix to enter edit mode
-            try:
-                for edit_sel in [
-                    "#webmixToolsSettingsButton",
-                    "[data-ue-action='HEADER__EDIT_WEBMIX_BUTTON']",
-                    "button[title*='Customize' i]",
-                    "button[title*='Edit' i]",
-                    "button:has-text('Edit Webmix')",
-                    "button:has-text('Edit webmix')",
-                ]:
-                    try:
-                        eb = page.locator(edit_sel).first
-                        if eb.count() > 0 and eb.is_visible():
-                            try:
-                                eb.evaluate("el => el.click()")
-                            except Exception:
-                                eb.click(force=True)
-                            log(f"Symbaloo: Clicked Edit Webmix mode button [{edit_sel}]")
-                            page.wait_for_timeout(3000)
-                            break
-                    except: continue
-            except Exception as e:
-                log(f"Symbaloo: Edit mode click error: {e}")
-                
             # Find empty cells
             cells = page.locator("[id^='gridEmptyCell']")
             cell_count = cells.count()
@@ -205,28 +183,20 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
             max_cells_to_try = min(cell_count, 10)
             
             for idx in range(max_cells_to_try):
+                page.keyboard.press("Escape")
+                page.wait_for_timeout(300)
+                close_consent_modal(page)
+                close_adblock_modal(page)
+                
                 cell = cells.nth(idx)
                 log(f"Symbaloo: Trying empty cell #{idx+1}...")
                 
                 try:
-                    close_consent_modal(page)
-                    close_adblock_modal(page)
-                    try:
-                        cell.scroll_into_view_if_needed()
-                    except Exception: pass
-                    page.wait_for_timeout(500)
-                    
-                    # Direct JS click triggers DOM event reliably regardless of transparent overlays
-                    try:
-                        cell.evaluate("el => el.click()")
-                    except Exception:
-                        try:
-                            cell.click(force=True)
-                        except Exception: pass
-                    page.wait_for_timeout(1500)
+                    # Direct JS click on empty cell opens Add Tile sidebar
+                    cell.evaluate("el => el.click()")
+                    page.wait_for_timeout(2000)
                 except Exception as e:
                     log(f"Cell click exception: {e}")
-                    continue
                     
                 close_adblock_modal(page)
                 
@@ -241,17 +211,23 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                     "input[placeholder*='Add' i]",
                     "div[class*='sidebar'] input",
                     "div[class*='drawer'] input",
+                    "input[type='search']",
+                    "input[type='text']",
                 ]:
                     try:
-                        inp = page.locator(sel).first
-                        if inp.count() > 0 and inp.is_visible():
-                            inp_id = inp.get_attribute("id") or ""
-                            if inp_id == "searchBarInput":
-                                continue
-                            tile_input = inp
-                            log(f"Symbaloo: Found tileSearchInput [{sel}] on cell #{idx+1}!")
+                        inps = page.locator(sel)
+                        for i_idx in range(inps.count()):
+                            inp = inps.nth(i_idx)
+                            if inp.is_visible():
+                                inp_id = inp.get_attribute("id") or ""
+                                if inp_id == "searchBarInput":
+                                    continue
+                                tile_input = inp
+                                log(f"Symbaloo: Found tileSearchInput [{sel} (id={inp_id})] on cell #{idx+1}!")
+                                break
+                        if tile_input:
                             break
-                    except:
+                    except Exception:
                         continue
                         
                 if tile_input:
