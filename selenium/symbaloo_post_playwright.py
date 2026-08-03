@@ -204,25 +204,24 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                     
                 close_adblock_modal(page)
                 
-                # Check for tile search input
+                # Check for tile search input (exclude top header searchBarInput)
                 for sel in [
                     "#tileSearchInput",
                     "input[id*='tileSearchInput']",
-                    "input[id*='search' i]",
-                    "input[name='query']",
-                    "input[type='search']",
                     "input[placeholder*='URL' i]",
                     "input[placeholder*='url' i]",
                     "input[placeholder*='search query' i]",
                     "input[placeholder*='Enter a URL' i]",
-                    "input[placeholder*='search' i]",
-                    "input[placeholder*='add' i]",
-                    "input[class*='search' i]",
-                    "input[class*='Search' i]",
+                    "input[placeholder*='Add' i]",
+                    "div[class*='sidebar'] input",
+                    "div[class*='drawer'] input",
                 ]:
                     try:
                         inp = page.locator(sel).first
                         if inp.count() > 0 and inp.is_visible():
+                            inp_id = inp.get_attribute("id") or ""
+                            if inp_id == "searchBarInput":
+                                continue
                             tile_input = inp
                             log(f"Symbaloo: Found tileSearchInput [{sel}] on cell #{idx+1}!")
                             break
@@ -247,20 +246,21 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                     try:
                         add_btn = page.locator(btn_sel).first
                         if add_btn.count() > 0 and add_btn.is_visible():
-                            add_btn.click()
+                            add_btn.click(force=True)
                             log(f"Symbaloo: Clicked fallback Add Tile button [{btn_sel}]")
                             page.wait_for_timeout(2000)
                             for sel in [
                                 "#tileSearchInput",
                                 "input[id*='tileSearchInput']",
-                                "input[id*='search' i]",
-                                "input[type='search']",
                                 "input[placeholder*='URL' i]",
                                 "input[placeholder*='url' i]",
                                 "input[placeholder*='search' i]"
                             ]:
                                 inp = page.locator(sel).first
                                 if inp.count() > 0 and inp.is_visible():
+                                    inp_id = inp.get_attribute("id") or ""
+                                    if inp_id == "searchBarInput":
+                                        continue
                                     tile_input = inp
                                     log(f"Symbaloo: Found tileSearchInput [{sel}] via fallback button!")
                                     break
@@ -277,7 +277,9 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                 return
                 
             # Type URL
-            tile_input.click()
+            try:
+                tile_input.click(force=True)
+            except: pass
             tile_input.fill(target_url)
             log(f"Symbaloo: URL typed = {target_url}")
             page.wait_for_timeout(1000)
