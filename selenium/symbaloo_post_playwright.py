@@ -172,7 +172,7 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                 
             # Try first few cells to open sidebar
             tile_input = None
-            max_cells_to_try = min(cell_count, 5)
+            max_cells_to_try = min(cell_count, 10)
             
             for idx in range(max_cells_to_try):
                 cell = cells.nth(idx)
@@ -182,6 +182,8 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                     cell.scroll_into_view_if_needed()
                     page.wait_for_timeout(500)
                     cell.click()
+                    page.wait_for_timeout(1000)
+                    cell.dblclick()
                     page.wait_for_timeout(2000)
                 except Exception as e:
                     log(f"Cell click exception: {e}")
@@ -192,10 +194,18 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                 # Check for tile search input
                 for sel in [
                     "#tileSearchInput",
+                    "input[id*='tileSearchInput']",
+                    "input[id*='search' i]",
+                    "input[name='query']",
+                    "input[type='search']",
                     "input[placeholder*='URL' i]",
                     "input[placeholder*='url' i]",
                     "input[placeholder*='search query' i]",
                     "input[placeholder*='Enter a URL' i]",
+                    "input[placeholder*='search' i]",
+                    "input[placeholder*='add' i]",
+                    "input[class*='search' i]",
+                    "input[class*='Search' i]",
                 ]:
                     try:
                         inp = page.locator(sel).first
@@ -208,10 +218,48 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                         
                 if tile_input:
                     break
+
+            # Fallback: Try explicit Add Tile buttons if cells click didn't open sidebar
+            if not tile_input:
+                log("Symbaloo: Cell clicks did not reveal tileSearchInput. Trying fallback Add Tile buttons...")
+                for btn_sel in [
+                    "button:has-text('Add a tile')",
+                    "button:has-text('Add tile')",
+                    "button:has-text('Create a tile')",
+                    "a:has-text('Add a tile')",
+                    "[class*='add-tile']",
+                    "[class*='addTile']",
+                    "[aria-label*='Add tile' i]"
+                ]:
+                    try:
+                        add_btn = page.locator(btn_sel).first
+                        if add_btn.count() > 0 and add_btn.is_visible():
+                            add_btn.click()
+                            log(f"Symbaloo: Clicked fallback Add Tile button [{btn_sel}]")
+                            page.wait_for_timeout(2000)
+                            for sel in [
+                                "#tileSearchInput",
+                                "input[id*='tileSearchInput']",
+                                "input[id*='search' i]",
+                                "input[type='search']",
+                                "input[placeholder*='URL' i]",
+                                "input[placeholder*='url' i]",
+                                "input[placeholder*='search' i]"
+                            ]:
+                                inp = page.locator(sel).first
+                                if inp.count() > 0 and inp.is_visible():
+                                    tile_input = inp
+                                    log(f"Symbaloo: Found tileSearchInput [{sel}] via fallback button!")
+                                    break
+                            if tile_input:
+                                break
+                    except Exception as e:
+                        log(f"Fallback button error ({btn_sel}): {e}")
+                        continue
                     
             if not tile_input:
                 page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'symbaloo_error.png'))
-                result(False, error="Symbaloo: tileSearchInput not found after trying multiple empty cells")
+                result(False, error="Symbaloo: tileSearchInput not found after trying multiple empty cells and fallback buttons")
                 context.close()
                 return
                 
