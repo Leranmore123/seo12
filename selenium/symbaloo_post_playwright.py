@@ -86,32 +86,29 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
     log(f"Starting Playwright Symbaloo post for: {email}")
     import hashlib
     email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
-    profile_dir = os.path.join(script_dir, f'chrome_profile_symbaloo_{email_hash}_{sys_user}')
+    profile_dir = os.path.join(script_dir, f'chrome_profile_symbaloo_{email_hash}')
     
     # Clean locks
     if os.path.exists(profile_dir):
         for lf in [os.path.join(profile_dir,'Default','LOCK'), os.path.join(profile_dir,'SingletonLock')]:
             try:
                 if os.path.exists(lf): os.remove(lf)
-            except: pass
+            except Exception: pass
 
     from playwright.sync_api import sync_playwright
     
     with sync_playwright() as p:
         try:
-            launch_args = [
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-blink-features=AutomationControlled",
-                "--disable-gpu",
-                "--disable-software-rasterizer"
-            ]
-            
             context = p.chromium.launch_persistent_context(
-                user_data_dir=profile_dir,
+                profile_dir,
                 headless=True,
-                args=launch_args,
-                viewport={"width": 1400, "height": 900},
+                viewport={"width": 1280, "height": 800},
+                args=[
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-blink-features=AutomationControlled"
+                ],
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
             )
             
@@ -141,11 +138,15 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                 pass_input.click()
                 pass_input.fill(password)
                 
-                # Submit
-                submit_btn = page.locator("button[type='submit'], #login-button").first
-                submit_btn.click()
+                # Submit - try multiple button selectors or press Enter
+                submit_btn = page.locator("button[type='submit'], #login-button, button:has-text('Log in'), button:has-text('Sign in'), button:has-text('Inloggen')").first
+                if submit_btn.count() > 0 and submit_btn.is_visible():
+                    submit_btn.click()
+                else:
+                    pass_input.press("Enter")
                 
                 page.wait_for_timeout(8000)
+                close_consent_modal(page)
             else:
                 log("Symbaloo: Already logged in!")
                 
