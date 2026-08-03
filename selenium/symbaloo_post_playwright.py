@@ -23,7 +23,12 @@ def result(success, url='', error=''):
 
 def close_consent_modal(page):
     try:
+        # First try removing Quantcast CMP container overlays directly via JS
+        page.evaluate("document.querySelectorAll('#qc-cmp2-container, .qc-cmp2-container, .qc-cmp-cleanslate').forEach(el => el.remove())")
+        
         selectors = [
+            "button[mode='primary']",
+            "button:has-text('AGREE')",
             "button:has-text('Agree')",
             "button:has-text('Accept')",
             "button:has-text('I agree')",
@@ -35,10 +40,12 @@ def close_consent_modal(page):
         for sel in selectors:
             btn = page.locator(sel).first
             if btn.count() > 0 and btn.is_visible():
-                btn.click()
-                log(f"Symbaloo: Cookie Consent Accepted via {sel}.")
-                page.wait_for_timeout(2000)
-                return True
+                try:
+                    btn.click(force=True)
+                    log(f"Symbaloo: Cookie Consent Accepted via {sel}.")
+                    page.wait_for_timeout(2000)
+                    return True
+                except: pass
     except Exception as e:
         log(f"Symbaloo: Consent check error: {e}")
     return False
@@ -179,11 +186,17 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                 log(f"Symbaloo: Trying empty cell #{idx+1}...")
                 
                 try:
+                    close_consent_modal(page)
+                    close_adblock_modal(page)
                     cell.scroll_into_view_if_needed()
                     page.wait_for_timeout(500)
-                    cell.click()
+                    try:
+                        cell.click(force=True)
+                    except: pass
                     page.wait_for_timeout(1000)
-                    cell.dblclick()
+                    try:
+                        cell.dblclick(force=True)
+                    except: pass
                     page.wait_for_timeout(2000)
                 except Exception as e:
                     log(f"Cell click exception: {e}")
