@@ -23,8 +23,10 @@ def result(success, url='', error=''):
 
 def close_consent_modal(page):
     try:
-        # First try removing Quantcast CMP container overlays directly via JS
-        page.evaluate("document.querySelectorAll('#qc-cmp2-container, .qc-cmp2-container, .qc-cmp-cleanslate').forEach(el => el.remove())")
+        # Remove Quantcast CMP container overlays and consent iframes directly via JS
+        page.evaluate("""
+            document.querySelectorAll('iframe[id*="sp_message"], iframe[title*="Consent"], div[id*="sp_message"], #qc-cmp2-container, .qc-cmp2-container, .qc-cmp-cleanslate').forEach(el => el.remove());
+        """)
         
         selectors = [
             "button[mode='primary']",
@@ -41,11 +43,11 @@ def close_consent_modal(page):
             btn = page.locator(sel).first
             if btn.count() > 0 and btn.is_visible():
                 try:
-                    btn.click(force=True)
+                    btn.evaluate("el => el.click()")
                     log(f"Symbaloo: Cookie Consent Accepted via {sel}.")
-                    page.wait_for_timeout(2000)
+                    page.wait_for_timeout(1500)
                     return True
-                except: pass
+                except Exception: pass
     except Exception as e:
         log(f"Symbaloo: Consent check error: {e}")
     return False
@@ -177,7 +179,10 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                     try:
                         eb = page.locator(edit_sel).first
                         if eb.count() > 0 and eb.is_visible():
-                            eb.click(force=True)
+                            try:
+                                eb.evaluate("el => el.click()")
+                            except Exception:
+                                eb.click(force=True)
                             log(f"Symbaloo: Clicked Edit Webmix mode button [{edit_sel}]")
                             page.wait_for_timeout(3000)
                             break
@@ -206,16 +211,19 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                 try:
                     close_consent_modal(page)
                     close_adblock_modal(page)
-                    cell.scroll_into_view_if_needed()
+                    try:
+                        cell.scroll_into_view_if_needed()
+                    except Exception: pass
                     page.wait_for_timeout(500)
+                    
+                    # Direct JS click triggers DOM event reliably regardless of transparent overlays
                     try:
-                        cell.click(force=True)
-                    except: pass
-                    page.wait_for_timeout(1000)
-                    try:
-                        cell.dblclick(force=True)
-                    except: pass
-                    page.wait_for_timeout(2000)
+                        cell.evaluate("el => el.click()")
+                    except Exception:
+                        try:
+                            cell.click(force=True)
+                        except Exception: pass
+                    page.wait_for_timeout(1500)
                 except Exception as e:
                     log(f"Cell click exception: {e}")
                     continue
