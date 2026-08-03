@@ -159,11 +159,22 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
             
             # Click Edit Webmix to enter edit mode
             try:
-                edit_btn = page.locator("button:has-text('Edit Webmix'), button:has-text('Edit webmix')").first
-                if edit_btn.count() > 0 and edit_btn.is_visible():
-                    edit_btn.click()
-                    log("Symbaloo: Clicked 'Edit Webmix' to enter edit mode")
-                    page.wait_for_timeout(4000)
+                for edit_sel in [
+                    "#webmixToolsSettingsButton",
+                    "[data-ue-action='HEADER__EDIT_WEBMIX_BUTTON']",
+                    "button[title*='Customize' i]",
+                    "button[title*='Edit' i]",
+                    "button:has-text('Edit Webmix')",
+                    "button:has-text('Edit webmix')",
+                ]:
+                    try:
+                        eb = page.locator(edit_sel).first
+                        if eb.count() > 0 and eb.is_visible():
+                            eb.click(force=True)
+                            log(f"Symbaloo: Clicked Edit Webmix mode button [{edit_sel}]")
+                            page.wait_for_timeout(3000)
+                            break
+                    except: continue
             except Exception as e:
                 log(f"Symbaloo: Edit mode click error: {e}")
                 
