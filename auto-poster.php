@@ -310,10 +310,11 @@ function getTumblrOAuthHeader($consumerKey, $consumerSecret, $token, $tokenSecre
     $allParams = array_merge($oauthParams, $sigParams);
     ksort($allParams);
     
-    // Build query string
+    // Build query string with normalized newlines (\n) to match Tumblr signature validation
     $queryParts = [];
     foreach ($allParams as $key => $val) {
-        $queryParts[] = rawurlencode($key) . '=' . rawurlencode($val);
+        $normalizedVal = str_replace("\r\n", "\n", (string)$val);
+        $queryParts[] = rawurlencode($key) . '=' . rawurlencode($normalizedVal);
     }
     $queryString = implode('&', $queryParts);
     
@@ -375,10 +376,11 @@ function postToTumblr($creds, $keyword, $targetSite, $geminiKey, $openaiKey, $po
     }
     $title = $ai['title'] ?? ucwords($keyword) . ' - ' . date('M Y');
     $url = "https://api.tumblr.com/v2/blog/{$blogName}/post";
+    $bodyContent = str_replace("\r\n", "\n", $ai['content']);
     $postFields = [
         'type'  => 'text',
         'title' => $title,
-        'body'  => $ai['content'],
+        'body'  => $bodyContent,
         'tags'  => $keyword . ',training,education',
     ];
     
