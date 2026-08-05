@@ -176,8 +176,18 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
             page.keyboard.press("Escape")
             page.wait_for_timeout(500)
             
+            # Check if webmix is read-only public mix and needs to be added to user account
+            copy_btn = page.locator("button:has-text('Add this Webmix'), button:has-text('Add Webmix'), button:has-text('Copy webmix')").first
+            if copy_btn.count() > 0 and copy_btn.is_visible():
+                try:
+                    copy_btn.click(force=True)
+                    log("Symbaloo: Clicked 'Add this Webmix' button to make it editable!")
+                    page.wait_for_timeout(3000)
+                except Exception as ce:
+                    log(f"Symbaloo: Copy webmix click error: {ce}")
+
             # Find empty cells
-            cells = page.locator("[id^='gridEmptyCell']")
+            cells = page.locator("[id^='gridEmptyCell'], div[class*='emptyCell'], div[class*='empty-cell']")
             cell_count = cells.count()
             log(f"Symbaloo: Empty cells = {cell_count}")
             
@@ -202,9 +212,17 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                 try:
                     # Direct JS click on empty cell opens Add Tile sidebar
                     cell.evaluate("el => el.click()")
-                    page.wait_for_timeout(2000)
+                    page.wait_for_timeout(1500)
                 except Exception as e:
-                    log(f"Cell click exception: {e}")
+                    log(f"Cell JS click exception: {e}")
+
+                # Fallback force click
+                try:
+                    search_inp_check = page.locator("#tileSearchInput, input[id*='tileSearchInput']").first
+                    if search_inp_check.count() == 0 or not search_inp_check.is_visible():
+                        cell.click(force=True)
+                        page.wait_for_timeout(1500)
+                except Exception: pass
                     
                 close_adblock_modal(page)
                 
@@ -251,7 +269,11 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                     "a:has-text('Add a tile')",
                     "[class*='add-tile']",
                     "[class*='addTile']",
-                    "[aria-label*='Add tile' i]"
+                    "[aria-label*='Add tile' i]",
+                    "[data-ue-action*='ADD' i]",
+                    "button[id*='add-tile']",
+                    "button[class*='add']",
+                    "div:has-text('Add a tile')"
                 ]:
                     try:
                         add_btn = page.locator(btn_sel).first
