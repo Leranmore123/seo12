@@ -3,30 +3,15 @@ require_once __DIR__ . '/../config.php';
 
 $db = getDB();
 
-echo "=== Projects for pd1 to pd20 Users ===\n";
-echo "User ID | Username | Project ID | Project Name\n";
-echo "-----------------------------------------------\n";
+echo "=== Projects Table Columns & Sample Data ===\n";
+$stmt = $db->query("SELECT * FROM projects LIMIT 10");
+$projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-for ($n = 1; $n <= 20; $n++) {
-    $uname = "pd{$n}";
-    $uStmt = $db->prepare("SELECT id FROM users WHERE username = ?");
-    $uStmt->execute([$uname]);
-    $uid = $uStmt->fetchColumn();
-    
-    if (!$uid) {
-        echo "pd{$n} => User not found\n";
-        continue;
+if (!empty($projects)) {
+    echo "Columns: " . implode(', ', array_keys($projects[0])) . "\n\n";
+    foreach ($projects as $p) {
+        print_r($p);
     }
-    
-    $pStmt = $db->prepare("SELECT id, name FROM projects WHERE user_id = ?");
-    $pStmt->execute([$uid]);
-    $projects = $pStmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    if (empty($projects)) {
-        echo "pd{$n} (UID {$uid}) => NO PROJECTS FOUND\n";
-    } else {
-        foreach ($projects as $p) {
-            echo "pd{$n} (UID {$uid}) => Project #{$p['id']} ({$p['name']})\n";
-        }
-    }
+} else {
+    echo "Projects table is empty!\n";
 }
