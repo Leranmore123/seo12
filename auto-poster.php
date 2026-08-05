@@ -351,11 +351,15 @@ function postToTumblr($creds, $keyword, $targetSite, $geminiKey, $openaiKey, $po
     
     $blogName = str_replace(['https://', 'http://'], '', $blogName);
     
-    // Extract OAuth Token and Secret from password column (handles base64 or plain string)
+    // Extract OAuth Token and Secret from password column (handles raw token:secret or base64 token:secret)
     $rawPass = $creds['password'] ?? '';
-    $decrypted = base64_decode($rawPass, true);
-    if ($decrypted === false || strpos($decrypted, ':') === false) {
+    if (strpos($rawPass, ':') !== false) {
         $decrypted = $rawPass;
+    } else {
+        $decrypted = base64_decode($rawPass, true);
+        if ($decrypted === false || strpos($decrypted, ':') === false) {
+            $decrypted = $rawPass;
+        }
     }
     $parts = explode(':', $decrypted);
     $oauthToken = trim($parts[0] ?? '');
