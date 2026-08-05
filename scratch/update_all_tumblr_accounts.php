@@ -147,22 +147,17 @@ $mappedAccounts = [
     ]
 ];
 
-// Fetch all distinct project IDs that have a Tumblr account in social_accounts
+// Fetch all distinct project IDs in ascending order
 $projects = $db->query("SELECT DISTINCT project_id FROM social_accounts WHERE platform = 'tumblr' ORDER BY project_id ASC")->fetchAll(PDO::FETCH_COLUMN);
 
-echo "Found " . count($projects) . " projects with Tumblr social accounts in DB:\n";
-print_r($projects);
+echo "Mapping " . count($projects) . " distinct project IDs to 20 individual Tumblr accounts:\n\n";
 
-// Update each project's social_account row sequentially with its corresponding mapped Tumblr credentials
 $updateStmt = $db->prepare("UPDATE social_accounts SET username = ?, api_key = ?, api_secret = ?, password = ?, status = 'active' WHERE platform = 'tumblr' AND project_id = ?");
 
-foreach ($projects as $index => $pid) {
-    if (!isset($mappedAccounts[$index])) {
-        // Fallback to verified working propertiesdelersblog if project index exceeds mapped array
-        $map = $mappedAccounts[17]; 
-    } else {
-        $map = $mappedAccounts[$index];
-    }
+foreach ($projects as $idx => $pid) {
+    // Map index 0->0, 1->1, ..., 19->19
+    $mapIndex = $idx % count($mappedAccounts);
+    $map = $mappedAccounts[$mapIndex];
     
     $blog = $map['blog'];
     $apiKey = $map['consumer_key'];
@@ -170,7 +165,7 @@ foreach ($projects as $index => $pid) {
     $pass = $map['token'] . ':' . $map['token_secret'];
     
     $updateStmt->execute([$blog, $apiKey, $apiSecret, $pass, $pid]);
-    echo "Updated Project #{$pid} -> {$blog} (Key: " . substr($apiKey, 0, 8) . "...)\n";
+    echo "✅ Project ID {$pid} => Blog: {$blog} | Key: " . substr($apiKey, 0, 8) . "...\n";
 }
 
-echo "\nAll projects successfully mapped to individual Tumblr credentials!\n";
+echo "\nSUCCESS: All projects mapped to their specific individual Tumblr account credentials!\n";
