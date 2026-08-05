@@ -3688,10 +3688,9 @@ function runPlatformAutoPost(string $platform, array $creds, array $project, int
             $refreshToken = $creds['api_secret'] ?? '';
             return postToBlogger($apiKey, $apiSecret, $keyword, $site, OPENAI_API_KEY, $refreshToken, $postCount, $usedTitles, $project['business_name'] ?? '', $project['business_desc'] ?? '');
         case 'tumblr':
-            // Try OAuth API first; fallback → Selenium
+            // Try OAuth API first; fallback → Selenium only if no API key
             if (!empty($apiKey)) {
-                $r = postToTumblr($creds, $keyword, $site, GEMINI_API_KEY, OPENAI_API_KEY, $postCount, $usedTitles, $projectId, $project['business_name'] ?? '', $project['business_desc'] ?? '');
-                if (!empty($r['success'])) return $r;
+                return postToTumblr($creds, $keyword, $site, GEMINI_API_KEY, OPENAI_API_KEY, $postCount, $usedTitles, $projectId, $project['business_name'] ?? '', $project['business_desc'] ?? '');
             }
             $tumblrContent = (generateAIContent($keyword, $site, 'tumblr', 'micro_blog', '', OPENAI_API_KEY, $postCount, $usedTitles, $project['business_name'] ?? '', $project['business_desc'] ?? ''))['content'] ?? '';
             return seleniumGeneric('tumblr', $creds, $keyword, $site, $tumblrContent);
