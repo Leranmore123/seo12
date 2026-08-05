@@ -1,11 +1,14 @@
 <?php
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../auto-poster.php';
 
 $db = getDB();
-$stmt = $db->query("SELECT id, project_id, username, api_key, api_secret, password, status FROM social_accounts WHERE platform = 'tumblr'");
-$accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$stmt = $db->query("SELECT * FROM social_accounts WHERE id = 4987");
+$acc = $stmt->fetch(PDO::FETCH_ASSOC);
 
-echo "Total Tumblr Social Accounts: " . count($accounts) . "\n";
-foreach ($accounts as $acc) {
-    echo "ID: {$acc['id']} | Project: {$acc['project_id']} | User: {$acc['username']} | Key: " . substr($acc['api_key'], 0, 10) . "... | Status: {$acc['status']}\n";
-}
+echo "=== Account #4987 DB Details ===\n";
+print_r($acc);
+
+echo "\n=== Direct postToTumblr Call Test ===\n";
+$res = postToTumblr($acc, "villa for sale Vadodara", "https://propertysdeal.in/propertys-details/villa-for-sale-vadodara", GEMINI_API_KEY, OPENAI_API_KEY, 1, [], 252);
+print_r($res);
