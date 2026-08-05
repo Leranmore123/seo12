@@ -351,11 +351,15 @@ function postToTumblr($creds, $keyword, $targetSite, $geminiKey, $openaiKey, $po
     
     $blogName = str_replace(['https://', 'http://'], '', $blogName);
     
-    // Extract OAuth Token and Secret from password column
-    $decrypted = base64_decode($creds['password'] ?? '');
+    // Extract OAuth Token and Secret from password column (handles base64 or plain string)
+    $rawPass = $creds['password'] ?? '';
+    $decrypted = base64_decode($rawPass, true);
+    if ($decrypted === false || strpos($decrypted, ':') === false) {
+        $decrypted = $rawPass;
+    }
     $parts = explode(':', $decrypted);
-    $oauthToken = $parts[0] ?? '';
-    $oauthTokenSecret = $parts[1] ?? '';
+    $oauthToken = trim($parts[0] ?? '');
+    $oauthTokenSecret = trim($parts[1] ?? '');
     
     if (empty($oauthToken) || empty($oauthTokenSecret)) {
         return ['error' => 'Tumblr OAuth Token or Token Secret is missing. Click Explore API to authorize and get all 4 keys.'];
