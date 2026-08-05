@@ -1,12 +1,9 @@
 <?php
 require_once __DIR__ . '/../config.php';
 
-$tok = 'bu9GtwLSMCC4SQckhzWvRvrplHwTCtwFxSR2ytHOB8EEhBAgHQ';
-$sec = 'rflb0Fbhikw5AvcM6YmK2jbwbFnQgQiu1gLR0ymXw1FbB9dw6C';
+$db = getDB();
+$stmt = $db->query("SELECT * FROM social_accounts WHERE platform = 'tumblr' AND project_id = 240");
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-echo "=== Base64 Decoding Check ===\n";
-echo "Raw Token: '{$tok}' (len: " . strlen($tok) . ")\n";
-echo "Base64 Decoded Token: '" . base64_decode($tok) . "'\n\n";
-
-echo "Raw Token Secret: '{$sec}' (len: " . strlen($sec) . ")\n";
-echo "Base64 Decoded Token Secret: '" . base64_decode($sec) . "'\n";
+echo "=== DB Row for Project #240 (tumblr) ===\n";
+print_r($row);
