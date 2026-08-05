@@ -1,26 +1,27 @@
 <?php
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../auto-poster.php';
 
-$blogs = [
-    'flatforsalebopal.tumblr.com',
-    'propertiesdelersblog.tumblr.com',
-    'prahladnagarhomes.tumblr.com'
-];
+$ckey = 'hPzVCCOxhVXN2nkRljbQa45yTvmkbD0ORiJ0N2uyA8iwJGhwcS';
+$csec = 'i4V1CBC22FU977dJgydgOcVRIlPCtSuBvre3bGdv41VAKsAXRZ';
+$otok = 'bu9GtwLSMCC4SQckhzWvRvrplHwTCtwFxSR2ytHOB8EEhBAgHQ';
+$osec = 'rflb0Fbhikw5AvcM6YmK2jbwbFnQgQiu1gLR0ymXw1FbB9dw6C';
 
-echo "=== Direct HTTP GET Test to Tumblr Web pages ===\n";
-foreach ($blogs as $b) {
-    $url = "https://{$b}/";
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_TIMEOUT        => 8,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-    ]);
-    $html = curl_exec($ch);
-    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    
-    echo "URL: {$url} => HTTP {$code} (Length: " . strlen($html) . ")\n";
-}
+echo "=== Querying /v2/user/info to discover available blogs ===\n";
+
+$url = "https://api.tumblr.com/v2/user/info";
+$authHeader = getTumblrOAuthHeader($ckey, $csec, $otok, $osec, $url, 'GET', []);
+
+$ch = curl_init($url);
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER     => [$authHeader],
+    CURLOPT_TIMEOUT        => 10,
+    CURLOPT_SSL_VERIFYPEER => false,
+]);
+$resp = curl_exec($ch);
+$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+echo "HTTP Code: {$code}\n";
+echo "Response: {$resp}\n";
