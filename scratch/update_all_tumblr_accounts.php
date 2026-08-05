@@ -47,7 +47,7 @@ for ($i = 1; $i <= 42; $i++) {
     $blog = $data['blog'];
     $apiKey = $data['key'];
     $apiSecret = $data['secret'];
-    $pass = $data['token'] . ':' . $data['tsecret'];
+    $pass = base64_encode($data['token'] . ':' . $data['tsecret']);
     
     // Find all projects owned by this user
     $pStmt = $db->prepare("SELECT id FROM projects WHERE user_id = ?");

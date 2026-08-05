@@ -354,13 +354,9 @@ function postToTumblr($creds, $keyword, $targetSite, $geminiKey, $openaiKey, $po
     
     // Extract OAuth Token and Secret from password column (handles raw token:secret or base64 token:secret)
     $rawPass = $creds['password'] ?? '';
-    if (strpos($rawPass, ':') !== false) {
+    $decrypted = base64_decode($rawPass, true);
+    if ($decrypted === false || strpos($decrypted, ':') === false) {
         $decrypted = $rawPass;
-    } else {
-        $decrypted = base64_decode($rawPass, true);
-        if ($decrypted === false || strpos($decrypted, ':') === false) {
-            $decrypted = $rawPass;
-        }
     }
     $parts = explode(':', $decrypted);
     $oauthToken = trim($parts[0] ?? '');
@@ -416,6 +412,9 @@ function postToTumblr($creds, $keyword, $targetSite, $geminiKey, $openaiKey, $po
     }
     
     $msg = $result['meta']['msg'] ?? ($result['errors'][0]['detail'] ?? $response);
+    if ($httpCode === 401) {
+        return ['error' => "Tumblr API error (HTTP 401): Unauthorized. Re-authorize blog at http://" . ($_SERVER['HTTP_HOST'] ?? '54.210.197.187.nip.io') . "/scratch/tumblr_oauth_helper.php"];
+    }
     return ['error' => "Tumblr API error (HTTP {$httpCode}): {$msg}"];
 }
 
