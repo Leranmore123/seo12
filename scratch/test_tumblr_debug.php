@@ -1,23 +1,20 @@
 <?php
 require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../auto-poster.php';
 
-$consumerKey = 'QRWO9l1KifJyiBJICcvOkHS5J0XM4UT3AzdjRdeWocev3mEb8z';
-$consumerSecret = 'C0lFnqNOncJ5zbCw3fFLjQxpBW4EiefYfWBR6mWOe3Kc7n8XYa';
-$oauthToken = '9vldaudhMnkJt9FkTpDF6MQ6i7d7s86imqAnpylT5zEQBuowP1';
-$oauthTokenSecret = 'l13CukH4Obp1PBWXchWl6cj6qrMEp3l4UvxECdo5LaZ9NFok3r';
-$blogName = 'howtoverifypropertyingujara';
+$db = getDB();
 
-echo "=== Testing Real Tumblr Post to {$blogName} ===\n\n";
+echo "=== Cleaning Up Legacy Failed Tumblr Queue Test Tasks ===\n\n";
 
-$creds = [
-    'api_key'    => $consumerKey,
-    'api_secret' => $consumerSecret,
-    'username'   => $blogName,
-    'password'   => base64_encode($oauthToken . ':' . $oauthTokenSecret)
-];
+// Update legacy failed tumblr queue items to pending or delete them
+$db->exec("DELETE FROM backlink_queue WHERE platform = 'tumblr' AND status = 'failed'");
+echo "Cleared old failed Tumblr queue test items.\n";
 
-$res = postToTumblr($creds, 'property in Gujarat', 'https://propertysdeal.in/propertys-details/property-in-gujarat', OPENAI_API_KEY, OPENAI_API_KEY, 1, [], 214);
+// Queue a new fresh test task for Project #214
+$acc = $db->query("SELECT id, project_id FROM social_accounts WHERE platform = 'tumblr' AND status = 'active' ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
 
-echo "Post Result:\n";
-print_r($res);
+if ($acc) {
+    $stmt = $db->prepare("INSERT INTO backlink_queue (project_id, social_account_id, platform, keyword, target_url, status) VALUES (?, ?, 'tumblr', 'real estate in Gujarat', 'https://propertysdeal.in/propertys-details/property-in-gujarat', 'pending')");
+    $stmt->execute([$acc['project_id'], $acc['id']]);
+    $newId = $db->lastInsertId();
+    echo "🎉 Successfully Queued Fresh Task ID: {$newId} for Project #{$acc['project_id']}\n";
+}
