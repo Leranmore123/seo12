@@ -146,6 +146,12 @@ foreach ($tasks as $task) {
             getEnqueuedImagePath(null); // Reset
         }
         
+        // Safety rate-limit delay for Tumblr posts to protect API keys
+        if ($platform === 'tumblr') {
+            echo "Pausing 15 seconds for Tumblr API rate-limit safety...\n";
+            sleep(15);
+        }
+        
         // Execute posting
         $result = runPlatformAutoPost($platform, $creds, $project, $projectId);
         
