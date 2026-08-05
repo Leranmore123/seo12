@@ -1,20 +1,38 @@
 <?php
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../auto-poster.php';
 
 $db = getDB();
+$stmt = $db->prepare("SELECT * FROM social_accounts WHERE project_id = 242 AND platform = 'tumblr'");
+$stmt->execute();
+$creds = $stmt->fetch(PDO::FETCH_ASSOC);
 
-echo "=== Cleaning Up Legacy Failed Tumblr Queue Test Tasks ===\n\n";
+echo "=== Social Account DB Row for Project #242 ===\n";
+print_r($creds);
 
-// Update legacy failed tumblr queue items to pending or delete them
-$db->exec("DELETE FROM backlink_queue WHERE platform = 'tumblr' AND status = 'failed'");
-echo "Cleared old failed Tumblr queue test items.\n";
+if ($creds) {
+    echo "\n=== Extracting tokens from DB row ===\n";
+    $rawPass = $creds['password'] ?? '';
+    $decrypted = base64_decode($rawPass, true);
+    if ($decrypted === false || strpos($decrypted, ':') === false) {
+        $decrypted = $rawPass;
+    }
+    $parts = explode(':', $decrypted);
+    $token = trim($parts[0] ?? '');
+    $tsecret = trim($parts[1] ?? '');
 
-// Queue a new fresh test task for Project #214
-$acc = $db->query("SELECT id, project_id FROM social_accounts WHERE platform = 'tumblr' AND status = 'active' ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+    echo "Blog: '{$creds['username']}'\n";
+    echo "API Key: '{$creds['api_key']}'\n";
+    echo "API Secret: '{$creds['api_secret']}'\n";
+    echo "Decrypted Pass: '{$decrypted}'\n";
+    echo "Extracted Token: '{$token}'\n";
+    echo "Extracted Token Secret: '{$tsecret}'\n\n";
 
-if ($acc) {
-    $stmt = $db->prepare("INSERT INTO backlink_queue (project_id, social_account_id, platform, keyword, target_url, status) VALUES (?, ?, 'tumblr', 'real estate in Gujarat', 'https://propertysdeal.in/propertys-details/property-in-gujarat', 'pending')");
-    $stmt->execute([$acc['project_id'], $acc['id']]);
-    $newId = $db->lastInsertId();
-    echo "🎉 Successfully Queued Fresh Task ID: {$newId} for Project #{$acc['project_id']}\n";
+    echo "=== Running postToTumblr for Project #242 ===\n";
+    $projStmt = $db->prepare("SELECT * FROM projects WHERE id = 242");
+    $projStmt->execute();
+    $project = $projStmt->fetch(PDO::FETCH_ASSOC);
+
+    $res = runPlatformAutoPost('tumblr', $creds, $project, 242);
+    print_r($res);
 }
