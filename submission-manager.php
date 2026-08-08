@@ -335,6 +335,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_platform'])) {
         $db->prepare("INSERT INTO social_accounts (user_id, project_id, platform, username, password, api_key, api_secret, status) VALUES (?,?,?,?,?,?,?,'active')")
            ->execute([$userId, $projectId, $platform, $username, $encryptedPassword, $apiKey, $apiSecret]);
     }
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || isset($_POST['ajax'])) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true, 'platform' => $platform, 'username' => $username, 'message' => ucfirst($platform) . ' credentials saved!']);
+        exit;
+    }
     setFlash('success', ucfirst($platform) . ' credentials saved! System will use these to post.');
     header('Location: submission-manager.php?project_id=' . $projectId); exit;
 }
@@ -1973,9 +1978,16 @@ function showCredForm(platformId, platformName, projectId) {
 }
 
 function updateAutoPostSelection() {
-  const kw = document.getElementById('backlinkKeywordSelect').value;
-  const site = document.getElementById('backlinkUrlSelect').value;
-  location.href = 'submission-manager.php?project_id=' + PROJECT_ID + '&keyword=' + encodeURIComponent(kw) + '&target_site=' + encodeURIComponent(site);
+  const kwSelect = document.getElementById('backlinkKeywordSelect');
+  const siteSelect = document.getElementById('backlinkUrlSelect');
+  const kw = kwSelect ? kwSelect.value : '';
+  const site = siteSelect ? siteSelect.value : '';
+  
+  // Silently update address bar URL without triggering a page refresh
+  const newUrl = 'submission-manager.php?project_id=' + PROJECT_ID + '&keyword=' + encodeURIComponent(kw) + '&target_site=' + encodeURIComponent(site);
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState({}, '', newUrl);
+  }
 }
 
 function autoPost(platformId, platformName, projectId) {
@@ -2010,7 +2022,7 @@ function autoPostAll(platformId, platformName, projectId) {
         document.getElementById('postingStatus').innerHTML = '✅ Tasks Queued successfully!';
         document.getElementById('postingDetail').innerHTML =
           `<strong>${data.queued} tasks</strong> added to background queue. Processing in background...`;
-        setTimeout(() => { modal.hide(); location.reload(); }, 3000);
+        setTimeout(() => { modal.hide(); }, 2500);
       } else {
         document.getElementById('postingStatus').innerHTML = '⚠️ ' + (data.error || 'Failed to queue task');
         document.getElementById('postingDetail').innerHTML =
@@ -2073,7 +2085,7 @@ function bulkBlueskyPost(projectId) {
     });
     table += '</tbody></table></div>';
     document.getElementById('postingDetail').innerHTML = table;
-    setTimeout(() => { modal.hide(); location.reload(); }, 4000);
+    setTimeout(() => { modal.hide(); }, 3000);
   })
   .catch(err => {
     document.getElementById('postingStatus').textContent = '⚠️ Error: ' + (err.message || 'Connection failed');
@@ -2355,12 +2367,48 @@ document.addEventListener("DOMContentLoaded", () => {
       managerAddKeyword();
     }
   });
-  document.getElementById('managerSiteInput')?.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
+  // Intercept credentials modal form submit via AJAX without reloading page
+  const credForm = document.getElementById('credForm');
+  if (credForm) {
+    credForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      managerAddSite();
-    }
-  });
+      const submitBtn = credForm.querySelector('button[type="submit"]');
+      const originalText = submitBtn ? submitBtn.innerHTML : '';
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...'; }
+
+      const fd = new FormData(credForm);
+      fetch('submission-manager.php', {
+        method: 'POST',
+        body: fd,
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalText; }
+        if (data.success) {
+          const credModalEl = document.getElementById('credModal');
+          if (credModalEl) {
+            const modalInstance = bootstrap.Modal.getInstance(credModalEl);
+            if (modalInstance) modalInstance.hide();
+          }
+          // Dynamically update status text/badge on the page for this platform
+          const platId = data.platform;
+          const statusBadges = document.querySelectorAll('.platform-status-' + platId);
+          statusBadges.forEach(el => {
+            el.className = 'badge bg-success';
+            el.innerHTML = '<i class="fas fa-check-circle me-1"></i>Active';
+          });
+        } else {
+          alert('Error saving credentials: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(err => {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalText; }
+        alert('Network error: ' + err.message);
+      });
+    });
+  }
 });
 
 function renderManagerKeywords() {
@@ -2409,14 +2457,45 @@ function saveManagerChanges() {
   .then(r => r.json())
   .then(data => {
     if (data.success) {
-      // Reload page with selected parameters preserved
-      const currentKeyword = document.getElementById('backlinkKeywordSelect').value;
-      const currentSite = document.getElementById('backlinkUrlSelect').value;
-      location.href = 'submission-manager.php?project_id=' + PROJECT_ID + '&keyword=' + encodeURIComponent(currentKeyword) + '&target_site=' + encodeURIComponent(currentSite);
+      updateSelectDropdowns();
     } else {
       alert('Error updating lists: ' + data.error);
     }
   });
+}
+
+function updateSelectDropdowns() {
+  const kwSelect = document.getElementById('backlinkKeywordSelect');
+  if (kwSelect) {
+    const curVal = kwSelect.value;
+    kwSelect.innerHTML = '';
+    managerKeywords.forEach(kw => {
+      const opt = document.createElement('option');
+      opt.value = kw;
+      opt.textContent = kw;
+      if (kw === curVal) opt.selected = true;
+      kwSelect.appendChild(opt);
+    });
+    if (!kwSelect.value && managerKeywords.length > 0) {
+      kwSelect.value = managerKeywords[0];
+    }
+  }
+
+  const siteSelect = document.getElementById('backlinkUrlSelect');
+  if (siteSelect) {
+    const curVal = siteSelect.value;
+    siteSelect.innerHTML = '';
+    managerSites.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s;
+      if (s === curVal) opt.selected = true;
+      siteSelect.appendChild(opt);
+    });
+    if (!siteSelect.value && managerSites.length > 0) {
+      siteSelect.value = managerSites[0];
+    }
+  }
 }
 
 function managerAddKeyword() {

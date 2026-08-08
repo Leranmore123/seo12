@@ -189,7 +189,7 @@ foreach ($backlinkSites as $s) { $siteMap[$s['platform']] = $s; }
       <?php
       $currentKeyword = $_GET['keyword'] ?? $keywordsList[0] ?? '';
       ?>
-      <select id="backlinkKeywordSelect" class="form-select form-select-sm" style="width: auto; min-width: 250px;" onchange="location.href='client-profile.php?id=<?= $projectId ?>&tab=backlinks&keyword='+encodeURIComponent(this.value)">
+      <select id="backlinkKeywordSelect" class="form-select form-select-sm" style="width: auto; min-width: 250px;" onchange="if(window.history&&window.history.replaceState){window.history.replaceState({},'','client-profile.php?id=<?= $projectId ?>&tab=backlinks&keyword='+encodeURIComponent(this.value));}">
         <?php foreach ($keywordsList as $kw): ?>
           <option value="<?= htmlspecialchars($kw, ENT_QUOTES, 'UTF-8') ?>" <?= $currentKeyword === $kw ? 'selected' : '' ?>><?= htmlspecialchars($kw) ?></option>
         <?php endforeach; ?>
