@@ -2008,6 +2008,13 @@ function updateAutoPostSelection() {
   const kw = kwSelect ? kwSelect.value : '';
   const site = siteSelect ? siteSelect.value : '';
   
+  if (kw) {
+    localStorage.setItem('seo_selected_kw_' + PROJECT_ID, kw);
+  }
+  if (site) {
+    localStorage.setItem('seo_selected_url_' + PROJECT_ID, site);
+  }
+
   // Silently update address bar URL without triggering a page refresh
   const newUrl = 'submission-manager.php?project_id=' + PROJECT_ID + '&keyword=' + encodeURIComponent(kw) + '&target_site=' + encodeURIComponent(site);
   if (window.history && window.history.replaceState) {
@@ -2435,9 +2442,27 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Load saved platform selections for this project
+  // Load saved platform selections, keyword, and URL for this project
+  restoreSavedKeywordAndUrl();
   loadSavedPlatformsSelection();
 });
+
+function restoreSavedKeywordAndUrl() {
+  const savedKw = localStorage.getItem('seo_selected_kw_' + PROJECT_ID);
+  const savedUrl = localStorage.getItem('seo_selected_url_' + PROJECT_ID);
+  const kwSelect = document.getElementById('backlinkKeywordSelect');
+  const siteSelect = document.getElementById('backlinkUrlSelect');
+
+  if (savedKw && kwSelect) {
+    const opt = Array.from(kwSelect.options).find(o => o.value === savedKw);
+    if (opt) kwSelect.value = savedKw;
+  }
+  if (savedUrl && siteSelect) {
+    const opt = Array.from(siteSelect.options).find(o => o.value === savedUrl);
+    if (opt) siteSelect.value = savedUrl;
+  }
+  updateAutoPostSelection();
+}
 
 function updateSelectedPlatformsCount() {
   const checkboxes = document.querySelectorAll('.platform-select-checkbox:checked');
