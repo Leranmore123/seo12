@@ -1339,14 +1339,25 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
 
   <!-- Platform Submission Console (1 - 10) -->
   <div class="card mb-4 border-0 shadow-sm">
-    <div class="card-header bg-dark text-white">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
       <h5 class="mb-0"><i class="fas fa-list me-2"></i>Primary Platforms Console (1 - 10)</h5>
+      <div>
+        <button class="btn btn-sm btn-success text-white fw-bold me-2 shadow-sm" id="btnRunSelected" onclick="runSelectedPlatforms(<?= $selectedProjectId ?>)">
+          <i class="fas fa-play me-1"></i>Run Selected (<span id="selectedCount">0</span>)
+        </button>
+        <button class="btn btn-sm btn-outline-light fw-bold" onclick="autoPostAll(<?= $selectedProjectId ?>)">
+          <i class="fas fa-paper-plane me-1"></i>Run All Primary
+        </button>
+      </div>
     </div>
     <div class="card-body p-0">
       <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 align-middle">
           <thead class="table-light">
             <tr>
+              <th style="width: 4%; text-align: center;">
+                <input type="checkbox" id="selectAllPlatformsCheckbox" class="form-check-input" onchange="toggleSelectAllPlatforms(this)" title="Select/Deselect All">
+              </th>
               <th style="width: 5%;">#</th>
               <th style="width: 15%;">Platform</th>
               <th style="width: 35%;">What System Does Automatically</th>
@@ -1362,6 +1373,9 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
             $allAccounts = $savedMapAll[$site['id']] ?? []; 
             ?>
             <tr>
+              <td class="text-center">
+                <input type="checkbox" class="form-check-input platform-select-checkbox" value="<?= $site['id'] ?>" onchange="updateSelectedPlatformsCount()">
+              </td>
               <td><?= $idx + 1 ?></td>
               <td>
                 <strong><?= htmlspecialchars($site['name']) ?></strong><br>
@@ -2409,7 +2423,87 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   }
+
+  // Load saved platform selections for this project
+  loadSavedPlatformsSelection();
 });
+
+function updateSelectedPlatformsCount() {
+  const checkboxes = document.querySelectorAll('.platform-select-checkbox:checked');
+  const selected = Array.from(checkboxes).map(cb => cb.value);
+  const countEl = document.getElementById('selectedCount');
+  if (countEl) countEl.textContent = selected.length;
+  
+  // Save selected platforms for this project in localStorage
+  localStorage.setItem('seo_selected_platforms_' + PROJECT_ID, JSON.stringify(selected));
+}
+
+function toggleSelectAllPlatforms(masterCb) {
+  const checkboxes = document.querySelectorAll('.platform-select-checkbox');
+  checkboxes.forEach(cb => cb.checked = masterCb.checked);
+  updateSelectedPlatformsCount();
+}
+
+function loadSavedPlatformsSelection() {
+  const saved = localStorage.getItem('seo_selected_platforms_' + PROJECT_ID);
+  if (saved) {
+    try {
+      const selectedList = JSON.parse(saved);
+      const checkboxes = document.querySelectorAll('.platform-select-checkbox');
+      checkboxes.forEach(cb => {
+        if (selectedList.includes(cb.value)) {
+          cb.checked = true;
+        }
+      });
+      updateSelectedPlatformsCount();
+    } catch(e) {}
+  }
+}
+
+function runSelectedPlatforms(projectId) {
+  const checkboxes = document.querySelectorAll('.platform-select-checkbox:checked');
+  const selected = Array.from(checkboxes).map(cb => cb.value);
+  if (selected.length === 0) {
+    alert('Please select at least one platform via checkboxes.');
+    return;
+  }
+
+  const modal = new bootstrap.Modal(document.getElementById('postModal'));
+  document.getElementById('postingStatus').textContent = `🚀 Auto Posting to ${selected.length} Selected Platforms...`;
+  document.getElementById('postingDetail').innerHTML =
+    '<div class="spinner-border spinner-border-sm me-2"></div>Adding tasks to queue... Please wait...';
+  modal.show();
+
+  const kwSelect = document.getElementById('backlinkKeywordSelect');
+  const kw = kwSelect ? encodeURIComponent(kwSelect.value) : '';
+  const siteSelect = document.getElementById('backlinkUrlSelect');
+  const siteUrl = siteSelect ? encodeURIComponent(siteSelect.value) : '';
+  
+  fetch('auto-post-all.php?id=' + projectId + '&platforms=' + encodeURIComponent(selected.join(',')) + '&keyword=' + kw + '&target_site=' + siteUrl, {
+    credentials: 'same-origin',
+    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    const queued = data.queued || 0;
+    document.getElementById('postingStatus').innerHTML =
+      `✅ Tasks Queued! <span class="badge bg-success">${queued} tasks added</span>`;
+
+    let table = '<div style="max-height:200px;overflow-y:auto"><table class="table table-sm table-bordered mt-2 mb-0"><thead><tr><th>Platform</th><th>Status</th><th>Detail</th></tr></thead><tbody>';
+    (data.results || []).forEach(r => {
+      const badge = r.status === 'duplicate' ? 'bg-warning text-dark' : 'bg-success';
+      const detail = r.message || 'Queued in background';
+      table += `<tr><td class="small">${r.name || r.platform}</td><td><span class="badge ${badge}">${r.status}</span></td><td class="small">${detail}</td></tr>`;
+    });
+    table += '</tbody></table></div>';
+    document.getElementById('postingDetail').innerHTML = table;
+    setTimeout(() => { modal.hide(); }, 2500);
+  })
+  .catch(err => {
+    document.getElementById('postingStatus').textContent = '⚠️ Error: ' + (err.message || 'Connection failed');
+    document.getElementById('postingDetail').textContent = 'Auto post failed. Check server logs.';
+  });
+}
 
 function renderManagerKeywords() {
   const container = document.getElementById('managerKeywordsContainer');

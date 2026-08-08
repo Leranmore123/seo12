@@ -25,7 +25,20 @@ if (!$project) {
 require_once __DIR__ . '/auto-poster.php';
 
 $platformFilter = $_GET['platform'] ?? null;
-if ($platformFilter) {
+$platformsFilterStr = $_GET['platforms'] ?? null;
+
+if (!empty($platformsFilterStr)) {
+    $platformsList = array_filter(array_map('trim', explode(',', $platformsFilterStr)));
+    if (!empty($platformsList)) {
+        $inClause = implode(',', array_fill(0, count($platformsList), '?'));
+        $params = array_merge([$projectId], $platformsList);
+        $accountsStmt = $db->prepare("SELECT * FROM social_accounts WHERE project_id=? AND platform IN ($inClause) AND status='active' ORDER BY platform, id");
+        $accountsStmt->execute($params);
+    } else {
+        $accountsStmt = $db->prepare('SELECT * FROM social_accounts WHERE project_id=? AND status="active" ORDER BY platform, id');
+        $accountsStmt->execute([$projectId]);
+    }
+} elseif (!empty($platformFilter)) {
     $accountsStmt = $db->prepare('SELECT * FROM social_accounts WHERE project_id=? AND platform=? AND status="active" ORDER BY id');
     $accountsStmt->execute([$projectId, $platformFilter]);
 } else {
