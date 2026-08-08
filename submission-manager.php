@@ -40,13 +40,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_project_target
 if (isset($_GET['action']) && $_GET['action'] === 'fetch_backlinks_html') {
     header('Content-Type: application/json');
     $pId = (int)($_GET['project_id'] ?? 0);
+    $kw = trim($_GET['keyword'] ?? '');
+    $siteUrl = trim($_GET['target_site'] ?? '');
     
-    $createdBL = $db->prepare("SELECT * FROM backlinks WHERE project_id = ? AND status = 'created' ORDER BY created_at DESC");
-    $createdBL->execute([$pId]);
+    $createdBL = $db->prepare("
+        SELECT * FROM backlinks 
+        WHERE project_id = ? 
+          AND status = 'created' 
+          AND (keyword = ? OR (keyword IS NULL AND ? = ''))
+          AND (target_url = ? OR target_url IS NULL OR (target_url IS NULL AND ? = ''))
+        ORDER BY created_at DESC
+    ");
+    $createdBL->execute([$pId, $kw, $kw, $siteUrl, $siteUrl]);
     $createdBLList = $createdBL->fetchAll();
 
-    $pendingTasks = $db->prepare("SELECT * FROM backlink_queue WHERE project_id = ? AND status IN ('pending', 'processing') ORDER BY created_at ASC");
-    $pendingTasks->execute([$pId]);
+    $pendingTasks = $db->prepare("
+        SELECT * FROM backlink_queue 
+        WHERE project_id = ? 
+          AND status IN ('pending', 'processing')
+          AND (keyword = ? OR (keyword IS NULL AND ? = ''))
+          AND (target_url = ? OR target_url IS NULL OR (target_url IS NULL AND ? = ''))
+        ORDER BY created_at ASC
+    ");
+    $pendingTasks->execute([$pId, $kw, $kw, $siteUrl, $siteUrl]);
     $pendingList = $pendingTasks->fetchAll(PDO::FETCH_ASSOC);
 
     ob_start();
@@ -1293,14 +1309,16 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
 
   <!-- Created Backlinks Table -->
   <?php
-  // Fetch all created backlinks for this project
+  // Fetch created backlinks for this project, keyword, and target site
   $createdBL = $db->prepare("
       SELECT * FROM backlinks 
       WHERE project_id = ? 
         AND status = 'created' 
+        AND (keyword = ? OR (keyword IS NULL AND ? = ''))
+        AND (target_url = ? OR target_url IS NULL OR (target_url IS NULL AND ? = ''))
       ORDER BY created_at DESC
   ");
-  $createdBL->execute([$selectedProjectId]);
+  $createdBL->execute([$selectedProjectId, $currentKeyword, $currentKeyword, $currentTargetSite, $currentTargetSite]);
   $createdBL = $createdBL->fetchAll();
   ?>
   <div id="createdBacklinksSection">
@@ -1402,14 +1420,16 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
   </div>
 
   <?php
-  // Fetch pending queue tasks for this specific project
+  // Fetch pending queue tasks for this specific project, keyword, and target site
   $pendingTasks = $db->prepare("
       SELECT * FROM backlink_queue 
       WHERE project_id = ? 
         AND status IN ('pending', 'processing')
+        AND (keyword = ? OR (keyword IS NULL AND ? = ''))
+        AND (target_url = ? OR target_url IS NULL OR (target_url IS NULL AND ? = ''))
       ORDER BY created_at ASC
   ");
-  $pendingTasks->execute([$selectedProjectId]);
+  $pendingTasks->execute([$selectedProjectId, $currentKeyword, $currentKeyword, $currentTargetSite, $currentTargetSite]);
   $pendingTasks = $pendingTasks->fetchAll(PDO::FETCH_ASSOC);
   ?>
 
@@ -2125,6 +2145,9 @@ function updateAutoPostSelection() {
   if (window.history && window.history.replaceState) {
     window.history.replaceState({}, '', newUrl);
   }
+
+  // Instantly refresh Created Backlinks & Pending Queue for newly selected keyword and URL
+  refreshBacklinkTables();
 }
 
 function autoPost(platformId, platformName, projectId) {
@@ -2556,7 +2579,12 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function refreshBacklinkTables() {
-  fetch('submission-manager.php?action=fetch_backlinks_html&project_id=' + PROJECT_ID, {
+  const kwSelect = document.getElementById('backlinkKeywordSelect');
+  const kw = kwSelect ? encodeURIComponent(kwSelect.value) : '';
+  const siteSelect = document.getElementById('backlinkUrlSelect');
+  const siteUrl = siteSelect ? encodeURIComponent(siteSelect.value) : '';
+
+  fetch('submission-manager.php?action=fetch_backlinks_html&project_id=' + PROJECT_ID + '&keyword=' + kw + '&target_site=' + siteUrl, {
     headers: { 'X-Requested-With': 'XMLHttpRequest' }
   })
   .then(r => r.json())
