@@ -981,9 +981,17 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
 
   <!-- Primary Platforms Status Widget -->
   <div class="card mb-4 border-primary shadow-sm">
-    <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+    <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
       <h6 class="mb-0 fw-bold"><i class="fas fa-star me-2"></i>Primary Platforms Quick Status</h6>
-      <span class="badge bg-light text-primary small fw-bold">10 Platforms</span>
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-sm btn-success text-white fw-bold shadow-sm" id="btnRunSelectedHeader" onclick="runSelectedPlatforms(<?= $selectedProjectId ?>)">
+          <i class="fas fa-play me-1"></i>Run Selected (<span id="selectedCountHeader">0</span>)
+        </button>
+        <button class="btn btn-sm btn-light text-primary fw-bold" onclick="autoPostAll(<?= $selectedProjectId ?>)">
+          <i class="fas fa-paper-plane me-1"></i>Run All Primary
+        </button>
+        <span class="badge bg-light text-primary small fw-bold">10 Platforms</span>
+      </div>
     </div>
     <div class="card-body p-3 bg-light">
       <div class="row g-2">
@@ -996,9 +1004,12 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
           $pCooldown = checkPlatformCooldown($db, $selectedProjectId, $pSite['id'], $currentKeyword, $currentTargetSite, count($pAllAccounts));
           ?>
           <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-            <div class="card h-100 border text-center p-2 bg-white shadow-none" style="transition: all 0.2s ease-in-out; border-radius: 8px;"
+            <div class="card h-100 border text-center p-2 bg-white shadow-none position-relative" style="transition: all 0.2s ease-in-out; border-radius: 8px;"
                  onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; this.style.transform='translateY(-2px)';" 
                  onmouseout="this.style.boxShadow='none'; this.style.transform='none';">
+              <div class="position-absolute top-0 end-0 p-1" style="z-index:2;">
+                <input type="checkbox" class="form-check-input platform-select-checkbox" value="<?= $pSite['id'] ?>" onchange="updateSelectedPlatformsCount()" title="Select <?= htmlspecialchars($pSite['name']) ?>">
+              </div>
               <div class="mb-1 mt-1">
                 <i class="<?= $pSite['icon'] ?> fa-lg"></i>
               </div>
@@ -2430,9 +2441,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function updateSelectedPlatformsCount() {
   const checkboxes = document.querySelectorAll('.platform-select-checkbox:checked');
-  const selected = Array.from(checkboxes).map(cb => cb.value);
+  const selected = Array.from(new Set(Array.from(checkboxes).map(cb => cb.value)));
+
+  // Sync checkboxes across grid and table
+  const allCheckboxes = document.querySelectorAll('.platform-select-checkbox');
+  allCheckboxes.forEach(cb => {
+    cb.checked = selected.includes(cb.value);
+  });
+
   const countEl = document.getElementById('selectedCount');
   if (countEl) countEl.textContent = selected.length;
+  const countHeaderEl = document.getElementById('selectedCountHeader');
+  if (countHeaderEl) countHeaderEl.textContent = selected.length;
   
   // Save selected platforms for this project in localStorage
   localStorage.setItem('seo_selected_platforms_' + PROJECT_ID, JSON.stringify(selected));
