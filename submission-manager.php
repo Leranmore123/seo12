@@ -36,6 +36,112 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_project_target
     exit;
 }
 
+// Handle AJAX Live Backlinks & Pending Tasks Table Fetch
+if (isset($_GET['action']) && $_GET['action'] === 'fetch_backlinks_html') {
+    header('Content-Type: application/json');
+    $pId = (int)($_GET['project_id'] ?? 0);
+    
+    $createdBL = $db->prepare("SELECT * FROM backlinks WHERE project_id = ? AND status = 'created' ORDER BY created_at DESC");
+    $createdBL->execute([$pId]);
+    $createdBLList = $createdBL->fetchAll();
+
+    $pendingTasks = $db->prepare("SELECT * FROM backlink_queue WHERE project_id = ? AND status IN ('pending', 'processing') ORDER BY created_at ASC");
+    $pendingTasks->execute([$pId]);
+    $pendingList = $pendingTasks->fetchAll(PDO::FETCH_ASSOC);
+
+    ob_start();
+    if (!empty($createdBLList)): ?>
+      <div class="card mb-4 border-success shadow-sm">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Created Backlinks (<?= count($createdBLList) ?>) — New URLs</h5>
+          <a href="export-excel.php?id=<?= $pId ?>" class="btn btn-light btn-sm"><i class="fas fa-file-excel me-1 text-success"></i>Download Excel</a>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-dark">
+                <tr><th>#</th><th>Platform</th><th>Backlink URL</th><th>Date Created</th><th>Link Status</th><th>Google Index</th><th>Action</th></tr>
+              </thead>
+              <tbody>
+              <?php foreach ($createdBLList as $i => $bl): ?>
+                <tr id="bl-row-<?= $bl['id'] ?>">
+                  <td><?= $i + 1 ?></td>
+                  <td><span class="badge bg-success"><?= clean($bl['platform']) ?></span></td>
+                  <td><a href="<?= clean($bl['backlink_url']) ?>" target="_blank" class="text-decoration-none"><?= clean(substr($bl['backlink_url'], 0, 60)) ?>...<i class="fas fa-external-link-alt ms-1 small"></i></a></td>
+                  <td><small><?= formatLocalTime($bl['created_at'], 'd M Y H:i') ?></small></td>
+                  <td class="bl-status-cell">
+                    <?php
+                    $vStatus = $bl['verified_status'] ?? 'unverified';
+                    if ($vStatus === 'active') echo '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Active (Dofollow)</span>';
+                    elseif ($vStatus === 'nofollow') echo '<span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle me-1"></i>Nofollow</span>';
+                    elseif ($vStatus === 'broken') echo '<span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Broken / Offline</span>';
+                    else echo '<span class="badge bg-secondary"><i class="fas fa-question-circle me-1"></i>Unverified</span>';
+                    ?>
+                  </td>
+                  <td class="indexing-status-cell">
+                    <?php
+                    $iStatus = $bl['indexing_status'] ?? 'unchecked';
+                    if ($iStatus === 'indexed') echo '<span class="badge bg-success"><i class="fas fa-search me-1"></i>Indexed</span>';
+                    elseif ($iStatus === 'not_indexed') echo '<span class="badge bg-danger"><i class="fas fa-times-circle me-1"></i>Not Indexed</span>';
+                    else echo '<span class="badge bg-secondary"><i class="fas fa-question-circle me-1"></i>Unchecked</span>';
+                    ?>
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-secondary" onclick="navigator.clipboard.writeText('<?= clean($bl['backlink_url']) ?>').then(()=>alert('URL Copied!'))" title="Copy URL"><i class="fas fa-copy"></i></button>
+                      <button class="btn btn-outline-primary" onclick="verifySingleLink(<?= $bl['id'] ?>, this)" title="Verify Live Link Now"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <?php endif;
+    $createdHtml = ob_get_clean();
+
+    ob_start();
+    if (!empty($pendingList)): ?>
+      <div class="card mb-4 border-warning shadow-sm">
+        <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Pending Tasks in Queue (<?= count($pendingList) ?>)</h5>
+          <span class="badge bg-dark text-white">System is processing these in background</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-dark"><tr><th>ID</th><th>Platform</th><th>Keyword</th><th>Target URL</th><th>Date Queued</th><th>Status</th></tr></thead>
+              <tbody>
+              <?php foreach ($pendingList as $task): ?>
+                <tr>
+                  <td>#<?= $task['id'] ?></td>
+                  <td><span class="badge bg-secondary"><?= clean($task['platform']) ?></span></td>
+                  <td><?= clean($task['keyword']) ?></td>
+                  <td><a href="<?= clean($task['target_url']) ?>" target="_blank" class="text-decoration-none text-dark fw-bold"><?= clean(substr((string)$task['target_url'], 0, 50)) ?>...</a></td>
+                  <td><small><?= formatLocalTime($task['created_at'], 'd M H:i') ?></small></td>
+                  <td><span class="badge bg-warning text-dark"><i class="fas fa-spinner fa-spin me-1"></i>Pending</span></td>
+                </tr>
+              <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <?php endif;
+    $pendingHtml = ob_get_clean();
+
+    echo json_encode([
+        'success' => true,
+        'createdCount' => count($createdBLList),
+        'pendingCount' => count($pendingList),
+        'createdHtml' => $createdHtml,
+        'pendingHtml' => $pendingHtml
+    ]);
+    exit;
+}
+
 
 // ============================================================
 // WordPress.com OAuth2 Callback — auto-save token
@@ -1187,17 +1293,17 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
 
   <!-- Created Backlinks Table -->
   <?php
+  // Fetch all created backlinks for this project
   $createdBL = $db->prepare("
       SELECT * FROM backlinks 
       WHERE project_id = ? 
         AND status = 'created' 
-        AND (keyword = ? OR (keyword IS NULL AND ? = ''))
-        AND (target_url = ? OR target_url IS NULL OR (target_url IS NULL AND ? = ''))
       ORDER BY created_at DESC
   ");
-  $createdBL->execute([$selectedProjectId, $currentKeyword, $currentKeyword, $currentTargetSite, $currentTargetSite]);
+  $createdBL->execute([$selectedProjectId]);
   $createdBL = $createdBL->fetchAll();
   ?>
+  <div id="createdBacklinksSection">
   <?php if (!empty($createdBL)): ?>
   <div class="card mb-4 border-success shadow-sm">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
@@ -1292,20 +1398,22 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
       </div>
     </div>
   </div>
+  <?php endif; ?>
+  </div>
+
   <?php
-  // Fetch pending queue tasks for this specific project and targets
+  // Fetch pending queue tasks for this specific project
   $pendingTasks = $db->prepare("
       SELECT * FROM backlink_queue 
       WHERE project_id = ? 
-        AND status = 'pending' 
-        AND (keyword = ? OR (keyword IS NULL AND ? = ''))
-        AND (target_url = ? OR target_url IS NULL OR (target_url IS NULL AND ? = ''))
+        AND status IN ('pending', 'processing')
       ORDER BY created_at ASC
   ");
-  $pendingTasks->execute([$selectedProjectId, $currentKeyword, $currentKeyword, $currentTargetSite, $currentTargetSite]);
+  $pendingTasks->execute([$selectedProjectId]);
   $pendingTasks = $pendingTasks->fetchAll(PDO::FETCH_ASSOC);
   ?>
 
+  <div id="pendingTasksSection">
   <?php if (!empty($pendingTasks)): ?>
   <div class="card mb-4 border-warning shadow-sm">
     <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
@@ -1345,6 +1453,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
     </div>
   </div>
   <?php endif; ?>
+  </div>
   
   <?php endif; ?>
 
@@ -1628,11 +1737,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
           <?php endforeach; ?>
           </tbody>
         </table>
-      </div>
-    </div>
   </div>
-
-  <?php endif; ?>
 </div>
 
 <!-- Credentials Modal -->
@@ -2054,6 +2159,7 @@ function autoPostAll(platformId, platformName, projectId) {
         document.getElementById('postingStatus').innerHTML = '✅ Tasks Queued successfully!';
         document.getElementById('postingDetail').innerHTML =
           `<strong>${data.queued} tasks</strong> added to background queue. Processing in background...`;
+        refreshBacklinkTables();
         setTimeout(() => { modal.hide(); }, 2500);
       } else {
         document.getElementById('postingStatus').innerHTML = '⚠️ ' + (data.error || 'Failed to queue task');
@@ -2445,7 +2551,29 @@ document.addEventListener("DOMContentLoaded", () => {
   // Load saved platform selections, keyword, and URL for this project
   restoreSavedKeywordAndUrl();
   loadSavedPlatformsSelection();
+  refreshBacklinkTables();
+  setInterval(refreshBacklinkTables, 8000);
 });
+
+function refreshBacklinkTables() {
+  fetch('submission-manager.php?action=fetch_backlinks_html&project_id=' + PROJECT_ID, {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const blSec = document.getElementById('createdBacklinksSection');
+      if (blSec && data.createdHtml !== undefined) {
+        blSec.innerHTML = data.createdHtml;
+      }
+      const pendingSec = document.getElementById('pendingTasksSection');
+      if (pendingSec && data.pendingHtml !== undefined) {
+        pendingSec.innerHTML = data.pendingHtml;
+      }
+    }
+  })
+  .catch(e => console.error('Error refreshing backlinks:', e));
+}
 
 function restoreSavedKeywordAndUrl() {
   const savedKw = localStorage.getItem('seo_selected_kw_' + PROJECT_ID);
@@ -2542,6 +2670,7 @@ function runSelectedPlatforms(projectId) {
     });
     table += '</tbody></table></div>';
     document.getElementById('postingDetail').innerHTML = table;
+    refreshBacklinkTables();
     setTimeout(() => { modal.hide(); }, 2500);
   })
   .catch(err => {
