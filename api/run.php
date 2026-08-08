@@ -96,10 +96,10 @@ try {
     $results = [];
     
     $insertStmt = $db->prepare('INSERT INTO backlink_queue (project_id, social_account_id, platform, keyword, target_url, status) VALUES (?, ?, ?, ?, ?, "pending")');
-    $checkStmt  = $db->prepare('SELECT COUNT(*) FROM backlink_queue WHERE project_id = ? AND social_account_id = ? AND platform = ? AND keyword = ? AND target_url = ? AND status IN ("pending", "processing")');
+    $checkStmt  = $db->prepare('SELECT COUNT(*) FROM backlink_queue WHERE project_id = ? AND social_account_id = ? AND status IN ("pending", "processing")');
     
     foreach ($accounts as $creds) {
-        $checkStmt->execute([$projectId, $creds['id'], $creds['platform'], $keyword, $targetSite]);
+        $checkStmt->execute([$projectId, $creds['id']]);
         $exists = (int)$checkStmt->fetchColumn();
         
         if ($exists > 0) {

@@ -7,6 +7,14 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/ai-content.php';
 require_once __DIR__ . '/auto-poster.php';
 
+// Process Lockfile Mutex: Prevent concurrent executions of cron_worker.php
+$lockFile = __DIR__ . '/logs/cron_worker.lock';
+$lockFp   = @fopen($lockFile, 'c+');
+if ($lockFp && !flock($lockFp, LOCK_EX | LOCK_NB)) {
+    echo "Another instance of cron_worker.php is currently running. Exiting.\n";
+    exit;
+}
+
 // Prevent concurrent runs: check if any task is already processing
 $db = getDB();
 $stmt = $db->prepare("SELECT COUNT(*) FROM backlink_queue WHERE status = 'processing'");
@@ -105,9 +113,13 @@ foreach ($tasks as $task) {
     echo "----------------------------------------\n";
     echo "Processing Task ID {$taskId} (Platform: {$platform}, Project ID: {$projectId})\n";
     
-    // Update status to processing
-    $updateStmt = $db->prepare("UPDATE backlink_queue SET status = 'processing', updated_at = NOW() WHERE id = ?");
+    // Atomically claim task (status must still be 'pending')
+    $updateStmt = $db->prepare("UPDATE backlink_queue SET status = 'processing', updated_at = NOW() WHERE id = ? AND status = 'pending'");
     $updateStmt->execute([$taskId]);
+    if ($updateStmt->rowCount() === 0) {
+        echo "Task ID {$taskId} already claimed or processing by another instance. Skipping.\n";
+        continue;
+    }
     
     try {
         // Load social account credentials
