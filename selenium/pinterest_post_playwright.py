@@ -97,28 +97,44 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                 
                 # Submit via button click or Enter key
                 try:
-                    submit_btn = page.locator("button[type='submit'], button.red.SignupButton, button.red.LoginButton, button:has-text('Log in')").first
+                    submit_btn = page.locator("button[type='submit'], [data-test-id='registerFormSubmitButton'], [data-test-id='login-button'], button.red.SignupButton, button.red.LoginButton, button:has-text('Log in'), div[role='button']:has-text('Log in')").first
                     if submit_btn.count() > 0 and submit_btn.is_visible():
+                        log("Clicking Pinterest login button...")
                         submit_btn.click()
                     else:
+                        log("Submit button not visible — pressing Enter key...")
                         pass_input.press("Enter")
-                except Exception:
+                except Exception as e_sub:
+                    log(f"Submit button click exception: {e_sub}")
                     pass_input.press("Enter")
                 
-                page.wait_for_timeout(4000)
+                page.wait_for_timeout(3000)
+                # Fallback: if still on login page, press Enter on password field
+                if "login" in page.url.lower() or "signup" in page.url.lower():
+                    try:
+                        pass_input.press("Enter")
+                    except Exception:
+                        pass
+
+                page.wait_for_timeout(5000)
                 try:
-                    page.wait_for_url(lambda u: "login" not in u.lower() and "signup" not in u.lower(), timeout=15000)
+                    page.wait_for_url(lambda u: "login" not in u.lower() and "signup" not in u.lower(), timeout=25000)
                 except Exception:
                     pass
 
                 current_after = page.url.lower()
                 if ("login" in current_after or "signup" in current_after) and page.locator("input[type='email']").count() > 0:
+                    err_detail = "Pinterest login failed — please check password @DISHA12@ or try again."
                     try:
                         page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'pinterest_error.png'), timeout=5000)
+                        # Check for visible error messages on Pinterest screen
+                        err_elem = page.locator("[data-test-id='login-error-message'], .formErrorMessage, [role='alert']").first
+                        if err_elem.count() > 0 and err_elem.is_visible():
+                            err_detail = f"Pinterest Error: {err_elem.inner_text()}"
                     except Exception as e_scr:
                         log(f"Screenshot exception: {e_scr}")
-                    log("Saved login failure screenshot to pinterest_error.png")
-                    result(False, error="Pinterest login failed — may be blocked temporarily. Try again in 10 minutes.")
+                    log(f"Saved login failure screenshot to pinterest_error.png ({err_detail})")
+                    result(False, error=err_detail)
                     context.close()
                     return
                 
