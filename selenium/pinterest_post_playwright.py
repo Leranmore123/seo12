@@ -124,7 +124,23 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                 
                 page.goto("https://www.pinterest.com/pin-creation-tool/", wait_until="domcontentloaded", timeout=60000)
                 page.wait_for_timeout(5000)
-            
+
+            # Extra stabilization wait: handle Pinterest 1-second flash redirect while reading session cookies
+            log("Waiting for Pin creation tool UI to stabilize...")
+            page.wait_for_timeout(4000)
+            try:
+                page.wait_for_url(lambda u: "login" not in u.lower() and "signup" not in u.lower(), timeout=15000)
+            except Exception:
+                pass
+
+            # If briefly on login page during flash redirect, wait for auto-redirect back to pin builder
+            if "login" in page.url.lower() or "signup" in page.url.lower():
+                log("Temporary flash redirect detected — waiting for auto-redirect to Pin builder...")
+                page.wait_for_timeout(5000)
+                if "login" in page.url.lower() or "signup" in page.url.lower():
+                    page.goto("https://www.pinterest.com/pin-creation-tool/", wait_until="domcontentloaded", timeout=60000)
+                    page.wait_for_timeout(5000)
+
             log("Login OK! Pin builder ready.")
             
             # ── Step 3: Upload image ───────────────────────────────────
