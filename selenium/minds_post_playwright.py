@@ -1,4 +1,23 @@
-#!/usr/bin/env python3
+PS C:\Users\ADMIN\Desktop\seo-system> git push origin main
+Enumerating objects: 7, done.
+Counting objects: 100% (7/7), done.
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (4/4), 686 bytes | 686.00 KiB/s, done.
+Total 4 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
+To https://github.com/Leranmore123/seo12.git
+   11ae6d8..15b3430  main -> main
+PS C:\Users\ADMIN\Desktop\seo-system> git push origin main
+Enumerating objects: 7, done.
+Counting objects: 100% (7/7), done.
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (4/4), 803 bytes | 803.00 KiB/s, done.
+Total 4 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
+To https://github.com/Leranmore123/seo12.git
+   15b3430..edc56cf  main -> main
+PS C:\Users\ADMIN\Desktop\seo-system> 
+PS C:\Users\ADMIN\Desktop\seo-system>#!/usr/bin/env python3
 """
 Minds.com Auto-Post via Playwright
 Migrated from Selenium for enhanced stability and auto-waiting.
@@ -53,17 +72,16 @@ def minds_post(email, password, keyword, target_url, ai_title="", ai_content="")
             page = context.pages[0] if context.pages else context.new_page()
             page.set_viewport_size({"width": 1400, "height": 900})
             
-            log("Minds: Opening home page...")
-            page.goto("https://www.minds.com/", timeout=60000)
-            page.wait_for_timeout(3000)
+            log("Minds: Opening newsfeed directly using saved session...")
+            page.goto("https://www.minds.com/newsfeed/subscriptions", wait_until="domcontentloaded", timeout=60000)
+            page.wait_for_timeout(4000)
             
             src = page.content().lower()
-            logged = ("logout" in src or "newsfeed" in page.url or
-                      "feed" in page.url or "channel" in page.url)
+            logged = ("login" not in page.url.lower() and ("logout" in src or "newsfeed" in page.url or "feed" in page.url or "channel" in page.url))
 
             if not logged:
-                log("Minds: Logging in via form...")
-                page.goto("https://www.minds.com/login", timeout=60000)
+                log("Minds: Session expired or not logged in — logging in...")
+                page.goto("https://www.minds.com/login", wait_until="domcontentloaded", timeout=60000)
                 page.wait_for_timeout(3000)
 
                 # Fill credentials
