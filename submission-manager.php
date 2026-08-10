@@ -2179,15 +2179,26 @@ function autoPostAll(platformId, platformName, projectId) {
     })
     .then(data => {
       if (data.queued) {
-        document.getElementById('postingStatus').innerHTML = '✅ Tasks Queued successfully!';
+        document.getElementById('postingStatus').innerHTML = `✅ Tasks Queued! <span class="badge bg-success">${data.queued} tasks added</span>`;
         document.getElementById('postingDetail').innerHTML =
           `<strong>${data.queued} tasks</strong> added to background queue. Processing in background...`;
         refreshBacklinkTables();
         setTimeout(() => { modal.hide(); }, 2500);
+      } else if (data.results && data.results.length > 0) {
+        document.getElementById('postingStatus').innerHTML = '⚠️ Tasks Already Queued for this Keyword';
+        let table = '<div style="max-height:200px;overflow-y:auto"><table class="table table-sm table-bordered mt-2 mb-0"><thead><tr><th>Platform</th><th>Status</th><th>Detail</th></tr></thead><tbody>';
+        (data.results || []).forEach(r => {
+          const badge = r.status === 'duplicate' ? 'bg-warning text-dark' : 'bg-success';
+          const detail = r.message || 'Already queued/processing';
+          table += `<tr><td class="small">${r.name || r.platform}</td><td><span class="badge ${badge}">${r.status}</span></td><td class="small">${detail}</td></tr>`;
+        });
+        table += '</tbody></table></div>';
+        document.getElementById('postingDetail').innerHTML = table;
+        refreshBacklinkTables();
+        setTimeout(() => { modal.hide(); }, 3500);
       } else {
-        document.getElementById('postingStatus').innerHTML = '⚠️ ' + (data.error || 'Failed to queue task');
-        document.getElementById('postingDetail').innerHTML =
-          'Please verify database settings and try again.';
+        document.getElementById('postingStatus').innerHTML = '⚠️ ' + (data.error || 'No active accounts found');
+        document.getElementById('postingDetail').innerHTML = 'Please check account credentials and try again.';
       }
     })
     .catch((err) => {
