@@ -75,19 +75,6 @@ foreach ($accounts as $creds) {
 
     // Instant Fast-Track API Execution for API platforms (Bluesky, Dev.to, Blogger, Tumblr, GitHub, etc.)
     if (in_array($plat, $fastApiPlatforms)) {
-        // Cooldown / duplicate check: check if backlink was already posted for this exact keyword in last 12h
-        $checkCreated = $db->prepare('SELECT COUNT(*) FROM backlinks WHERE project_id = ? AND platform = ? AND keyword = ? AND (target_url = ? OR (target_url IS NULL AND ? = "")) AND status = "created" AND created_at >= DATE_SUB(NOW(), INTERVAL 12 HOUR)');
-        $checkCreated->execute([$projectId, $plat, $keyword, $targetSite, $targetSite]);
-        if ((int)$checkCreated->fetchColumn() > 0) {
-            $results[] = [
-                'platform' => $creds['platform'],
-                'name'     => ucfirst($creds['platform']) . ' (' . $creds['username'] . ')',
-                'handle'   => $creds['username'],
-                'status'   => 'duplicate',
-                'message'  => 'Already posted for this keyword in last 12h',
-            ];
-            continue;
-        }
 
         // Execute API post instantly in real-time
         try {
