@@ -35,8 +35,11 @@ def livejournal_post(username, password, keyword, target_url, ai_title, image_pa
         ai_title = f"Guide on {keyword}"
 
     try:
+        import ssl
+        ctx = ssl._create_unverified_context()
+        transport = xmlrpc.client.SafeTransport(context=ctx)
         log("LiveJournal: Connecting to XML-RPC server...")
-        server = xmlrpc.client.ServerProxy("https://www.livejournal.com/interface/xmlrpc")
+        server = xmlrpc.client.ServerProxy("https://www.livejournal.com/interface/xmlrpc", transport=transport)
 
         log("LiveJournal: Requesting authentication challenge...")
         challenge_data = server.LJ.XMLRPC.getchallenge()
