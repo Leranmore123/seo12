@@ -65,20 +65,19 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
             
             page = context.pages[0] if context.pages else context.new_page()
             
-            # ── Step 1: Login Check ────────────────────────────────────
-            log("Checking login status...")
-            page.goto("https://www.pinterest.com/", wait_until="domcontentloaded", timeout=60000)
+            # ── Step 1 & 2: Direct Pin Creation Entry (Reusing Saved Session Cookies) ──
+            log("Opening Pin creation tool directly using saved session...")
+            page.goto("https://www.pinterest.com/pin-creation-tool/", wait_until="domcontentloaded", timeout=60000)
             page.wait_for_timeout(4000)
             
             already_logged = False
-            try:
-                if page.locator("[data-test-id='header-profile'], [data-test-id='header-accounts-options-button']").count() > 0:
-                    already_logged = True
-            except:
-                pass
-                
+            current_url = page.url.lower()
+            if "login" not in current_url and "signup" not in current_url:
+                already_logged = True
+                log("Already logged in via saved Chrome session cookies!")
+            
             if not already_logged:
-                log("Not logged in — logging in...")
+                log("Session expired or not logged in — logging in...")
                 page.goto("https://www.pinterest.com/login/", wait_until="domcontentloaded", timeout=60000)
                 page.wait_for_timeout(4000)
                 
@@ -110,13 +109,11 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                     result(False, error="Pinterest login failed — may be blocked temporarily. Try again in 10 minutes.")
                     context.close()
                     return
+                
+                page.goto("https://www.pinterest.com/pin-creation-tool/", wait_until="domcontentloaded", timeout=60000)
+                page.wait_for_timeout(5000)
             
-            log("Login OK!")
-            
-            # ── Step 2: Pin Creation Tool ──────────────────────────────
-            page.goto("https://www.pinterest.com/pin-creation-tool/", wait_until="domcontentloaded", timeout=60000)
-            page.wait_for_timeout(6000)
-            log("Pin builder opened")
+            log("Login OK! Pin builder ready.")
             
             # ── Step 3: Upload image ───────────────────────────────────
             if image_path and os.path.exists(image_path):
