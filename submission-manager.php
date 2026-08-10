@@ -36,6 +36,99 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_project_target
     exit;
 }
 
+// Platform list with what system does automatically
+$platforms = [
+    'profile_creation' => [
+        'title' => '👤 Profile Creation Sites',
+        'color' => 'primary',
+        'sites' => [
+            ['id' => 'google_business', 'name' => 'Google Business Profile', 'url' => 'https://business.google.com', 'what_system_does' => '🤖 Browser Automation — Google Email (Username). System Chrome reads master profile chrome_profile_gsc, goes to Business Search dashboard, and posts updates with text + image automatically!', 'autopost' => false],
+            ['id' => 'pinterest',    'name' => 'Pinterest',      'url' => 'https://www.pinterest.com',   'what_system_does' => '🤖 Browser Automation — Email + Password save karo. System Chrome kholine auto login kare + pin create kare with image + backlink'],
+            ['id' => 'bluesky',      'name' => 'Bluesky',        'url' => 'https://bsky.app',            'what_system_does' => '✅ 100% Auto — AT Protocol API. Use App Password from bsky.app → Settings → App Passwords'],
+            ['id' => 'mastodon',     'name' => 'Mastodon',       'url' => 'https://mastodon.social',     'what_system_does' => '🤖 Browser Automation — Email + Password save karo. System auto-login kare, app create kare, token generate kare + post kare automatically!'],
+            ['id' => 'minds',        'name' => 'Minds.com',      'url' => 'https://www.minds.com',       'what_system_does' => '✅ 100% Auto — REST API. Get token: minds.com → Settings → Security → API Token'],
+            ['id' => 'dribbble',     'name' => 'Dribbble',       'url' => 'https://dribbble.com',        'what_system_does' => '✅ 100% Auto — Upload shot with keyword + backlink. Get token: dribbble.com/account/applications'],
+            ['id' => 'symbaloo',     'name' => 'Symbaloo',       'url' => 'https://www.symbaloo.com',    'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System auto-login thaine webmix tile publish kare with keyword + backlink'],
+            ['id' => 'penzu',        'name' => 'Penzu',          'url' => 'https://penzu.com',           'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System journal entries list ma post add kare automatically!'],
+            ['id' => 'plurk',        'name' => 'Plurk',          'url' => 'https://www.plurk.com',       'what_system_does' => '✅ 100% Auto — REST API. Get key: plurk.com/API/Apps'],
+            ['id' => 'devto',        'name' => 'Dev.to',         'url' => 'https://dev.to',              'what_system_does' => '✅ 100% Auto — API post. Get key: dev.to/settings/extensions'],
+            ['id' => 'linktree',     'name' => 'Linktree',       'url' => 'https://linktr.ee',           'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System profile links ma new link add kare with title + backlink'],
+        ]
+    ],
+    'micro_blogging' => [
+        'title' => '✍️ Micro Blogging',
+        'color' => 'success',
+        'sites' => [
+            ['id' => 'scoopit',      'name' => 'Scoop.it',       'url' => 'https://www.scoop.it',        'what_system_does' => '📋 Semi-Auto — Auto Post dabavo → Title + Description auto-generate thay → Copy karo → Scoop.it khulse → Paste karo → Publish button dabavo'],
+            ['id' => 'wakelet',      'name' => 'Wakelet',        'url' => 'https://wakelet.com',         'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System collection create kare + URL add kare with keyword + backlink'],
+            ['id' => 'vivauae',      'name' => 'Vivauae',        'url' => 'https://vivauae.com',         'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System article submit kare with keyword + backlink'],
+            ['id' => 'padlet',       'name' => 'Padlet',         'url' => 'https://padlet.com',          'what_system_does' => '🤖 Browser Session — Chrome band karo → Auto Post click karo → System tumhara browser session use karke post add karega. Board: lmt-wb7faycbn66hp2z5'],
+            ['id' => 'pearltrees',   'name' => 'Pearltrees',     'url' => 'https://www.pearltrees.com',  'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System pearl collection ma website link add kare'],
+            ['id' => 'mewe',         'name' => 'MeWe',           'url' => 'https://mewe.com',            'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System auto-login kare + post kare with keyword + backlink'],
+            ['id' => 'instapaper',   'name' => 'Instapaper',     'url' => 'https://www.instapaper.com',  'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System article save kare with website link'],
+        ]
+    ],
+    'image_posting' => [
+        'title' => '🖼️ Image Posting',
+        'color' => 'warning',
+        'sites' => [
+            ['id' => 'gifyu',        'name' => 'Gifyu',          'url' => 'https://gifyu.com',           'what_system_does' => 'Image upload with keyword description + backlink'],
+            ['id' => 'postimage',    'name' => 'PostImage',      'url' => 'http://www.postimage.org',    'what_system_does' => 'Image post with keyword + website link'],
+            ['id' => 'photobucket',  'name' => 'Photobucket',    'url' => 'https://photobucket.com',     'what_system_does' => 'Photo album with keyword + backlink'],
+            ['id' => 'behance',      'name' => 'Behance',        'url' => 'https://www.behance.net',     'what_system_does' => 'Portfolio project with keyword + website link'],
+            ['id' => 'pbase',        'name' => 'Pbase',          'url' => 'https://www.pbase.com',       'what_system_does' => 'Photo gallery with keyword + backlink', 'autopost' => false],
+            ['id' => 'dropbox',      'name' => 'Dropbox',        'url' => 'https://www.dropbox.com',     'what_system_does' => 'Shared folder with keyword content', 'autopost' => false],
+            ['id' => 'imgbb',        'name' => 'ImgBB',          'url' => 'https://imgbb.com',           'what_system_does' => '✅ 100% Auto — Upload image with keyword + backlink. Get free API key: imgbb.com/api'],
+            ['id' => 'googledrive',  'name' => 'Google Drive',   'url' => 'https://drive.google.com',    'what_system_does' => '✅ 100% Auto — Upload PDF to public folder. Get token: console.cloud.google.com → Drive API', 'autopost' => false],
+        ]
+    ],
+    'blog_posting' => [
+        'title' => '📝 Blog Posting',
+        'color' => 'info',
+        'sites' => [
+            ['id' => 'devto',        'name' => 'Dev.to',         'url' => 'https://dev.to',              'what_system_does' => '✅ 100% Auto — API post. Get key: dev.to/settings/extensions'],
+            ['id' => 'hashnode',     'name' => 'Hashnode',       'url' => 'https://hashnode.com',        'what_system_does' => '✅ 100% Auto — GraphQL API post. Get key: hashnode.com/settings/developer'],
+            ['id' => 'ghost',        'name' => 'Ghost.io',       'url' => 'https://ghost.io',            'what_system_does' => '✅ 100% Auto — Admin API post. Get key: Ghost Admin → Integrations'],
+            ['id' => 'site123',      'name' => 'Site123',        'url' => 'https://www.site123.com',     'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System auto-login kare + blog post create kare with keyword + backlink'],
+            ['id' => 'posteezy',     'name' => 'Posteezy',       'url' => 'https://www.posteezy.com',    'what_system_does' => 'Article with keyword + backlink'],
+            ['id' => 'livejournal',  'name' => 'LiveJournal',    'url' => 'https://www.livejournal.com', 'what_system_does' => '🤖 Browser Automation — Username LMT_12 + Password. System auto-login + blog post create kare with keyword + backlink'],
+            ['id' => 'justpaste',    'name' => 'JustPaste.it',   'url' => 'https://justpaste.it',        'what_system_does' => 'Article paste with keyword + backlink'],
+            ['id' => 'wordpress',    'name' => 'WordPress.com',  'url' => 'https://wordpress.com',       'what_system_does' => '✅ 100% Auto — Click "Connect WordPress" button below to login and auto-save token'],
+            ['id' => 'medium',       'name' => 'Medium.com',     'url' => 'https://medium.com',          'what_system_does' => 'ChatGPT article → Copy & paste (API discontinued)'],
+            ['id' => 'substack',     'name' => 'Substack',       'url' => 'https://substack.com',        'what_system_does' => 'ChatGPT newsletter post → Copy & paste'],
+            ['id' => 'blogger',      'name' => 'Blogger.com',    'url' => 'https://www.blogger.com',     'what_system_does' => '✅ 100% Auto — Google OAuth token + Blog ID'],
+            ['id' => 'tumblr',       'name' => 'Tumblr',         'url' => 'https://www.tumblr.com',      'what_system_does' => '✅ 100% Auto — OAuth API. Get key: tumblr.com/oauth/apps'],
+            ['id' => 'github',       'name' => 'GitHub',         'url' => 'https://github.com',          'what_system_does' => '✅ 100% Auto — Creates repo + README. Get token: github.com/settings/tokens'],
+        ]
+    ],
+    'pdf_posting' => [
+        'title' => '📄 PDF / Document Posting',
+        'color' => 'danger',
+        'sites' => [
+            ['id' => 'mediafire',    'name' => 'MediaFire',      'url' => 'https://mediafire.com',       'what_system_does' => '✅ Auto — Logs in with Email + Password → Generates PDF with keyword description + backlink → Uploads to MediaFire → Returns public share link'],
+            ['id' => 'limewire',     'name' => 'LimeWire',       'url' => 'https://limewire.com',        'what_system_does' => 'File share with keyword + backlink'],
+            ['id' => 'fourshared',   'name' => '4Shared',        'url' => 'https://4shared.com',         'what_system_does' => '✅ Auto — Logs in with Email + Password → Generates PDF with keyword description + backlink → Uploads to 4Shared → Returns public share link'],
+            ['id' => 'workupload',   'name' => 'WorkUpload',     'url' => 'https://workupload.com',      'what_system_does' => 'File upload with keyword description'],
+            ['id' => 'powershow',    'name' => 'PowerShow',      'url' => 'https://www.powershow.com',   'what_system_does' => 'PPT presentation with keyword + backlink'],
+            ['id' => 'uploadee',     'name' => 'Upload.ee',      'url' => 'https://www.upload.ee',       'what_system_does' => 'File upload with keyword + backlink'],
+            ['id' => 'pdfhost',      'name' => 'PDFHost',        'url' => 'https://pdfhost.io',          'what_system_does' => 'PDF host with keyword description + backlink'],
+        ]
+    ],
+];
+
+// Sort sites inside each category so that active auto-post sites are at the top
+foreach ($platforms as $catKey => &$category) {
+    usort($category['sites'], function($a, $b) {
+        $a_auto = isset($a['autopost']) ? $a['autopost'] : true;
+        $b_auto = isset($b['autopost']) ? $b['autopost'] : true;
+        if ($a_auto === $b_auto) {
+            return strcasecmp($a['name'], $b['name']);
+        }
+        return $a_auto ? -1 : 1;
+    });
+}
+unset($category);
+
 // Handle AJAX Live Backlinks & Pending Tasks Table Fetch
 if (isset($_GET['action']) && $_GET['action'] === 'fetch_backlinks_html') {
     header('Content-Type: application/json');
@@ -989,98 +1082,7 @@ function renderPrimaryConsoleTableHtml($db, $selectedProjectId, $currentKeyword,
     return ob_get_clean();
 }
 
-// Platform list with what system does automatically
-$platforms = [
-    'profile_creation' => [
-        'title' => '👤 Profile Creation Sites',
-        'color' => 'primary',
-        'sites' => [
-            ['id' => 'google_business', 'name' => 'Google Business Profile', 'url' => 'https://business.google.com', 'what_system_does' => '🤖 Browser Automation — Google Email (Username). System Chrome reads master profile chrome_profile_gsc, goes to Business Search dashboard, and posts updates with text + image automatically!', 'autopost' => false],
-            ['id' => 'pinterest',    'name' => 'Pinterest',      'url' => 'https://www.pinterest.com',   'what_system_does' => '🤖 Browser Automation — Email + Password save karo. System Chrome kholine auto login kare + pin create kare with image + backlink'],
-            ['id' => 'bluesky',      'name' => 'Bluesky',        'url' => 'https://bsky.app',            'what_system_does' => '✅ 100% Auto — AT Protocol API. Use App Password from bsky.app → Settings → App Passwords'],
-            ['id' => 'mastodon',     'name' => 'Mastodon',       'url' => 'https://mastodon.social',     'what_system_does' => '🤖 Browser Automation — Email + Password save karo. System auto-login kare, app create kare, token generate kare + post kare automatically!'],
-            ['id' => 'minds',        'name' => 'Minds.com',      'url' => 'https://www.minds.com',       'what_system_does' => '✅ 100% Auto — REST API. Get token: minds.com → Settings → Security → API Token'],
-            ['id' => 'dribbble',     'name' => 'Dribbble',       'url' => 'https://dribbble.com',        'what_system_does' => '✅ 100% Auto — Upload shot with keyword + backlink. Get token: dribbble.com/account/applications'],
-            ['id' => 'symbaloo',     'name' => 'Symbaloo',       'url' => 'https://www.symbaloo.com',    'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System auto-login thaine webmix tile publish kare with keyword + backlink'],
-            ['id' => 'penzu',        'name' => 'Penzu',          'url' => 'https://penzu.com',           'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System journal entries list ma post add kare automatically!'],
-            ['id' => 'plurk',        'name' => 'Plurk',          'url' => 'https://www.plurk.com',       'what_system_does' => '✅ 100% Auto — REST API. Get key: plurk.com/API/Apps'],
-            ['id' => 'devto',        'name' => 'Dev.to',         'url' => 'https://dev.to',              'what_system_does' => '✅ 100% Auto — API post. Get key: dev.to/settings/extensions'],
-            ['id' => 'linktree',     'name' => 'Linktree',       'url' => 'https://linktr.ee',           'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System profile links ma new link add kare with title + backlink'],
-        ]
-    ],
-    'micro_blogging' => [
-        'title' => '✍️ Micro Blogging',
-        'color' => 'success',
-        'sites' => [
-            ['id' => 'scoopit',      'name' => 'Scoop.it',       'url' => 'https://www.scoop.it',        'what_system_does' => '📋 Semi-Auto — Auto Post dabavo → Title + Description auto-generate thay → Copy karo → Scoop.it khulse → Paste karo → Publish button dabavo'],
-            ['id' => 'wakelet',      'name' => 'Wakelet',        'url' => 'https://wakelet.com',         'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System collection create kare + URL add kare with keyword + backlink'],
-            ['id' => 'vivauae',      'name' => 'Vivauae',        'url' => 'https://vivauae.com',         'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System article submit kare with keyword + backlink'],
-            ['id' => 'padlet',       'name' => 'Padlet',         'url' => 'https://padlet.com',          'what_system_does' => '🤖 Browser Session — Chrome band karo → Auto Post click karo → System tumhara browser session use karke post add karega. Board: lmt-wb7faycbn66hp2z5'],
-            ['id' => 'pearltrees',   'name' => 'Pearltrees',     'url' => 'https://www.pearltrees.com',  'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System pearl collection ma website link add kare'],
-            ['id' => 'mewe',         'name' => 'MeWe',           'url' => 'https://mewe.com',            'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System auto-login kare + post kare with keyword + backlink'],
-            ['id' => 'instapaper',   'name' => 'Instapaper',     'url' => 'https://www.instapaper.com',  'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System article save kare with website link'],
-        ]
-    ],
-    'image_posting' => [
-        'title' => '🖼️ Image Posting',
-        'color' => 'warning',
-        'sites' => [
-            ['id' => 'gifyu',        'name' => 'Gifyu',          'url' => 'https://gifyu.com',           'what_system_does' => 'Image upload with keyword description + backlink'],
-            ['id' => 'postimage',    'name' => 'PostImage',      'url' => 'http://www.postimage.org',    'what_system_does' => 'Image post with keyword + website link'],
-            ['id' => 'photobucket',  'name' => 'Photobucket',    'url' => 'https://photobucket.com',     'what_system_does' => 'Photo album with keyword + backlink'],
-            ['id' => 'behance',      'name' => 'Behance',        'url' => 'https://www.behance.net',     'what_system_does' => 'Portfolio project with keyword + website link'],
-            ['id' => 'pbase',        'name' => 'Pbase',          'url' => 'https://www.pbase.com',       'what_system_does' => 'Photo gallery with keyword + backlink', 'autopost' => false],
-            ['id' => 'dropbox',      'name' => 'Dropbox',        'url' => 'https://www.dropbox.com',     'what_system_does' => 'Shared folder with keyword content', 'autopost' => false],
-            ['id' => 'imgbb',        'name' => 'ImgBB',          'url' => 'https://imgbb.com',           'what_system_does' => '✅ 100% Auto — Upload image with keyword + backlink. Get free API key: imgbb.com/api'],
-            ['id' => 'googledrive',  'name' => 'Google Drive',   'url' => 'https://drive.google.com',    'what_system_does' => '✅ 100% Auto — Upload PDF to public folder. Get token: console.cloud.google.com → Drive API', 'autopost' => false],
-        ]
-    ],
-    'blog_posting' => [
-        'title' => '📝 Blog Posting',
-        'color' => 'info',
-        'sites' => [
-            ['id' => 'devto',        'name' => 'Dev.to',         'url' => 'https://dev.to',              'what_system_does' => '✅ 100% Auto — API post. Get key: dev.to/settings/extensions'],
-            ['id' => 'hashnode',     'name' => 'Hashnode',       'url' => 'https://hashnode.com',        'what_system_does' => '✅ 100% Auto — GraphQL API post. Get key: hashnode.com/settings/developer'],
-            ['id' => 'ghost',        'name' => 'Ghost.io',       'url' => 'https://ghost.io',            'what_system_does' => '✅ 100% Auto — Admin API post. Get key: Ghost Admin → Integrations'],
-            ['id' => 'site123',      'name' => 'Site123',        'url' => 'https://www.site123.com',     'what_system_does' => '🤖 Browser Automation — Email+Password save karo. System auto-login kare + blog post create kare with keyword + backlink'],
-            ['id' => 'posteezy',     'name' => 'Posteezy',       'url' => 'https://www.posteezy.com',    'what_system_does' => 'Article with keyword + backlink'],
-            ['id' => 'livejournal',  'name' => 'LiveJournal',    'url' => 'https://www.livejournal.com', 'what_system_does' => '🤖 Browser Automation — Username LMT_12 + Password. System auto-login + blog post create kare with keyword + backlink'],
-            ['id' => 'justpaste',    'name' => 'JustPaste.it',   'url' => 'https://justpaste.it',        'what_system_does' => 'Article paste with keyword + backlink'],
-            ['id' => 'wordpress',    'name' => 'WordPress.com',  'url' => 'https://wordpress.com',       'what_system_does' => '✅ 100% Auto — Click "Connect WordPress" button below to login and auto-save token'],
-            ['id' => 'medium',       'name' => 'Medium.com',     'url' => 'https://medium.com',          'what_system_does' => 'ChatGPT article → Copy & paste (API discontinued)'],
-            ['id' => 'substack',     'name' => 'Substack',       'url' => 'https://substack.com',        'what_system_does' => 'ChatGPT newsletter post → Copy & paste'],
-            ['id' => 'blogger',      'name' => 'Blogger.com',    'url' => 'https://www.blogger.com',     'what_system_does' => '✅ 100% Auto — Google OAuth token + Blog ID'],
-            ['id' => 'tumblr',       'name' => 'Tumblr',         'url' => 'https://www.tumblr.com',      'what_system_does' => '✅ 100% Auto — OAuth API. Get key: tumblr.com/oauth/apps'],
-            ['id' => 'github',       'name' => 'GitHub',         'url' => 'https://github.com',          'what_system_does' => '✅ 100% Auto — Creates repo + README. Get token: github.com/settings/tokens'],
-        ]
-    ],
-    'pdf_posting' => [
-        'title' => '📄 PDF / Document Posting',
-        'color' => 'danger',
-        'sites' => [
-            ['id' => 'mediafire',    'name' => 'MediaFire',      'url' => 'https://mediafire.com',       'what_system_does' => '✅ Auto — Logs in with Email + Password → Generates PDF with keyword description + backlink → Uploads to MediaFire → Returns public share link'],
-            ['id' => 'limewire',     'name' => 'LimeWire',       'url' => 'https://limewire.com',        'what_system_does' => 'File share with keyword + backlink'],
-            ['id' => 'fourshared',   'name' => '4Shared',        'url' => 'https://4shared.com',         'what_system_does' => '✅ Auto — Logs in with Email + Password → Generates PDF with keyword description + backlink → Uploads to 4Shared → Returns public share link'],
-            ['id' => 'workupload',   'name' => 'WorkUpload',     'url' => 'https://workupload.com',      'what_system_does' => 'File upload with keyword description'],
-            ['id' => 'powershow',    'name' => 'PowerShow',      'url' => 'https://www.powershow.com',   'what_system_does' => 'PPT presentation with keyword + backlink'],
-            ['id' => 'uploadee',     'name' => 'Upload.ee',      'url' => 'https://www.upload.ee',       'what_system_does' => 'File upload with keyword + backlink'],
-            ['id' => 'pdfhost',      'name' => 'PDFHost',        'url' => 'https://pdfhost.io',          'what_system_does' => 'PDF host with keyword description + backlink'],
-        ]
-    ],
-];
 
-// Sort sites inside each category so that active auto-post sites are at the top
-foreach ($platforms as $catKey => &$category) {
-    usort($category['sites'], function($a, $b) {
-        $a_auto = isset($a['autopost']) ? $a['autopost'] : true;
-        $b_auto = isset($b['autopost']) ? $b['autopost'] : true;
-        if ($a_auto === $b_auto) {
-            return strcasecmp($a['name'], $b['name']);
-        }
-        return $a_auto ? -1 : 1;
-    });
-}
-unset($category);
 
 // 10 Primary platforms (linktree and site123 moved to secondary)
 $primaryIds = ['pinterest', 'bluesky', 'mastodon', 'minds', 'symbaloo', 'devto', 'livejournal', 'blogger', 'tumblr', 'github'];
