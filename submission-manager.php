@@ -965,6 +965,9 @@ function renderPrimaryConsoleTableHtml($db, $selectedProjectId, $currentKeyword,
 
 // Platform list with what system does automatically
 $platforms = [
+    'profile_creation' => [
+        'title' => '👤 Profile Creation Sites',
+        'color' => 'primary',
         'sites' => [
             ['id' => 'google_business', 'name' => 'Google Business Profile', 'url' => 'https://business.google.com', 'what_system_does' => '🤖 Browser Automation — Google Email (Username). System Chrome reads master profile chrome_profile_gsc, goes to Business Search dashboard, and posts updates with text + image automatically!', 'autopost' => false],
             ['id' => 'pinterest',    'name' => 'Pinterest',      'url' => 'https://www.pinterest.com',   'what_system_does' => '🤖 Browser Automation — Email + Password save karo. System Chrome kholine auto login kare + pin create kare with image + backlink'],
