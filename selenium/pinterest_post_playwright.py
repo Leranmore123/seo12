@@ -95,13 +95,24 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                 pass_input.fill(password)
                 page.wait_for_timeout(500)
                 
-                # Click Submit
-                submit_btn = page.locator("button[type='submit'], button.red.SignupButton, button.red.LoginButton").first
-                submit_btn.click()
+                # Submit via button click or Enter key
+                try:
+                    submit_btn = page.locator("button[type='submit'], button.red.SignupButton, button.red.LoginButton, button:has-text('Log in')").first
+                    if submit_btn.count() > 0 and submit_btn.is_visible():
+                        submit_btn.click()
+                    else:
+                        pass_input.press("Enter")
+                except Exception:
+                    pass_input.press("Enter")
                 
-                page.wait_for_timeout(7000)
-                
-                if "login" in page.url:
+                page.wait_for_timeout(4000)
+                try:
+                    page.wait_for_url(lambda u: "login" not in u.lower() and "signup" not in u.lower(), timeout=15000)
+                except Exception:
+                    pass
+
+                current_after = page.url.lower()
+                if ("login" in current_after or "signup" in current_after) and page.locator("input[type='email']").count() > 0:
                     try:
                         page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'pinterest_error.png'), timeout=5000)
                     except Exception as e_scr:
