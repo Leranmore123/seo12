@@ -116,10 +116,20 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
             log("Login OK! Pin builder ready.")
             
             # ── Step 3: Upload image ───────────────────────────────────
+            if not image_path or not os.path.exists(image_path):
+                uploads_dir = os.path.join(os.path.dirname(script_dir), 'uploads')
+                if os.path.exists(uploads_dir):
+                    import glob
+                    imgs = glob.glob(os.path.join(uploads_dir, '*.jpg')) + glob.glob(os.path.join(uploads_dir, '*.png'))
+                    if imgs:
+                        imgs.sort(key=os.path.getmtime, reverse=True)
+                        image_path = imgs[0]
+                        log(f"Auto-selected image from uploads: {image_path}")
+
             if image_path and os.path.exists(image_path):
-                log("Uploading image...")
+                log(f"Uploading image: {os.path.basename(image_path)}...")
                 try:
-                    file_input = page.locator("input[data-test-id='storyboard-upload-input']")
+                    file_input = page.locator("input[type='file'], input[data-test-id='storyboard-upload-input']").first
                     file_input.wait_for(state="attached", timeout=15000)
                     file_input.set_input_files(os.path.abspath(image_path))
                     page.wait_for_timeout(8000)
@@ -131,7 +141,7 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
             title = ai_title if ai_title else f"Best {keyword.title()} - {time.strftime('%Y')} Guide"
             log("Filling title...")
             try:
-                title_input = page.locator("#storyboard-selector-title")
+                title_input = page.locator("input[id*='title'], textarea[id*='title'], #storyboard-selector-title, [data-test-id*='title'], input[placeholder*='title'], input[placeholder*='Title']").first
                 title_input.wait_for(state="visible", timeout=10000)
                 title_input.click()
                 title_input.fill(title[:100])
