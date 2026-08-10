@@ -2690,11 +2690,15 @@ function refreshBacklinkTables() {
   const siteSelect = document.getElementById('backlinkUrlSelect');
   const siteUrl = siteSelect ? encodeURIComponent(siteSelect.value) : '';
 
+  const gridSec = document.getElementById('quickStatusGridContainer');
+  if (gridSec) gridSec.style.opacity = '0.6';
+
   fetch('submission-manager.php?action=fetch_backlinks_html&project_id=' + PROJECT_ID + '&keyword=' + kw + '&target_site=' + siteUrl, {
     headers: { 'X-Requested-With': 'XMLHttpRequest' }
   })
   .then(r => r.json())
   .then(data => {
+    if (gridSec) gridSec.style.opacity = '1';
     if (data.success) {
       const blSec = document.getElementById('createdBacklinksSection');
       if (blSec && data.createdHtml !== undefined) {
@@ -2704,14 +2708,16 @@ function refreshBacklinkTables() {
       if (pendingSec && data.pendingHtml !== undefined) {
         pendingSec.innerHTML = data.pendingHtml;
       }
-      const gridSec = document.getElementById('quickStatusGridContainer');
       if (gridSec && data.quickStatusHtml !== undefined) {
         gridSec.innerHTML = data.quickStatusHtml;
         loadSavedPlatformsSelection();
       }
     }
   })
-  .catch(e => console.error('Error refreshing backlinks:', e));
+  .catch(e => {
+    if (gridSec) gridSec.style.opacity = '1';
+    console.error('Error refreshing backlinks:', e);
+  });
 }
 
 function restoreSavedKeywordAndUrl() {
