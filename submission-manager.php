@@ -243,13 +243,16 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch_backlinks_html') {
     <?php
     $quickStatusHtml = ob_get_clean();
 
+    $primaryConsoleHtml = renderPrimaryConsoleTableHtml($db, $pId, $kw, $siteUrl, $firstBoxList, $savedMapAllList, $savedMapAllList);
+
     echo json_encode([
         'success' => true,
         'createdCount' => count($createdBLList),
         'pendingCount' => count($pendingList),
         'createdHtml' => $createdHtml,
         'pendingHtml' => $pendingHtml,
-        'quickStatusHtml' => $quickStatusHtml
+        'quickStatusHtml' => $quickStatusHtml,
+        'primaryConsoleHtml' => $primaryConsoleHtml
     ]);
     exit;
 }
@@ -806,11 +809,162 @@ function checkPlatformCooldown($db, $projectId, $platform, $keyword, $targetUrl,
     ];
 }
 
+function renderPrimaryConsoleTableHtml($db, $selectedProjectId, $currentKeyword, $currentTargetSite, $firstBoxList, $savedMap, $savedMapAll) {
+    ob_start();
+    ?>
+    <div class="card mb-4 border-0 shadow-sm" id="primaryConsoleCard">
+      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Primary Platforms Console (1 - 10)</h5>
+        <div>
+          <button class="btn btn-sm btn-success text-white fw-bold me-2 shadow-sm" id="btnRunSelected" onclick="runSelectedPlatforms(<?= $selectedProjectId ?>)">
+            <i class="fas fa-play me-1"></i>Run Selected (<span id="selectedCount">0</span>)
+          </button>
+          <button class="btn btn-sm btn-outline-light fw-bold" onclick="autoPostAll(<?= $selectedProjectId ?>)">
+            <i class="fas fa-paper-plane me-1"></i>Run All Primary
+          </button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 4%; text-align: center;">
+                  <input type="checkbox" id="selectAllPlatformsCheckbox" class="form-check-input" onchange="toggleSelectAllPlatforms(this)" title="Select/Deselect All">
+                </th>
+                <th style="width: 5%;">#</th>
+                <th style="width: 15%;">Platform</th>
+                <th style="width: 35%;">What System Does Automatically</th>
+                <th style="width: 20%;">Your Credentials</th>
+                <th style="width: 12%;">Status</th>
+                <th style="width: 13%;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($firstBoxList as $idx => $site): ?>
+              <?php 
+              $saved = isset($savedMap[$site['id']]);
+              $allAccounts = $savedMapAll[$site['id']] ?? []; 
+              ?>
+              <tr>
+                <td class="text-center">
+                  <input type="checkbox" class="form-check-input platform-select-checkbox" value="<?= $site['id'] ?>" onchange="updateSelectedPlatformsCount()">
+                </td>
+                <td><?= $idx + 1 ?></td>
+                <td>
+                  <strong><?= htmlspecialchars($site['name']) ?></strong><br>
+                  <a href="<?= htmlspecialchars($site['url']) ?>" target="_blank" class="small text-muted">
+                    <?= htmlspecialchars(substr($site['url'], 0, 30)) ?><?= strlen($site['url']) > 30 ? '...' : '' ?> <i class="fas fa-external-link-alt"></i>
+                  </a>
+                </td>
+                <td>
+                  <small class="text-success">
+                    <i class="fas fa-robot me-1"></i><?= htmlspecialchars($site['what_system_does']) ?>
+                  </small>
+                </td>
+                <td>
+                  <?php if (isset($site['autopost']) && $site['autopost'] === false && empty($allAccounts)): ?>
+                    <span class="text-muted small">Coming Soon</span>
+                  <?php else: ?>
+                    <?php if (!empty($allAccounts)): ?>
+                      <?php foreach ($allAccounts as $acc): ?>
+                      <div class="d-flex align-items-center gap-1 mb-1">
+                        <span class="text-success small">
+                          <i class="fas fa-check-circle me-1"></i><?php
+                            if ($site['id'] === 'mastodon' && !empty($acc['api_secret'])) {
+                                echo clean($acc['api_secret']);
+                            } else {
+                                echo clean($acc['username']);
+                            }
+                          ?>
+                        </span>
+                        <button class="btn btn-xs btn-outline-danger py-0 px-1"
+                                onclick="deleteAccount(<?= $acc['id'] ?>, this)"
+                                title="Remove">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                      <?php endforeach; ?>
+                      <?php if ($site['id'] === 'wordpress'): ?>
+                        <button onclick="showWpConnect()" class="btn btn-xs btn-primary mt-1">
+                          <i class="fab fa-wordpress me-1"></i>Re-Connect WordPress
+                        </button>
+                      <?php else: ?>
+                      <button class="btn btn-xs btn-outline-primary mt-1"
+                              onclick="showCredForm('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>)">
+                        <i class="fas fa-plus me-1"></i>Add More
+                      </button>
+                      <?php endif; ?>
+                    <?php else: ?>
+                      <?php if ($site['id'] === 'wordpress'): ?>
+                        <button onclick="showWpConnect()" class="btn btn-sm btn-primary">
+                          <i class="fab fa-wordpress me-1"></i>Connect WordPress
+                        </button>
+                        <br><small class="text-muted">Email + Password → Auto-save</small>
+                      <?php else: ?>
+                      <button class="btn btn-sm btn-outline-primary"
+                              onclick="showCredForm('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>)">
+                        <i class="fas fa-key me-1"></i>Add Credentials
+                      </button>
+                      <?php endif; ?>
+                    <?php endif; ?>
+                  <?php endif; ?>
+                </td>
+                <td>
+                  <?php
+                  $cooldown = checkPlatformCooldown($db, $selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite, count($allAccounts));
+                  
+                  // Fetch the latest background queue task for this platform
+                  $queueStmt = $db->prepare("SELECT status, error_message FROM backlink_queue WHERE project_id=? AND platform=? AND keyword=? AND target_url=? ORDER BY id DESC LIMIT 1");
+                  $queueStmt->execute([$selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite]);
+                  $qItem = $queueStmt->fetch(PDO::FETCH_ASSOC);
+                  ?>
+                  <?php if ($cooldown['is_cooldown']): ?>
+                    <span class="badge bg-warning text-dark"><i class="fas fa-history me-1"></i>Posted (Cooldown)</span>
+                  <?php elseif (isset($site['autopost']) && $site['autopost'] === false): ?>
+                    <span class="badge bg-secondary"><i class="fas fa-clock me-1"></i>Coming Soon</span>
+                  <?php elseif ($qItem && $qItem['status'] === 'pending'): ?>
+                    <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>⏳ Queued</span>
+                  <?php elseif ($qItem && $qItem['status'] === 'processing'): ?>
+                    <span class="badge bg-info"><i class="fas fa-spinner fa-spin me-1"></i>⚙️ Posting...</span>
+                  <?php elseif ($qItem && $qItem['status'] === 'failed'): ?>
+                    <span class="badge bg-danger text-white" style="cursor:help;" title="<?= htmlspecialchars($qItem['error_message'] ?? 'Unknown Error') ?>"><i class="fas fa-exclamation-triangle me-1"></i>❌ Failed</span>
+                  <?php elseif ($saved): ?>
+                    <span class="badge bg-success">Ready to Post</span>
+                  <?php else: ?>
+                    <span class="badge bg-secondary">Needs Credentials</span>
+                  <?php endif; ?>
+                </td>
+                <td>
+                  <?php if ($cooldown['is_cooldown']): ?>
+                    <span class="text-muted fw-bold"><i class="fas fa-clock me-1"></i>Wait <?= $cooldown['time_str'] ?></span>
+                  <?php elseif (!empty($allAccounts) && (!isset($site['autopost']) || $site['autopost'] !== false)): ?>
+                    <button class="btn btn-sm btn-success"
+                            onclick="autoPostAll('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>, <?= count($allAccounts) ?>)">
+                      <i class="fas fa-paper-plane me-1"></i>Auto Post
+                      <?php if (count($allAccounts) > 1): ?>
+                        <span class="badge bg-warning text-dark ms-1"><?= count($allAccounts) ?> accounts</span>
+                      <?php endif; ?>
+                    </button>
+                  <?php elseif (isset($site['autopost']) && $site['autopost'] === false): ?>
+                    <span class="text-muted small">Coming Soon</span>
+                  <?php else: ?>
+                    <span class="text-muted small">Add credentials first</span>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+
 // Platform list with what system does automatically
 $platforms = [
-    'profile_creation' => [
-        'title' => '👤 Profile Creation Sites',
-        'color' => 'primary',
         'sites' => [
             ['id' => 'google_business', 'name' => 'Google Business Profile', 'url' => 'https://business.google.com', 'what_system_does' => '🤖 Browser Automation — Google Email (Username). System Chrome reads master profile chrome_profile_gsc, goes to Business Search dashboard, and posts updates with text + image automatically!', 'autopost' => false],
             ['id' => 'pinterest',    'name' => 'Pinterest',      'url' => 'https://www.pinterest.com',   'what_system_does' => '🤖 Browser Automation — Email + Password save karo. System Chrome kholine auto login kare + pin create kare with image + backlink'],
@@ -1573,152 +1727,8 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
   <?php endif; ?>
 
   <!-- Platform Submission Console (1 - 10) -->
-  <div class="card mb-4 border-0 shadow-sm">
-    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <h5 class="mb-0"><i class="fas fa-list me-2"></i>Primary Platforms Console (1 - 10)</h5>
-      <div>
-        <button class="btn btn-sm btn-success text-white fw-bold me-2 shadow-sm" id="btnRunSelected" onclick="runSelectedPlatforms(<?= $selectedProjectId ?>)">
-          <i class="fas fa-play me-1"></i>Run Selected (<span id="selectedCount">0</span>)
-        </button>
-        <button class="btn btn-sm btn-outline-light fw-bold" onclick="autoPostAll(<?= $selectedProjectId ?>)">
-          <i class="fas fa-paper-plane me-1"></i>Run All Primary
-        </button>
-      </div>
-    </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-hover mb-0 align-middle">
-          <thead class="table-light">
-            <tr>
-              <th style="width: 4%; text-align: center;">
-                <input type="checkbox" id="selectAllPlatformsCheckbox" class="form-check-input" onchange="toggleSelectAllPlatforms(this)" title="Select/Deselect All">
-              </th>
-              <th style="width: 5%;">#</th>
-              <th style="width: 15%;">Platform</th>
-              <th style="width: 35%;">What System Does Automatically</th>
-              <th style="width: 20%;">Your Credentials</th>
-              <th style="width: 12%;">Status</th>
-              <th style="width: 13%;">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-          <?php foreach ($firstBoxList as $idx => $site): ?>
-            <?php 
-            $saved = isset($savedMap[$site['id']]);
-            $allAccounts = $savedMapAll[$site['id']] ?? []; 
-            ?>
-            <tr>
-              <td class="text-center">
-                <input type="checkbox" class="form-check-input platform-select-checkbox" value="<?= $site['id'] ?>" onchange="updateSelectedPlatformsCount()">
-              </td>
-              <td><?= $idx + 1 ?></td>
-              <td>
-                <strong><?= htmlspecialchars($site['name']) ?></strong><br>
-                <a href="<?= htmlspecialchars($site['url']) ?>" target="_blank" class="small text-muted">
-                  <?= htmlspecialchars(substr($site['url'], 0, 30)) ?><?= strlen($site['url']) > 30 ? '...' : '' ?> <i class="fas fa-external-link-alt"></i>
-                </a>
-              </td>
-              <td>
-                <small class="text-success">
-                  <i class="fas fa-robot me-1"></i><?= htmlspecialchars($site['what_system_does']) ?>
-                </small>
-              </td>
-              <td>
-                <?php if (isset($site['autopost']) && $site['autopost'] === false && empty($allAccounts)): ?>
-                  <span class="text-muted small">Coming Soon</span>
-                <?php else: ?>
-                  <?php if (!empty($allAccounts)): ?>
-                    <?php foreach ($allAccounts as $acc): ?>
-                    <div class="d-flex align-items-center gap-1 mb-1">
-                      <span class="text-success small">
-                        <i class="fas fa-check-circle me-1"></i><?php
-                          if ($site['id'] === 'mastodon' && !empty($acc['api_secret'])) {
-                              echo clean($acc['api_secret']);
-                          } else {
-                              echo clean($acc['username']);
-                          }
-                        ?>
-                      </span>
-                      <button class="btn btn-xs btn-outline-danger py-0 px-1"
-                              onclick="deleteAccount(<?= $acc['id'] ?>, this)"
-                              title="Remove">
-                        <i class="fas fa-times"></i>
-                      </button>
-                    </div>
-                    <?php endforeach; ?>
-                    <?php if ($site['id'] === 'wordpress'): ?>
-                      <button onclick="showWpConnect()" class="btn btn-xs btn-primary mt-1">
-                        <i class="fab fa-wordpress me-1"></i>Re-Connect WordPress
-                      </button>
-                    <?php else: ?>
-                    <button class="btn btn-xs btn-outline-primary mt-1"
-                            onclick="showCredForm('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>)">
-                      <i class="fas fa-plus me-1"></i>Add More
-                    </button>
-                    <?php endif; ?>
-                  <?php else: ?>
-                    <?php if ($site['id'] === 'wordpress'): ?>
-                      <button onclick="showWpConnect()" class="btn btn-sm btn-primary">
-                        <i class="fab fa-wordpress me-1"></i>Connect WordPress
-                      </button>
-                      <br><small class="text-muted">Email + Password → Auto-save</small>
-                    <?php else: ?>
-                    <button class="btn btn-sm btn-outline-primary"
-                            onclick="showCredForm('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>)">
-                      <i class="fas fa-key me-1"></i>Add Credentials
-                    </button>
-                    <?php endif; ?>
-                  <?php endif; ?>
-                <?php endif; ?>
-              </td>
-              <td>
-                <?php
-                $cooldown = checkPlatformCooldown($db, $selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite, count($allAccounts));
-                
-                // Fetch the latest background queue task for this platform
-                $queueStmt = $db->prepare("SELECT status, error_message FROM backlink_queue WHERE project_id=? AND platform=? AND keyword=? AND target_url=? ORDER BY id DESC LIMIT 1");
-                $queueStmt->execute([$selectedProjectId, $site['id'], $currentKeyword, $currentTargetSite]);
-                $qItem = $queueStmt->fetch(PDO::FETCH_ASSOC);
-                ?>
-                <?php if ($cooldown['is_cooldown']): ?>
-                  <span class="badge bg-warning text-dark"><i class="fas fa-history me-1"></i>Posted (Cooldown)</span>
-                <?php elseif (isset($site['autopost']) && $site['autopost'] === false): ?>
-                  <span class="badge bg-secondary"><i class="fas fa-clock me-1"></i>Coming Soon</span>
-                <?php elseif ($qItem && $qItem['status'] === 'pending'): ?>
-                  <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>⏳ Queued</span>
-                <?php elseif ($qItem && $qItem['status'] === 'processing'): ?>
-                  <span class="badge bg-info"><i class="fas fa-spinner fa-spin me-1"></i>⚙️ Posting...</span>
-                <?php elseif ($qItem && $qItem['status'] === 'failed'): ?>
-                  <span class="badge bg-danger text-white" style="cursor:help;" title="<?= htmlspecialchars($qItem['error_message'] ?? 'Unknown Error') ?>"><i class="fas fa-exclamation-triangle me-1"></i>❌ Failed</span>
-                <?php elseif ($saved): ?>
-                  <span class="badge bg-success">Ready to Post</span>
-                <?php else: ?>
-                  <span class="badge bg-secondary">Needs Credentials</span>
-                <?php endif; ?>
-              </td>
-              <td>
-                <?php if ($cooldown['is_cooldown']): ?>
-                  <span class="text-muted fw-bold"><i class="fas fa-clock me-1"></i>Wait <?= $cooldown['time_str'] ?></span>
-                <?php elseif (!empty($allAccounts) && (!isset($site['autopost']) || $site['autopost'] !== false)): ?>
-                  <button class="btn btn-sm btn-success"
-                          onclick="autoPostAll('<?= $site['id'] ?>', '<?= $site['name'] ?>', <?= $selectedProjectId ?>, <?= count($allAccounts) ?>)">
-                    <i class="fas fa-paper-plane me-1"></i>Auto Post
-                    <?php if (count($allAccounts) > 1): ?>
-                      <span class="badge bg-warning text-dark ms-1"><?= count($allAccounts) ?> accounts</span>
-                    <?php endif; ?>
-                  </button>
-                <?php elseif (isset($site['autopost']) && $site['autopost'] === false): ?>
-                  <span class="text-muted small">Coming Soon</span>
-                <?php else: ?>
-                  <span class="text-muted small">Add credentials first</span>
-                <?php endif; ?>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <div id="primaryConsoleContainer">
+    <?= renderPrimaryConsoleTableHtml($db, $selectedProjectId, $currentKeyword, $currentTargetSite, $firstBoxList, $savedMap, $savedMapAll) ?>
   </div>
 
   <!-- Platform Submission Console (11 - 45) -->
@@ -2710,8 +2720,12 @@ function refreshBacklinkTables() {
       }
       if (gridSec && data.quickStatusHtml !== undefined) {
         gridSec.innerHTML = data.quickStatusHtml;
-        loadSavedPlatformsSelection();
       }
+      const primConsoleSec = document.getElementById('primaryConsoleContainer');
+      if (primConsoleSec && data.primaryConsoleHtml !== undefined) {
+        primConsoleSec.innerHTML = data.primaryConsoleHtml;
+      }
+      loadSavedPlatformsSelection();
     }
   })
   .catch(e => {
