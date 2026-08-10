@@ -67,7 +67,7 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
             
             # ── Step 1: Login Check ────────────────────────────────────
             log("Checking login status...")
-            page.goto("https://www.pinterest.com/")
+            page.goto("https://www.pinterest.com/", wait_until="domcontentloaded", timeout=60000)
             page.wait_for_timeout(4000)
             
             already_logged = False
@@ -79,7 +79,7 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                 
             if not already_logged:
                 log("Not logged in — logging in...")
-                page.goto("https://www.pinterest.com/login/")
+                page.goto("https://www.pinterest.com/login/", wait_until="domcontentloaded", timeout=60000)
                 page.wait_for_timeout(4000)
                 
                 # Email input
@@ -102,7 +102,10 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                 page.wait_for_timeout(7000)
                 
                 if "login" in page.url:
-                    page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'pinterest_error.png'))
+                    try:
+                        page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'pinterest_error.png'), timeout=5000)
+                    except Exception as e_scr:
+                        log(f"Screenshot exception: {e_scr}")
                     log("Saved login failure screenshot to pinterest_error.png")
                     result(False, error="Pinterest login failed — may be blocked temporarily. Try again in 10 minutes.")
                     context.close()
@@ -111,7 +114,7 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
             log("Login OK!")
             
             # ── Step 2: Pin Creation Tool ──────────────────────────────
-            page.goto("https://www.pinterest.com/pin-creation-tool/")
+            page.goto("https://www.pinterest.com/pin-creation-tool/", wait_until="domcontentloaded", timeout=60000)
             page.wait_for_timeout(6000)
             log("Pin builder opened")
             
