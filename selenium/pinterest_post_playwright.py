@@ -169,7 +169,7 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
             title = ai_title if ai_title else f"Best {keyword.title()} - {time.strftime('%Y')} Guide"
             log("Filling title...")
             try:
-                title_input = page.locator("input[id*='title'], textarea[id*='title'], #storyboard-selector-title, [data-test-id*='title'], input[placeholder*='title'], input[placeholder*='Title']").first
+                title_input = page.locator("#storyboard-selector-title, input[id*='storyboard-selector-title'], textarea[id*='storyboard-selector-title'], input[placeholder*='title' i], textarea[placeholder*='title' i], [data-test-id='pin-builder-title']").first
                 title_input.wait_for(state="visible", timeout=10000)
                 title_input.click()
                 title_input.fill(title[:100])
