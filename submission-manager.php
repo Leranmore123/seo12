@@ -148,12 +148,108 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch_backlinks_html') {
     <?php endif;
     $pendingHtml = ob_get_clean();
 
+    // Render Quick Status Cards Grid for the passed keyword and target_site
+    $primaryIds = ['pinterest', 'bluesky', 'mastodon', 'minds', 'symbaloo', 'devto', 'livejournal', 'blogger', 'tumblr', 'github'];
+    $primaryPlatformsList = [];
+    $iconMapList = [
+        'pinterest' => 'fab fa-pinterest text-danger',
+        'bluesky' => 'fas fa-cloud text-primary',
+        'mastodon' => 'fab fa-mastodon text-info',
+        'minds' => 'fas fa-circle-notch text-dark',
+        'symbaloo' => 'fas fa-th text-warning',
+        'devto' => 'fab fa-dev text-dark',
+        'linktree' => 'fas fa-tree text-success',
+        'site123' => 'fas fa-globe text-primary',
+        'livejournal' => 'fas fa-book text-info',
+        'blogger' => 'fab fa-blogger text-warning',
+        'tumblr' => 'fab fa-tumblr text-primary',
+        'github' => 'fab fa-github text-dark'
+    ];
+    foreach ($primaryIds as $id) {
+        foreach ($platforms as $catKey => $cat) {
+            foreach ($cat['sites'] as $site) {
+                if ($site['id'] === $id) {
+                    $site['icon'] = $iconMapList[$id] ?? 'fas fa-share-alt';
+                    $primaryPlatformsList[] = $site;
+                    break 2;
+                }
+            }
+        }
+    }
+
+    $savedAccountsStmt = $db->prepare("SELECT * FROM social_accounts WHERE project_id=?");
+    $savedAccountsStmt->execute([$pId]);
+    $savedAccountsRows = $savedAccountsStmt->fetchAll();
+    $savedMapAllList = [];
+    foreach ($savedAccountsRows as $acc) {
+        $savedMapAllList[$acc['platform']][] = $acc;
+    }
+
+    ob_start();
+    ?>
+    <div class="row g-2">
+      <?php foreach ($primaryPlatformsList as $idx => $pSite): ?>
+        <?php 
+        $pAllAccounts = $savedMapAllList[$pSite['id']] ?? [];
+        $pCooldown = checkPlatformCooldown($db, $pId, $pSite['id'], $kw, $siteUrl, count($pAllAccounts));
+        ?>
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+          <div class="card h-100 border text-center p-2 bg-white shadow-none position-relative" style="transition: all 0.2s ease-in-out; border-radius: 8px;"
+               onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'; this.style.transform='translateY(-2px)';" 
+               onmouseout="this.style.boxShadow='none'; this.style.transform='none';">
+            <div class="position-absolute top-0 end-0 p-1" style="z-index:2;">
+              <input type="checkbox" class="form-check-input platform-select-checkbox" value="<?= $pSite['id'] ?>" onchange="updateSelectedPlatformsCount()" title="Select <?= htmlspecialchars($pSite['name']) ?>">
+            </div>
+            <div class="mb-1 mt-1">
+              <i class="<?= $pSite['icon'] ?> fa-lg"></i>
+            </div>
+            <div class="fw-bold text-dark mb-1" style="font-size: 12.5px; line-height: 1.2; height: 30px; display: flex; align-items: center; justify-content: center;">
+              <?= $idx + 1 ?>. <?= $pSite['name'] ?>
+            </div>
+            
+            <!-- Status Badge -->
+            <div class="mb-2">
+              <?php if ($pCooldown['is_cooldown']): ?>
+                <span class="badge bg-warning text-dark" style="font-size: 9px; padding: 3px 6px;">Posted (Cooldown)</span>
+              <?php elseif (isset($pSite['autopost']) && $pSite['autopost'] === false): ?>
+                <span class="badge bg-secondary text-white" style="font-size: 9px; padding: 3px 6px;">Coming Soon</span>
+              <?php elseif (!empty($pAllAccounts)): ?>
+                <span class="badge bg-success" style="font-size: 9px; padding: 3px 6px;">Ready</span>
+              <?php else: ?>
+                <span class="badge bg-light text-muted border" style="font-size: 9px; padding: 2px 5px;">Needs Creds</span>
+              <?php endif; ?>
+            </div>
+
+            <!-- Action button -->
+            <div class="mt-auto pt-1 mb-1">
+              <?php if ($pCooldown['is_cooldown']): ?>
+                <span class="text-muted fw-bold" style="font-size: 11px;"><i class="fas fa-clock me-1"></i>Wait <?= $pCooldown['time_str'] ?></span>
+              <?php elseif (isset($pSite['autopost']) && $pSite['autopost'] === false): ?>
+                <span class="text-muted" style="font-size: 11px;">Coming Soon</span>
+              <?php elseif (!empty($pAllAccounts)): ?>
+                <button class="btn btn-xs btn-success py-0 px-2 fw-bold" style="font-size: 10px;" onclick="autoPostAll('<?= $pSite['id'] ?>', '<?= $pSite['name'] ?>', <?= $pId ?>, <?= count($pAllAccounts) ?>)">
+                  <i class="fas fa-paper-plane me-1"></i>Post
+                </button>
+              <?php else: ?>
+                <button class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size: 10px;" onclick="showCredForm('<?= $pSite['id'] ?>', '<?= $pSite['name'] ?>', <?= $pId ?>)">
+                  <i class="fas fa-key me-1"></i>Add
+                </button>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+    <?php
+    $quickStatusHtml = ob_get_clean();
+
     echo json_encode([
         'success' => true,
         'createdCount' => count($createdBLList),
         'pendingCount' => count($pendingList),
         'createdHtml' => $createdHtml,
-        'pendingHtml' => $pendingHtml
+        'pendingHtml' => $pendingHtml,
+        'quickStatusHtml' => $quickStatusHtml
     ]);
     exit;
 }
@@ -665,14 +761,14 @@ function checkPlatformCooldown($db, $projectId, $platform, $keyword, $targetUrl,
     // Cooldown is 12 hours = 43200 seconds
     $cooldownPeriod = 43200; 
 
-    // Retrieve all posts created for this platform & project in the last 12 hours
+    // Retrieve all posts created for this specific platform, project, keyword & target_url in the last 12 hours
     $blCheck = $db->prepare("
         SELECT created_at FROM backlinks 
         WHERE project_id = ? 
           AND platform = ? 
           AND status = 'created' 
-          AND (keyword = ? OR (keyword IS NULL AND (post_title LIKE ? OR backlink_url LIKE ?)))
-          AND (target_url = ? OR target_url IS NULL)
+          AND keyword = ?
+          AND (target_url = ? OR (target_url IS NULL AND ? = ''))
           AND created_at >= DATE_SUB(NOW(), INTERVAL 12 HOUR)
         ORDER BY created_at DESC
     ");
@@ -680,8 +776,7 @@ function checkPlatformCooldown($db, $projectId, $platform, $keyword, $targetUrl,
         $projectId, 
         $platform, 
         $keyword, 
-        '%' . $keyword . '%', 
-        '%' . $keyword . '%', 
+        $targetUrl,
         $targetUrl
     ]);
     $recentPosts = $blCheck->fetchAll(PDO::FETCH_ASSOC);
@@ -1115,7 +1210,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
         <span class="badge bg-light text-primary small fw-bold">10 Platforms</span>
       </div>
     </div>
-    <div class="card-body p-3 bg-light">
+    <div class="card-body p-3 bg-light" id="quickStatusGridContainer">
       <div class="row g-2">
         <?php foreach ($primaryPlatforms as $idx => $pSite): ?>
           <?php 
@@ -2608,6 +2703,11 @@ function refreshBacklinkTables() {
       const pendingSec = document.getElementById('pendingTasksSection');
       if (pendingSec && data.pendingHtml !== undefined) {
         pendingSec.innerHTML = data.pendingHtml;
+      }
+      const gridSec = document.getElementById('quickStatusGridContainer');
+      if (gridSec && data.quickStatusHtml !== undefined) {
+        gridSec.innerHTML = data.quickStatusHtml;
+        loadSavedPlatformsSelection();
       }
     }
   })
