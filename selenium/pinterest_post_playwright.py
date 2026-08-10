@@ -73,8 +73,9 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
             already_logged = False
             current_url = page.url.lower()
             if "login" not in current_url and "signup" not in current_url:
-                already_logged = True
-                log("Already logged in via saved Chrome session cookies!")
+                if page.locator("input[type='email'], input[name='username'], input#email").count() == 0:
+                    already_logged = True
+                    log("Already logged in via saved Chrome session cookies!")
             
             if not already_logged:
                 log("Session expired or not logged in — logging in...")
