@@ -68,7 +68,64 @@ $currentImage = $project['post_image'] ?? null;
 $insertStmt = $db->prepare('INSERT INTO backlink_queue (project_id, social_account_id, platform, keyword, target_url, status, post_image) VALUES (?, ?, ?, ?, ?, "pending", ?)');
 $checkStmt  = $db->prepare('SELECT COUNT(*) FROM backlink_queue WHERE project_id = ? AND social_account_id = ? AND keyword = ? AND (target_url = ? OR (target_url IS NULL AND ? = "")) AND status IN ("pending", "processing")');
 
+$fastApiPlatforms = ['bluesky', 'devto', 'blogger', 'tumblr', 'github', 'wordpress', 'hashnode', 'ghost', 'plurk'];
+
 foreach ($accounts as $creds) {
+    $plat = strtolower($creds['platform']);
+
+    // Instant Fast-Track API Execution for API platforms (Bluesky, Dev.to, Blogger, Tumblr, GitHub, etc.)
+    if (in_array($plat, $fastApiPlatforms)) {
+        // Cooldown / duplicate check: check if backlink was already posted for this exact keyword in last 12h
+        $checkCreated = $db->prepare('SELECT COUNT(*) FROM backlinks WHERE project_id = ? AND platform = ? AND keyword = ? AND (target_url = ? OR (target_url IS NULL AND ? = "")) AND status = "created" AND created_at >= DATE_SUB(NOW(), INTERVAL 12 HOUR)');
+        $checkCreated->execute([$projectId, $plat, $keyword, $targetSite, $targetSite]);
+        if ((int)$checkCreated->fetchColumn() > 0) {
+            $results[] = [
+                'platform' => $creds['platform'],
+                'name'     => ucfirst($creds['platform']) . ' (' . $creds['username'] . ')',
+                'handle'   => $creds['username'],
+                'status'   => 'duplicate',
+                'message'  => 'Already posted for this keyword in last 12h',
+            ];
+            continue;
+        }
+
+        // Execute API post instantly in real-time
+        try {
+            $res = runPlatformAutoPost($plat, $creds, $project, $projectId);
+            if (!empty($res['success'])) {
+                savePostedBacklink($db, $projectId, $plat, $res);
+                $results[] = [
+                    'platform' => $creds['platform'],
+                    'name'     => ucfirst($creds['platform']) . ' (' . $creds['username'] . ')',
+                    'handle'   => $creds['username'],
+                    'status'   => 'success',
+                    'message'  => '✅ Posted instantly via API! ' . ($res['url'] ?? ''),
+                    'url'      => $res['url'] ?? ''
+                ];
+                $queued++;
+            } else {
+                $errMsg = $res['error'] ?? $res['message'] ?? 'API posting failed';
+                $results[] = [
+                    'platform' => $creds['platform'],
+                    'name'     => ucfirst($creds['platform']) . ' (' . $creds['username'] . ')',
+                    'handle'   => $creds['username'],
+                    'status'   => 'failed',
+                    'message'  => '❌ ' . $errMsg
+                ];
+            }
+        } catch (Throwable $e) {
+            $results[] = [
+                'platform' => $creds['platform'],
+                'name'     => ucfirst($creds['platform']) . ' (' . $creds['username'] . ')',
+                'handle'   => $creds['username'],
+                'status'   => 'failed',
+                'message'  => '❌ ' . $e->getMessage()
+            ];
+        }
+        continue;
+    }
+
+    // Heavy Selenium Platforms (Pinterest, Symbaloo, Minds) — enqueue for safe 1-by-1 background cron execution
     $checkStmt->execute([$projectId, $creds['id'], $keyword, $targetSite, $targetSite]);
     $exists = (int)$checkStmt->fetchColumn();
 
@@ -97,7 +154,7 @@ foreach ($accounts as $creds) {
         'name'     => ucfirst($creds['platform']) . ' (' . $creds['username'] . ')',
         'handle'   => $creds['username'],
         'status'   => 'pending',
-        'message'  => 'Queued in background',
+        'message'  => 'Queued for background browser execution',
     ];
     $queued++;
 }
