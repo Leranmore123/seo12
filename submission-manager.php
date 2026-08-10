@@ -243,7 +243,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch_backlinks_html') {
     <?php
     $quickStatusHtml = ob_get_clean();
 
-    $primaryConsoleHtml = renderPrimaryConsoleTableHtml($db, $pId, $kw, $siteUrl, $firstBoxList, $savedMapAllList, $savedMapAllList);
+    $primaryConsoleHtml = renderPrimaryConsoleTableHtml($db, $pId, $kw, $siteUrl, $platforms, $savedAccountsRows);
 
     echo json_encode([
         'success' => true,
@@ -809,7 +809,33 @@ function checkPlatformCooldown($db, $projectId, $platform, $keyword, $targetUrl,
     ];
 }
 
-function renderPrimaryConsoleTableHtml($db, $selectedProjectId, $currentKeyword, $currentTargetSite, $firstBoxList, $savedMap, $savedMapAll) {
+function getPrimaryConsoleSites($platformsList) {
+    $primaryIds = ['pinterest', 'bluesky', 'mastodon', 'minds', 'symbaloo', 'devto', 'livejournal', 'blogger', 'tumblr', 'github'];
+    $orderedSitesList = [];
+    $addedIds = [];
+
+    foreach ($primaryIds as $id) {
+        foreach ($platformsList as $catKey => $cat) {
+            foreach ($cat['sites'] as $site) {
+                if ($site['id'] === $id && !in_array($id, $addedIds)) {
+                    $orderedSitesList[] = $site;
+                    $addedIds[] = $id;
+                    break 2;
+                }
+            }
+        }
+    }
+    return array_slice($orderedSitesList, 0, 10);
+}
+
+function renderPrimaryConsoleTableHtml($db, $selectedProjectId, $currentKeyword, $currentTargetSite, $platformsList, $savedAccountsRows) {
+    $firstBoxList = getPrimaryConsoleSites($platformsList);
+    $savedMap = [];
+    $savedMapAll = [];
+    foreach ($savedAccountsRows as $acc) {
+        $savedMap[$acc['platform']] = true;
+        $savedMapAll[$acc['platform']][] = $acc;
+    }
     ob_start();
     ?>
     <div class="card mb-4 border-0 shadow-sm" id="primaryConsoleCard">
@@ -1731,7 +1757,7 @@ wordpress,myblog.wordpress.com,oauth_token_here</pre>
 
   <!-- Platform Submission Console (1 - 10) -->
   <div id="primaryConsoleContainer">
-    <?= renderPrimaryConsoleTableHtml($db, $selectedProjectId, $currentKeyword, $currentTargetSite, $firstBoxList, $savedMap, $savedMapAll) ?>
+    <?= renderPrimaryConsoleTableHtml($db, $selectedProjectId, $currentKeyword, $currentTargetSite, $platforms, $savedAccountsRows) ?>
   </div>
 
   <!-- Platform Submission Console (11 - 45) -->
