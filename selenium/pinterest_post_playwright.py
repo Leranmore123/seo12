@@ -157,15 +157,28 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
             log(f"Description length: {len(desc)} chars")
             log("Filling description...")
             try:
-                desc_input = page.locator("[contenteditable='true'], .public-DraftEditor-editor, [data-test-id*='description']").first
+                desc_input = page.locator("#storyboard-selector-description, [data-test-id*='description'], [contenteditable='true'], .public-DraftEditor-editor").first
                 desc_input.wait_for(state="visible", timeout=10000)
                 desc_input.click()
+                page.wait_for_timeout(400)
                 desc_input.fill(desc)
+                page.wait_for_timeout(300)
+                # Dispatch input & change events so Pinterest React state saves the description
+                page.evaluate("""() => {
+                    const el = document.querySelector("#storyboard-selector-description, [data-test-id*='description'], [contenteditable='true'], .public-DraftEditor-editor");
+                    if (el) {
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }""")
+                page.keyboard.type(" ")
                 log("Description OK!")
             except Exception as e:
                 try:
-                    page.evaluate("([sel, val]) => { document.querySelector(sel).innerText = val; }", ["[contenteditable='true']", desc])
-                    log("Description OK (JS fallback)!")
+                    desc_input = page.locator("[contenteditable='true']").first
+                    desc_input.click()
+                    page.keyboard.type(desc, delay=2)
+                    log("Description OK (keyboard fallback)!")
                 except Exception as e2:
                     log(f"Desc: {e2}")
             
