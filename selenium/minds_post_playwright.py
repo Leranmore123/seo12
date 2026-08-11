@@ -1,23 +1,4 @@
-PS C:\Users\ADMIN\Desktop\seo-system> git push origin main
-Enumerating objects: 7, done.
-Counting objects: 100% (7/7), done.
-Compressing objects: 100% (4/4), done.
-Writing objects: 100% (4/4), 686 bytes | 686.00 KiB/s, done.
-Total 4 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
-To https://github.com/Leranmore123/seo12.git
-   11ae6d8..15b3430  main -> main
-PS C:\Users\ADMIN\Desktop\seo-system> git push origin main
-Enumerating objects: 7, done.
-Counting objects: 100% (7/7), done.
-Compressing objects: 100% (4/4), done.
-Writing objects: 100% (4/4), 803 bytes | 803.00 KiB/s, done.
-Total 4 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
-remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
-To https://github.com/Leranmore123/seo12.git
-   15b3430..edc56cf  main -> main
-PS C:\Users\ADMIN\Desktop\seo-system> 
-PS C:\Users\ADMIN\Desktop\seo-system>#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Minds.com Auto-Post via Playwright
 Migrated from Selenium for enhanced stability and auto-waiting.
