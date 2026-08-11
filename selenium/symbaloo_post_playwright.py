@@ -163,8 +163,12 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                 log("Symbaloo: Already logged in!")
                 
             # Go to target mix URL
-            target_mix = custom_mix_url if (custom_mix_url and "symbaloo.com" in custom_mix_url) else "https://www.symbaloo.com/"
-            log(f"Symbaloo: Navigating to mix = {target_mix}")
+            custom_mix_clean = custom_mix_url.strip() if custom_mix_url else ""
+            if custom_mix_clean and not custom_mix_clean.startswith("http"):
+                custom_mix_clean = "https://" + custom_mix_clean.lstrip("/")
+
+            target_mix = custom_mix_clean if (custom_mix_clean and "symbaloo.com" in custom_mix_clean) else "https://www.symbaloo.com/"
+            log(f"Symbaloo: Navigating to custom target mix = {target_mix}")
             try:
                 page.goto(target_mix, wait_until="domcontentloaded", timeout=60000)
             except Exception as ge:
@@ -174,7 +178,7 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
             close_consent_modal(page)
             close_adblock_modal(page)
             
-            log(f"Symbaloo: Mix loaded = {page.url}")
+            log(f"Symbaloo: Custom Mix loaded successfully = {page.url}")
             page.keyboard.press("Escape")
             page.wait_for_timeout(500)
             
@@ -194,7 +198,24 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
             log(f"Symbaloo: Empty cells = {cell_count}")
             
             if cell_count == 0:
-                result(False, error="Symbaloo: No empty cells in this mix")
+                log("Symbaloo: Webmix is full — trying to create a new Webmix or click Add Webmix...")
+                try:
+                    add_mix_btn = page.locator("button:has-text('+'), [class*='add-mix'], button:has-text('Add a Webmix'), button:has-text('Add Webmix'), a:has-text('Add Webmix')").first
+                    if add_mix_btn.count() > 0 and add_mix_btn.is_visible():
+                        add_mix_btn.click()
+                        page.wait_for_timeout(2000)
+                        mix_name_inp = page.locator("input[placeholder*='Name' i], input[placeholder*='name' i], input[type='text']").first
+                        if mix_name_inp.count() > 0 and mix_name_inp.is_visible():
+                            mix_name_inp.fill(f"SEO Links {int(time.time())}")
+                            page.keyboard.press("Enter")
+                            page.wait_for_timeout(4000)
+                            cells = page.locator("[id^='gridEmptyCell'], div[class*='emptyCell'], div[class*='empty-cell']")
+                            cell_count = cells.count()
+                except Exception as e_mix:
+                    log(f"Symbaloo: Create Webmix exception: {e_mix}")
+            
+            if cell_count == 0:
+                result(False, error="Symbaloo: No empty cells in this mix and unable to create new webmix")
                 context.close()
                 return
                 
@@ -232,13 +253,19 @@ def symbaloo_post(email, password, keyword, target_url, custom_mix_url="", ai_de
                 for sel in [
                     "#tileSearchInput",
                     "input[id*='tileSearchInput']",
+                    "input[name='url']",
+                    "input[name*='tile']",
+                    "[data-test-id='tile-url-input']",
                     "input[placeholder*='URL' i]",
                     "input[placeholder*='url' i]",
+                    "input[placeholder*='website' i]",
+                    "input[placeholder*='address' i]",
                     "input[placeholder*='search query' i]",
                     "input[placeholder*='Enter a URL' i]",
                     "input[placeholder*='Add' i]",
                     "div[class*='sidebar'] input",
                     "div[class*='drawer'] input",
+                    "div[class*='panel'] input",
                     "input[type='search']",
                     "input[type='text']",
                 ]:
