@@ -79,8 +79,23 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
             
             if not already_logged:
                 log("Session expired or not logged in — logging in...")
-                page.goto("https://www.pinterest.com/login/", wait_until="domcontentloaded", timeout=60000)
-                page.wait_for_timeout(4000)
+                log("Initializing Pinterest homepage session cookies...")
+                try:
+                    page.goto("https://www.pinterest.com/", wait_until="domcontentloaded", timeout=60000)
+                    page.wait_for_timeout(3000)
+                except Exception:
+                    pass
+
+                # Click top-right Log in button to trigger authentic modal, or fallback to /login/
+                login_nav_btn = page.locator("button:has-text('Log in'), a:has-text('Log in'), [data-test-id='simple-login-button']").first
+                if login_nav_btn.count() > 0 and login_nav_btn.is_visible():
+                    log("Clicking homepage Log in button to open modal...")
+                    login_nav_btn.click()
+                    page.wait_for_timeout(3000)
+                else:
+                    log("Navigating to /login/ page...")
+                    page.goto("https://www.pinterest.com/login/", wait_until="domcontentloaded", timeout=60000)
+                    page.wait_for_timeout(3000)
                 
                 # Email input — human typing simulation to bypass bot detector
                 email_input = page.locator("input[type='email'], input#email, input[name='username']").first
