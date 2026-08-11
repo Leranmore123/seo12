@@ -82,18 +82,24 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                 page.goto("https://www.pinterest.com/login/", wait_until="domcontentloaded", timeout=60000)
                 page.wait_for_timeout(4000)
                 
-                # Email input
+                # Email input — human typing simulation to bypass bot detector
                 email_input = page.locator("input[type='email'], input#email, input[name='username']").first
                 email_input.wait_for(state="visible", timeout=20000)
                 email_input.click()
-                email_input.fill(email)
-                page.wait_for_timeout(500)
+                try:
+                    email_input.press_sequentially(email, delay=60)
+                except Exception:
+                    email_input.fill(email)
+                page.wait_for_timeout(1000)
                 
-                # Password input
+                # Password input — human typing simulation
                 pass_input = page.locator("input[type='password'], input#password, input[name='password']").first
                 pass_input.click()
-                pass_input.fill(password)
-                page.wait_for_timeout(500)
+                try:
+                    pass_input.press_sequentially(password, delay=60)
+                except Exception:
+                    pass_input.fill(password)
+                page.wait_for_timeout(1500)
                 
                 # Submit via button click or Enter key
                 try:
