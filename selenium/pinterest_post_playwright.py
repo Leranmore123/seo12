@@ -79,30 +79,16 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
             
             if not already_logged:
                 log("Session expired or not logged in — logging in...")
-                log("Initializing Pinterest homepage session cookies...")
-                try:
-                    page.goto("https://www.pinterest.com/", wait_until="domcontentloaded", timeout=60000)
-                    page.wait_for_timeout(3000)
-                except Exception:
-                    pass
-
-                # Click top-right Log in button to trigger authentic modal, or fallback to /login/
-                login_nav_btn = page.locator("button:has-text('Log in'), a:has-text('Log in'), [data-test-id='simple-login-button']").first
-                if login_nav_btn.count() > 0 and login_nav_btn.is_visible():
-                    log("Clicking homepage Log in button to open modal...")
-                    login_nav_btn.click()
-                    page.wait_for_timeout(3000)
-                else:
-                    log("Navigating to /login/ page...")
-                    page.goto("https://www.pinterest.com/login/", wait_until="domcontentloaded", timeout=60000)
-                    page.wait_for_timeout(3000)
+                log("Navigating to Pinterest /login/ page...")
+                page.goto("https://www.pinterest.com/login/", wait_until="domcontentloaded", timeout=60000)
+                page.wait_for_timeout(4000)
                 
                 # Email input — human typing simulation to bypass bot detector
                 email_input = page.locator("input[type='email'], input#email, input[name='username']").first
                 email_input.wait_for(state="visible", timeout=20000)
                 email_input.click()
                 try:
-                    email_input.press_sequentially(email, delay=60)
+                    email_input.press_sequentially(email, delay=50)
                 except Exception:
                     email_input.fill(email)
                 page.wait_for_timeout(1000)
@@ -111,31 +97,29 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                 pass_input = page.locator("input[type='password'], input#password, input[name='password']").first
                 pass_input.click()
                 try:
-                    pass_input.press_sequentially(password, delay=60)
+                    pass_input.press_sequentially(password, delay=50)
                 except Exception:
                     pass_input.fill(password)
                 page.wait_for_timeout(1500)
                 
-                # Submit via button click or Enter key
+                # Submit via JS click and Enter key to avoid pointer intercepts
                 try:
-                    submit_btn = page.locator("button[type='submit'], [data-test-id='registerFormSubmitButton'], [data-test-id='login-button'], button.red.SignupButton, button.red.LoginButton, button:has-text('Log in'), div[role='button']:has-text('Log in')").first
+                    submit_btn = page.locator("button[type='submit'], [data-test-id='registerFormSubmitButton'], [data-test-id='login-button'], button:has-text('Log in')").first
                     if submit_btn.count() > 0 and submit_btn.is_visible():
-                        log("Clicking Pinterest login button...")
-                        submit_btn.click()
+                        log("Submitting Pinterest login form via JS click...")
+                        submit_btn.evaluate("el => el.click()")
                     else:
-                        log("Submit button not visible — pressing Enter key...")
+                        log("Submit button not found — pressing Enter key...")
                         pass_input.press("Enter")
                 except Exception as e_sub:
-                    log(f"Submit button click exception: {e_sub}")
+                    log(f"Submit exception: {e_sub}")
                     pass_input.press("Enter")
                 
-                page.wait_for_timeout(3000)
-                # Fallback: if still on login page, press Enter on password field
-                if "login" in page.url.lower() or "signup" in page.url.lower():
-                    try:
-                        pass_input.press("Enter")
-                    except Exception:
-                        pass
+                page.wait_for_timeout(2000)
+                try:
+                    pass_input.press("Enter")
+                except Exception:
+                    pass
 
                 page.wait_for_timeout(5000)
                 try:
