@@ -180,7 +180,17 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                     log("Saved login failure screenshot to pinterest_error.png")
                 except Exception as ex:
                     log(f"Screenshot exception: {ex}")
-                result(False, error="Pinterest login failed — may be blocked temporarily. Try again in 10 minutes.")
+                # Auto-clean broken profile directory so next run with updated password starts completely fresh!
+                try:
+                    driver.quit()
+                except Exception:
+                    pass
+                import shutil
+                try:
+                    shutil.rmtree(profile_dir, ignore_errors=True)
+                except Exception:
+                    pass
+                result(False, error="Pinterest login failed — please check email & password.")
                 return
 
         log("Login OK!")
