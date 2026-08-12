@@ -383,6 +383,9 @@ function postToTumblr($creds, $keyword, $targetSite, $geminiKey, $openaiKey, $po
     // Generate OAuth 1.0a header
     $authHeader = getTumblrOAuthHeader($consumerKey, $consumerSecret, $oauthToken, $oauthTokenSecret, $url, 'POST', $postFields);
     
+    // 1.5s micro-delay to prevent Tumblr rate limits on back-to-back requests
+    usleep(1500000);
+
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -411,6 +414,33 @@ function postToTumblr($creds, $keyword, $targetSite, $geminiKey, $openaiKey, $po
         ];
     }
     
+    // Auto-retry on 429 Rate Limit
+    if ($httpCode === 429) {
+        sleep(3);
+        $authHeaderRetry = getTumblrOAuthHeader($consumerKey, $consumerSecret, $oauthToken, $oauthTokenSecret, $url, 'POST', $postFields);
+        $chRetry = curl_init($url);
+        curl_setopt_array($chRetry, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => http_build_query($postFields, '', '&', PHP_QUERY_RFC3986),
+            CURLOPT_HTTPHEADER     => [$authHeaderRetry, 'Content-Type: application/x-www-form-urlencoded'],
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        $response = curl_exec($chRetry);
+        $httpCode = (int) curl_getinfo($chRetry, CURLINFO_HTTP_CODE);
+        curl_close($chRetry);
+        $result = json_decode($response, true);
+        if (isset($result['response']['id'])) {
+            return [
+                'success' => true,
+                'url' => "https://{$blogName}/post/" . $result['response']['id'],
+                'source' => $ai['source'],
+                'post_title' => $title
+            ];
+        }
+    }
+
     $msg = $result['meta']['msg'] ?? ($result['errors'][0]['detail'] ?? $response);
     if ($httpCode === 401) {
         return ['error' => "Tumblr API error (HTTP 401): Unauthorized. Re-authorize blog at http://" . ($_SERVER['HTTP_HOST'] ?? '54.210.197.187.nip.io') . "/scratch/tumblr_oauth_helper.php"];

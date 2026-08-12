@@ -102,18 +102,21 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                     pass_input.fill(password)
                 page.wait_for_timeout(1500)
                 
-                # Submit via JS click and Enter key to avoid pointer intercepts
+                # Submit via trusted click / Enter key to bypass Pinterest bot detection
                 try:
                     submit_btn = page.locator("button[type='submit'], [data-test-id='registerFormSubmitButton'], [data-test-id='login-button'], button:has-text('Log in')").first
                     if submit_btn.count() > 0 and submit_btn.is_visible():
-                        log("Submitting Pinterest login form via JS click...")
-                        submit_btn.evaluate("el => el.click()")
+                        log("Submitting Pinterest login form via trusted click...")
+                        submit_btn.click(timeout=5000)
                     else:
                         log("Submit button not found — pressing Enter key...")
                         pass_input.press("Enter")
                 except Exception as e_sub:
                     log(f"Submit exception: {e_sub}")
-                    pass_input.press("Enter")
+                    try:
+                        pass_input.press("Enter")
+                    except Exception:
+                        pass
                 
                 page.wait_for_timeout(2000)
                 try:
@@ -129,7 +132,7 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
 
                 current_after = page.url.lower()
                 if ("login" in current_after or "signup" in current_after) and page.locator("input[type='email']").count() > 0:
-                    err_detail = "Pinterest login failed — please check password @DISHA12@ or try again."
+                    err_detail = f"Pinterest login failed — please check password for {email} or try again."
                     try:
                         page.screenshot(path=os.path.join(os.path.dirname(script_dir), 'uploads', 'pinterest_error.png'), timeout=5000)
                         # Check for visible error messages on Pinterest screen
