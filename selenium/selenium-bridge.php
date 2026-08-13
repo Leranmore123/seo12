@@ -49,6 +49,7 @@ function runSeleniumScript(string $script, array $args, int $timeout = 240): arr
     if (!file_exists($appTmpDir)) {
         @mkdir($appTmpDir, 0777, true);
     }
+    @chmod($appTmpDir, 0777);
     $env['WDM_DIR'] = $appTmpDir . DIRECTORY_SEPARATOR . '.wdm';
     $env['HOME'] = $appTmpDir;
     $env['XDG_CONFIG_HOME'] = $appTmpDir;
