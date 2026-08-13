@@ -224,6 +224,10 @@ function seleniumPinterest(array $creds, string $keyword, string $targetSite, in
     $args[] = $aiDesc;
 
     $result = runSeleniumScript('pinterest_post_playwright.py', $args, 240);
+    if (empty($result['success'])) {
+        // Fallback to Selenium Chrome engine (pinterest_post.py) if Playwright is blocked
+        $result = runSeleniumScript('pinterest_post.py', $args, 240);
+    }
 
     if (!empty($result['success'])) {
         return [
