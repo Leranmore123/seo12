@@ -70,8 +70,18 @@ def get_driver(email="default"):
                     pass
 
     opts.add_argument(f'--user-data-dir={profile_dir}')
-    service = Service(ChromeDriverManager().install())
-    driver  = webdriver.Chrome(service=service, options=opts)
+    try:
+        service = Service(ChromeDriverManager().install())
+        driver  = webdriver.Chrome(service=service, options=opts)
+    except Exception as e_cdm:
+        try:
+            driver = webdriver.Chrome(options=opts)
+        except Exception as e_cdm2:
+            import shutil
+            # Attempt to use system chromedriver
+            sys_chromedriver = shutil.which('chromedriver') or '/usr/bin/chromedriver'
+            service = Service(sys_chromedriver)
+            driver  = webdriver.Chrome(service=service, options=opts)
     try:
         driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
