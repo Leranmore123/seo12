@@ -97,11 +97,16 @@ def js_click(driver, el):
     driver.execute_script("arguments[0].click();", el)
 
 def js_set_value(driver, el, value):
-    """React-compatible value setter"""
+    """React-compatible value setter supporting input and textarea elements"""
     driver.execute_script("""
         var el = arguments[0], val = arguments[1];
-        var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-        setter.call(el, val);
+        var proto = (el.tagName === 'TEXTAREA') ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+        var descriptor = Object.getOwnPropertyDescriptor(proto, 'value');
+        if (descriptor && descriptor.set) {
+            descriptor.set.call(el, val);
+        } else {
+            el.value = val;
+        }
         el.dispatchEvent(new Event('input', {bubbles: true}));
         el.dispatchEvent(new Event('change', {bubbles: true}));
     """, el, value)
