@@ -97,18 +97,23 @@ def js_click(driver, el):
     driver.execute_script("arguments[0].click();", el)
 
 def js_set_value(driver, el, value):
-    """React-compatible value setter supporting input and textarea elements"""
+    """React-compatible value setter supporting input, textarea, and contenteditable elements"""
     driver.execute_script("""
         var el = arguments[0], val = arguments[1];
-        var proto = (el.tagName === 'TEXTAREA') ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
-        var descriptor = Object.getOwnPropertyDescriptor(proto, 'value');
-        if (descriptor && descriptor.set) {
-            descriptor.set.call(el, val);
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+            var proto = (el.tagName === 'TEXTAREA') ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+            var descriptor = Object.getOwnPropertyDescriptor(proto, 'value');
+            if (descriptor && descriptor.set) {
+                try { descriptor.set.call(el, val); } catch(e) { el.value = val; }
+            } else {
+                el.value = val;
+            }
+            el.dispatchEvent(new Event('input', {bubbles: true}));
+            el.dispatchEvent(new Event('change', {bubbles: true}));
         } else {
-            el.value = val;
+            try { el.innerText = val; } catch(e) { el.textContent = val; }
+            el.dispatchEvent(new Event('input', {bubbles: true}));
         }
-        el.dispatchEvent(new Event('input', {bubbles: true}));
-        el.dispatchEvent(new Event('change', {bubbles: true}));
     """, el, value)
 
 def set_input_value(driver, el, value):
@@ -307,6 +312,8 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
             "input[placeholder*='Link']",
             "input[placeholder*='destination']",
             "input[placeholder*='Destination']",
+            "[data-test-id*='link'] input",
+            "[data-test-id*='website'] input",
             "[data-test-id*='link']",
             "[data-test-id*='website']"
         ]
