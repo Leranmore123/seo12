@@ -21,6 +21,7 @@ os.environ['WDM_LOG'] = '0'
 os.environ['WDM_DIR'] = os.path.join(app_tmp_dir, '.wdm')
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -105,6 +106,9 @@ def js_set_value(driver, el, value):
         el.dispatchEvent(new Event('change', {bubbles: true}));
     """, el, value)
 
+def set_input_value(driver, el, value):
+    js_set_value(driver, el, value)
+
 def pinterest_post(email, password, keyword, target_site, image_path=None, ai_title="", ai_content=""):
     log(f"Starting Pinterest post with email: {email}")
     driver = get_driver(email)
@@ -145,8 +149,7 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                 if email_field:
                     email_field.click()
                     email_field.clear()
-                    driver.execute_script("arguments[0].value = '';", email_field)
-                    time.sleep(0.3)
+                    set_input_value(driver, email_field, email)
                     email_field.send_keys(email)
                     time.sleep(0.5)
 
@@ -163,13 +166,13 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                 if pass_field:
                     pass_field.click()
                     pass_field.clear()
-                    driver.execute_script("arguments[0].value = '';", pass_field)
-                    time.sleep(0.3)
+                    set_input_value(driver, pass_field, password)
                     pass_field.send_keys(password)
-                    time.sleep(0.4)
+                    time.sleep(0.5)
+                    pass_field.send_keys(Keys.ENTER)
 
                 # Find all potential submit buttons and choose the displayed one
-                submit_buttons = driver.find_elements(By.CSS_SELECTOR, "button[type='submit'], button.red.SignupButton, button.red.LoginButton")
+                submit_buttons = driver.find_elements(By.CSS_SELECTOR, "button[type='submit'], button.red.SignupButton, button.red.LoginButton, [data-test-id='registerFormSubmitButton']")
                 submit_btn = None
                 for sb in submit_buttons:
                     if sb.is_displayed():
@@ -179,25 +182,26 @@ def pinterest_post(email, password, keyword, target_site, image_path=None, ai_ti
                     submit_btn = submit_buttons[0]
 
                 if submit_btn:
-                    submit_btn.click()
-                time.sleep(7)
+                    try:
+                        driver.execute_script("arguments[0].click();", submit_btn)
+                    except Exception:
+                        submit_btn.click()
+                time.sleep(8)
             except Exception as e:
                 log(f"Login form error: {e}")
 
-            if "login" in driver.current_url:
+            # Verify if logged in by navigating to pin creation tool directly
+            driver.get("https://www.pinterest.com/pin-creation-tool/")
+            time.sleep(5)
+
+            if "login" in driver.current_url.lower() or "signup" in driver.current_url.lower():
                 try:
                     driver.save_screenshot(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'pinterest_error.png'))
                     log("Saved login failure screenshot to pinterest_error.png")
                 except Exception as ex:
                     log(f"Screenshot exception: {ex}")
-                # Auto-clean broken profile directory so next run with updated password starts completely fresh!
                 try:
                     driver.quit()
-                except Exception:
-                    pass
-                import shutil
-                try:
-                    shutil.rmtree(profile_dir, ignore_errors=True)
                 except Exception:
                     pass
                 result(False, error="Pinterest login failed — please check email & password.")
