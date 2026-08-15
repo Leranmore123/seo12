@@ -231,6 +231,13 @@ function seleniumPinterest(array $creds, string $keyword, string $targetSite, in
     }
 
     if (!empty($result['success'])) {
+        if (!empty($result['url']) && !empty($creds['id'])) {
+            try {
+                $db = getDB();
+                $upStmt = $db->prepare("UPDATE social_accounts SET profile_url = ? WHERE id = ? AND (profile_url IS NULL OR profile_url = '')");
+                $upStmt->execute([$result['url'], $creds['id']]);
+            } catch (Exception $e) {}
+        }
         return [
             'success'    => true,
             'url'        => $result['url'] ?: 'https://www.pinterest.com/me/',
