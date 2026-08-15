@@ -210,6 +210,15 @@ function refreshBloggerToken($refreshToken) {
 }
 
 function postToBlogger($accessToken, $blogId, $keyword, $targetSite, $openaiKey, $refreshToken = '', $postCount = 1, array $usedTitles = [], string $businessName = '', string $businessDesc = '') {
+    // If access token is empty but refresh token is available, attempt auto-refresh
+    if (empty($accessToken) && !empty($refreshToken)) {
+        $accessToken = refreshBloggerToken($refreshToken);
+        if ($accessToken) {
+            $db = getDB();
+            $db->prepare("UPDATE social_accounts SET api_key=? WHERE platform='blogger' AND (api_secret=? OR refresh_token=?)")->execute([$accessToken, $blogId, $refreshToken]);
+        }
+    }
+
     if (empty($accessToken)) return ['error' => 'Blogger Access Token missing. Get from: https://developers.google.com/oauthplayground'];
     if (empty($blogId))      return ['error' => 'Blog ID missing. Enter Blog ID in the API Secret field.'];
 
@@ -243,13 +252,13 @@ function postToBlogger($accessToken, $blogId, $keyword, $targetSite, $openaiKey,
     $result = json_decode($response, true);
     if (isset($result['url'])) return ['success' => true, 'url' => $result['url'], 'source' => $ai['source'], 'post_title' => $title];
 
-    // Token expired (401) â€” try refresh token
+    // Token expired (401) — try refresh token
     if (isset($result['error']['code']) && $result['error']['code'] == 401 && !empty($refreshToken)) {
         $newToken = refreshBloggerToken($refreshToken);
         if ($newToken) {
-            // Update token in DB (filter by user to avoid updating other users)
+            // Update token in DB
             $db = getDB();
-            $db->prepare("UPDATE social_accounts SET api_key=? WHERE platform='blogger' AND user_id=(SELECT user_id FROM projects WHERE id=? LIMIT 1)")->execute([$newToken, 0]);
+            $db->prepare("UPDATE social_accounts SET api_key=? WHERE platform='blogger' AND (api_secret=? OR refresh_token=?)")->execute([$newToken, $blogId, $refreshToken]);
 
             // Retry with new token
             $ch = curl_init("https://www.googleapis.com/blogger/v3/blogs/{$blogId}/posts/");
